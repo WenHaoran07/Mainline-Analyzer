@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLU Performance Analyzers | J&T</title>
+  <style>
+    :root {
+      --jt-red: #E60012;
+      --jt-red-dark: #B8000E;
+      --jt-red-light: #FFEBEE;
+      --jt-red-soft: #FFCDD2;
+      --bg: #F5F5F5;
+      --card: #FFFFFF;
+      --text: #212121;
+      --muted: #757575;
+      --border: #E0E0E0;
+      --green: #2E7D32;
+      --green-bg: #E8F5E9;
+      --blue: #1565C0;
+      --blue-bg: #E3F2FD;
+      --amber: #FF8F00;
+      --amber-bg: #FFF8E1;
+      --purple: #6A1B9A;
+      --purple-bg: #F3E5F5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .logo-gif {
+  width: 132px;
+  height: 132px;
+  object-fit: contain;
+  border-radius: 10px;
+  padding: 4px;
+  display: block;
+  margin-left: 370px;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--jt-red) 0%, var(--jt-red-dark) 100%);
+  color: white;
+  padding: 14px 24px;
+  box-shadow: 0 2px 12px rgba(230,0,18,0.3);
+}
+.header-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 300px;
+}
+.logo {
+  width: 42px; height: 42px;
+  background: white;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 1.1rem; color: var(--jt-red);
+}
+.header h1 { 
+  font-size: 2.4rem;
+  font-weight: 700; 
+  line-height: 1.2;
+}
+.header p { font-size: 0.82rem; opacity: 0.9; margin-top: 2px; }
+
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 20px 48px;
+      flex: 1;
+      width: 100%;
+    }
+
+    .intro {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .intro h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .intro p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 700px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      padding: 28px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.1);
+      border-color: var(--jt-red-soft);
+    }
+    .card:active {
+      transform: translateY(-1px);
+    }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+    .card.loading-rate .card-icon {
+      background: var(--jt-red-light);
+      color: var(--jt-red);
+    }
+    .card.travel-time .card-icon {
+      background: var(--blue-bg);
+      color: var(--blue);
+    }
+    .card.waiting .card-icon {
+      background: var(--amber-bg);
+      color: var(--amber);
+    }
+    .card.vehicle-size .card-icon {
+      background: var(--purple-bg);
+      color: var(--purple);
+    }
+
+    .card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .card p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      flex: 1;
+      margin-bottom: 18px;
+      line-height: 1.55;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #F5F5F5;
+      color: var(--muted);
+    }
+    .badge.target {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--jt-red);
+      color: white;
+      font-weight: 600;
+      font-size: 0.92rem;
+      padding: 11px 18px;
+      border-radius: 10px;
+      border: none;
+      transition: background 0.15s ease;
+      width: 100%;
+    }
+    .card:hover .card-btn {
+      background: var(--jt-red-dark);
+    }
+    .card.travel-time .card-btn {
+      background: var(--blue);
+    }
+    .card.travel-time:hover .card-btn {
+      background: #0D47A1;
+    }
+    .card.waiting .card-btn {
+      background: var(--amber);
+    }
+    .card.waiting:hover .card-btn {
+      background: #E65100;
+    }
+    .card.vehicle-size .card-btn {
+      background: var(--purple);
+    }
+    .card.vehicle-size:hover .card-btn {
+      background: #4A148C;
+    }
+
+    footer {
+      text-align: center;
+      padding: 18px 16px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      background: var(--card);
+    }
+    footer strong {
+      color: var(--text);
+    }
+
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.2rem; }
+      .container { padding: 24px 14px 36px; }
+      .card { padding: 22px 18px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+      <div class="header-left">
+        <img src="jt-logo.gif" alt="J&T Express Logo" class="logo-gif"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo logo-fallback" style="display:none;">J&T</div>
+        <h1>SLU Performance Analyzers</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="intro">
+      <h2>Select Analyzer</h2>
+      <p>Click a card to open it. Use the <strong>← Back to Hub</strong> button on each tool to return here.</p>
+    </div>
+
+    <div class="cards">
+
+      <a class="card loading-rate" href="LoadingRateAnalyzer.html" title="Open Loading Rate Analyzer">
+        <div class="card-icon">📦</div>
+        <h3>Loading Rate</h3>
+        <p>
+          Analyze SLU loading tickets, average loading time, branch impact, and daily trends.
+          Compare previous day vs latest day with route filters.
+        </p>
+        <div class="card-meta">
+          <span class="badge target">Target focus</span>
+          <span class="badge">Branch impact</span>
+          <span class="badge">Daily trend</span>
+        </div>
+        <div class="card-btn">Open Loading Rate →</div>
+      </a>
+
+      <a class="card travel-time" href="MainlineTravelTimeAnalyzer.html" title="Open Mainline Travel Time Analyzer">
+        <div class="card-icon">🛣️</div>
+        <h3>Mainline Travel Time</h3>
+        <p>
+          Measure on-time performance for Luzon / VisMin routes, delay reasons,
+          and top contributors. Supports Overall, Luzon, and VisMin filters.
+        </p>
+        <div class="card-meta">
+          <span class="badge target">Overall 96%</span>
+          <span class="badge target">Luzon 97%</span>
+          <span class="badge target">VisMin 85%</span>
+        </div>
+        <div class="card-btn">Open Travel Time →</div>
+      </a>
+
+      <a class="card waiting" href="WaitingForDepartureAnalyzer.html" title="Open Waiting for Departure Analyzer">
+        <div class="card-icon">⏱️</div>
+        <h3>Waiting for Departure</h3>
+        <p>
+          Track sealing / finish-to-ATD interval (≤ 30 min = on-time).
+          View metrics by DC, Supervisor, Route, and Carrier with date comparison.
+        </p>
+        <div class="card-meta">
+          <span class="badge target">Target 97%</span>
+          <span class="badge">By DC / Supervisor</span>
+          <span class="badge">Late detail</span>
+        </div>
+        <div class="card-btn">Open Waiting for Departure →</div>
+      </a>
+
+      <a class="card vehicle-size" href="VehicleSizeAccuracyAnalyzer.html" title="Open Vehicle Size Accuracy Analyzer">
+        <div class="card-icon">🚛</div>
+        <h3>Vehicle Size Accuracy</h3>
+        <p>
+          Check planned vs actual vehicle size accuracy. Compare days, filter by area,
+          and review mismatch detail with daily history (Target 97%).
+        </p>
+        <div class="card-meta">
+          <span class="badge target">Target 97%</span>
+          <span class="badge">By area</span>
+          <span class="badge">Mismatch detail</span>
+        </div>
+        <div class="card-btn">Open Vehicle Size Accuracy →</div>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>
+    © 2026 Vince Adesa · J&T Performance Analyzer Hub
+  </footer>
+
+</body>
+</html>

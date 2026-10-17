@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLU Mainline Travel Time Analyzer | J&T</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="mtt.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <img src="Rider.gif" alt="J&T Express Logo" class="logo-gif"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo logo-fallback" style="display:none;">J&T</div>
+        <div>
+          <h1>Mainline Travel Time Analyzer</h1>
+          <p></p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="upload-box" id="dropZone">
+      <img src="upload-file.gif" alt="Upload File" class="upload-gif"
+           onerror="this.outerHTML='<div class=&quot;upload-icon&quot;>📂</div>';">
+      <p><strong>Click to upload</strong> or drag &amp; drop Excel file</p>
+      <p><strong>Mainline Luzon-Vismin.xlsx</strong> (with DelayReason sheet is recommended)</p>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <img src="jnt-loading.gif" alt="Loading..." class="loading-gif"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="spinner" style="display:none;"></div>
+      <div>Analyzing travel time data, please wait...</div>
+    </div>
+    <div id="loadingCompare" class="loading hidden">
+      <img src="loading.gif" alt="Comparing..." class="loading-gif"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="spinner" style="display:none;"></div>
+      <div>Comparing date metrics, please wait...</div>
+    </div>
+
+    <div id="results" class="hidden">
+      <div class="card">
+        <h2><span class="icon">📅</span> Date Comparison</h2>
+        <div class="date-selectors">
+          <div><label>Previous day</label><select id="selectPrev"></select></div>
+          <div><label>Latest day (Current)</label><select id="selectLatest"></select></div>
+          <div>
+            <label>Route filter</label>
+            <select id="selectRouteType">
+              <option value="ALL">Overall (All routes)</option>
+              <option value="LUZON">Luzon Route only</option>
+              <option value="VISMIN">VisMin Route only</option>
+            </select>
+          </div>
+          <button id="btnCompare">Compare</button>
+        </div>
+        <div class="date-info">
+          Current day: <span class="badge" id="dateLatest"></span> · vs <span class="badge" id="datePrev"></span>
+          · Filter: <span class="badge" id="filterBadge" style="background:#1565C0;">Overall</span>
+          <span class="target-badge" id="targetBadgeText">Target 96%</span>
+        </div>
+        <div class="metrics" id="metricsOverall"></div>
+        <div class="summary-box" id="summaryText"></div>
+      </div>
+
+      <!-- LATE REGIONS & ROUTES -->
+      <div class="card" style="border-color: var(--jt-red-soft);">
+        <h2><span class="icon">⚠</span> Late Regions &amp; Routes</h2>
+        <p class="section-note">Only for the selected route filter · regions and routes with at least one late trip</p>
+        <div id="lateRegionsPanel"></div>
+        <div id="lateRoutesPanel"></div>
+        <div id="noLatePanel" class="hidden"></div>
+      </div>
+
+      <div class="split-row">
+        <div class="card">
+          <h2><span class="icon">🛣️</span> LUZON Routes <span class="tag tag-luzon">Target 97%</span></h2>
+          <div class="metrics" id="metricsLuzon"></div>
+          <div id="lateLuzonNote" class="section-note"></div>
+        </div>
+        <div class="card">
+          <h2><span class="icon">⛴️</span> VisMin Routes <span class="tag tag-vismin">Target 85%</span></h2>
+          <div class="metrics" id="metricsVismin"></div>
+          <div id="lateVisminNote" class="section-note"></div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="card"><h2><span class="icon">📉</span> Late Trips by Region</h2><div class="chart-wrap"><canvas id="chartRegions"></canvas></div></div>
+        <div class="card"><h2><span class="icon">🗺️</span> Top Late Routes</h2><div class="chart-wrap"><canvas id="chartRoutes"></canvas></div></div>
+      </div>
+      <div class="charts-row">
+        <div class="card"><h2><span class="icon">🚛</span> Late by Trucker</h2><div class="chart-wrap"><canvas id="chartTruckers"></canvas></div></div>
+        <div class="card"><h2><span class="icon">📍</span> Late by DC Intended</h2><div class="chart-wrap"><canvas id="chartDC"></canvas></div></div>
+      </div>
+
+      <div class="card">
+        <div class="tabs">
+          <div class="tab active" data-tab="tabRoutes">Routes</div>
+          <div class="tab" data-tab="tabRegions">Regions</div>
+          <div class="tab" data-tab="tabDC">DC Intended</div>
+          <div class="tab" data-tab="tabTrucker">Truckers</div>
+          <div class="tab" data-tab="tabLateDetail">Late Trip Detail</div>
+          <div class="tab" data-tab="tabHistory">Daily History</div>
+          <div class="tab" data-tab="tabGraphs">Graphs</div>
+          <div class="tab" data-tab="tabDelayReason">Delay Reason</div>
+        </div>
+
+        <div id="tabRoutes" class="tab-panel active">
+          <p class="section-note">Routes for the selected filter only</p>
+          <div class="table-scroll"><table>
+            <thead><tr>
+              <th>Type</th><th>Region</th><th>Route</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Prev Rate</th><th>Rate Diff</th><th>Target</th>
+            </tr></thead>
+            <tbody id="routesBody"></tbody>
+          </table></div>
+        </div>
+        <div id="tabRegions" class="tab-panel">
+          <p class="section-note">Region intended (destination area)</p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Region</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Prev Rate</th><th>Rate Diff</th></tr></thead>
+            <tbody id="regionsBody"></tbody>
+          </table></div>
+        </div>
+        <div id="tabDC" class="tab-panel">
+          <p class="section-note">DC Intended on current day</p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>DC Code</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Prev Rate</th><th>Rate Diff</th></tr></thead>
+            <tbody id="dcBody"></tbody>
+          </table></div>
+        </div>
+        <div id="tabTrucker" class="tab-panel">
+          <p class="section-note"></p>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Trucker</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Prev Rate</th><th>Rate Diff</th></tr></thead>
+            <tbody id="truckerBody"></tbody>
+          </table></div>
+        </div>
+        <div id="tabLateDetail" class="tab-panel">
+          <p class="section-note"></p>
+          <div class="table-scroll"><table>
+            <thead><tr>
+              <th>Task ID</th><th>Route</th><th>Type</th><th>Region</th><th>Trucker</th><th>DC</th><th>Actual TT</th><th>Plan TT</th><th>Overrun</th>
+            </tr></thead>
+            <tbody id="lateBody"></tbody>
+          </table></div>
+        </div>
+        <div id="tabHistory" class="tab-panel">
+          <p class="section-note" id="historyNote">Daily achievement rate for the selected route filter only</p>
+          <div class="table-scroll"><table>
+            <thead id="historyHead">
+              <tr>
+                <th>Date</th><th>Total</th><th>Rate</th><th>Late</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table></div>
+          <div class="chart-wrap history-chart-wrap"><canvas id="chartHistory"></canvas></div>
+        </div>
+
+
+        <div id="tabGraphs" class="tab-panel">
+          <p class="section-note" id="graphsNote">Achievement rate trends for Overall, Luzon Route, and VisMin Route</p>
+          <div class="metrics" id="graphsMetrics"></div>
+          <div class="graphs-triple">
+            <div class="card graph-card">
+              <h2><span class="icon">📊</span> Overall <span class="tag" style="background:#FFEBEE;color:#E60012;">Target 96%</span></h2>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartOverallTrend"></canvas></div>
+            </div>
+            <div class="card graph-card">
+              <h2><span class="icon">🛣️</span> Luzon Route <span class="tag tag-luzon">Target 97%</span></h2>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartLuzonTrend"></canvas></div>
+            </div>
+            <div class="card graph-card">
+              <h2><span class="icon">⛴️</span> VisMin Route <span class="tag tag-vismin">Target 85%</span></h2>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartVisminTrend"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tabDelayReason" class="tab-panel">
+          <div class="pe-toolbar">
+            <div id="peDateFilterWrap">
+              <label class="pe-label">Report date</label>
+              <select id="selectDelayDate"></select>
+            </div>
+            <div id="peWeekFilterWrap" style="display:none;">
+              <label class="pe-label">Report week</label>
+              <select id="selectDelayWeek"></select>
+            </div>
+            <div class="pe-subtabs">
+              <button type="button" class="pe-subtab active" data-pe-view="daily">Daily Problem Encountered</button>
+              <button type="button" class="pe-subtab" data-pe-view="weekly">Weekly Problem Encountered</button>
+              <button type="button" class="pe-subtab" data-pe-view="table">Delay Reason Table</button>
+            </div>
+            <div class="pe-proof-wrap">
+              <a id="btnPhotoProof" class="pe-proof-btn" href="https://jtexpress.feishu.cn/wiki/FK7mwi0qSiBT0Ykh50Ycq68Ine3?from=from_copylink" target="_blank" rel="noopener noreferrer">Click here to see Photo Proof (Feishu)</a>
+            </div>
+          </div>
+          <div id="delayReasonPanel">
+            <div id="peDailyView"></div>
+            <div id="peWeeklyView" class="hidden"></div>
+            <div id="peTableView" class="hidden"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-watermark">
+   © 2026 <strong>Vince Adesa</strong> - Mainline Travel Time Analyzer
+  </footer>
+
+  <!-- Modular scripts (same pattern as Loading Rate Analyzer) -->
+  <script src="mttUtils.js"></script>
+  <script src="mttFileProcessor.js"></script>
+  <script src="mttDataAnalyzer.js"></script>
+  <script src="mttChartManager.js"></script>
+  <script src="mttUIManager.js"></script>
+  <script src="mttDelayReason.js"></script>
+  <script src="mttApp.js"></script>
+</body>
+</html>
+

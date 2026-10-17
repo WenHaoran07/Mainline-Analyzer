@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLU Loading Rate Analyzer | J&T (v5)</title>
+  
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- External Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .booster-box {
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+      border: 1px solid #2E7D32;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .booster-box .boost-icon {
+      width: 40px; height: 40px;
+      background: #2E7D32;
+      color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+    .booster-box .booster-title {
+      font-weight: 700;
+      color: #1B5E20;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .booster-box .booster-detail {
+      font-size: 0.88rem;
+      color: #33691E;
+    }
+    tr.top-booster td {
+      background: #E8F5E9 !important;
+      font-weight: 600;
+    }
+    tr.top-booster td:first-child::before {
+      content: "▲ ";
+      color: #2E7D32;
+    }
+    .chart-side-gif-card {
+      display: flex;
+      flex-direction: column;
+    }
+    .chart-side-gif-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      padding: 8px;
+    }
+    .chart-side-gif {
+      max-width: 100%;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+    .total-lt-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 4px;
+      min-height: 240px;
+    }
+    .total-lt-chart-wrap {
+      height: 210px;
+      position: relative;
+    }
+    .total-lt-item {
+      background: #FAFAFA;
+      border: 1px solid #E0E0E0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .total-lt-label {
+      font-size: 0.75rem;
+      color: #757575;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 2px;
+    }
+    .total-lt-date {
+      font-size: 0.8rem;
+      color: #9E9E9E;
+      margin-bottom: 6px;
+    }
+    .total-lt-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #212121;
+    }
+    .total-lt-divider {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #9E9E9E;
+    }
+    .total-lt-diff {
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 8px;
+      border-radius: 8px;
+    }
+    .total-lt-diff.down {
+      background: #FFEBEE;
+      color: #E60012;
+    }
+    .total-lt-diff.up {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+    .total-lt-diff.neutral {
+      background: #F5F5F5;
+      color: #757575;
+    }
+    .ai-header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .ai-translate-btn {
+      padding: 5px 12px;
+      border: 1px solid #E60012;
+      background: #fff;
+      color: #E60012;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ai-translate-btn:hover {
+      background: #E60012;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <img src="Packing.gif" alt="J&T Express Logo" class="logo-gif">
+        <div>
+          <h1>Loading Rate Analyzer</h1>
+        </div>
+      </div>
+<a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;margin-right:12px;">← Back to Hub</a>
+      <!-- Packing GIF inside Header -->
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="app-layout">
+      <!-- Sidebar First (Left Side) -->
+      <aside class="reference-sidebar" id="referenceSidebar">
+        <div class="reference-heading">
+          <div class="reference-icon">⌕</div>
+          <div><h2>DC Code Reference</h2><p>Quick lookup directory</p></div>
+        </div>
+        <input type="search" id="dcSearch" class="reference-search" placeholder="Search code, DC, area, region..." aria-label="Search DC code reference">
+        <div class="reference-tabs" role="tablist" aria-label="Reference type">
+          <button type="button" class="reference-tab active" data-ref-tab="master">DC Master</button>
+          <button type="button" class="reference-tab" data-ref-tab="ports">Port Used</button>
+          <button type="button" class="reference-tab" data-ref-tab="trucks">Truck Size</button>
+        </div>
+        <div class="reference-count" id="referenceCount">Loading reference...</div>
+        <div class="reference-table-wrap"><table class="reference-table"><thead id="referenceHead"></thead><tbody id="referenceBody"></tbody></table></div>
+        <p class="reference-footnote">Reference data from DC_Code_Reference.xlsx</p>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <div class="upload-box" id="dropZone">
+          <img src="upload-file.gif" alt="Upload File" class="upload-gif">
+          <p><strong>Click to upload</strong> or drag & drop Excel file</p>
+          <p>Supports .xlsx with Mainline sheet</p>
+          <input type="file" id="fileInput" accept=".xlsx,.xls">
+        </div>
+
+        <!-- Loading markup using jt-loading.gif -->
+        <div id="loading" class="loading hidden">
+          <img src="jnt-loading.gif" alt="Loading..." class="loading-gif">
+          <div>Analyzing file, please wait...</div>
+        </div>
+        <!-- Compare Action Loading Overlay -->
+        <div id="loadingCompare" class="loading hidden">
+          <img src="loading.gif" alt="Comparing Dates..." class="loading-gif">
+          <div>Comparing date metrics, please wait...</div>
+        </div>
+
+        <div id="results" class="hidden">
+          <!-- Comparison -->
+          <div class="card">
+            <h2><span class="icon">📊</span> SLU Comparison</h2>
+            <div class="date-selectors" id="dateSelectors">
+              <div>
+                <label>Previous day</label>
+                <select id="selectPrev"></select>
+              </div>
+              <div>
+                <label>Latest day</label>
+                <select id="selectLatest"></select>
+              </div>
+              <div>
+                <label>Route Filter</label>
+                <select id="selectGroup">
+                  <option value="ALL">All Routes</option>
+                  <option value="VISMIN">VisMin Routes</option>
+                  <option value="LUZON">Luzon Routes</option>
+                </select>
+              </div>
+              <button id="btnCompare">Compare</button>
+            </div>
+            <div class="date-info">Comparing <span class="badge" id="datePrev"></span> vs <span class="badge" id="dateLatest"></span></div>
+            <div class="metrics" id="metrics"></div>
+            <div id="culpritBox"></div>
+            <div class="summary-box" id="summaryText"></div>
+
+            <!-- AI Automated Reasoning Button & Container -->
+            <div class="ai-btn-container">
+              <button id="btnGenerateAi" class="ai-btn">🤖 Generate AI Reasoning</button>
+              <div id="aiReasoningBox" class="ai-reasoning-box hidden"></div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-row">
+            <div class="card">
+              <h2><span class="icon">📉</span> Top Routes Dragging Average Down</h2>
+              <p class="section-note">Impact on overall SLU average</p>
+              <div class="chart-wrap"><canvas id="chartRoutes"></canvas></div>
+            </div>
+            <div class="card">
+              <h2><span class="icon">📈</span> Top Routes Lifting Average Up</h2>
+              <p class="section-note">Positive impact on overall SLU average</p>
+              <div class="chart-wrap"><canvas id="chartRoutesPos"></canvas></div>
+            </div>
+          </div>
+          <div class="charts-row">
+            <div class="card">
+              <h2><span class="icon">🏢</span> Shipping Branch Impact</h2>
+              <p class="section-note">How each branch affected the average </p>
+              <div class="chart-wrap"><canvas id="chartBranches"></canvas></div>
+            </div>
+            <div class="card chart-side-gif-card">
+              <h2><span class="icon">🎫</span> Total Loading Tickets</h2>
+              <p class="section-note">Sum of Loading Tickets for the compared days</p>
+              <div class="total-lt-panel">
+                <div class="chart-wrap total-lt-chart-wrap">
+                  <canvas id="chartTotalLT"></canvas>
+                </div>
+                <div class="total-lt-diff" id="totalLtDiff">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Routes table -->
+          <div class="card">
+            <h2><span class="icon">🚚</span> Routes That Pulled the Average Down</h2>
+            <p class="section-note"></p>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Prev Trips</th>
+                    <th>Latest Trips</th>
+                    <th>Prev Avg Loading Ticket</th>
+                    <th>Latest Avg Loading Ticket</th>
+                    <th>Avg Loading Ticket</th>
+                    <th>Packages</th>
+                    <th>Impact</th>
+                  </tr>
+                </thead>
+                <tbody id="routesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Positive routes table -->
+          <div class="card">
+            <h2><span class="icon">📈</span> Routes That Lifted the Average Up</h2>
+            <p class="section-note"></p>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Prev Trips</th>
+                    <th>Latest Trips</th>
+                    <th>Prev Avg Loading Ticket</th>
+                    <th>Latest Avg Loading Ticket</th>
+                    <th>Avg Loading Ticket</th>
+                    <th>Packages</th>
+                    <th>Impact</th>
+                  </tr>
+                </thead>
+                <tbody id="routesPosBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Branches table -->
+          <div class="card">
+            <h2><span class="icon">📍</span> Shipping Branch Impact</h2>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shipping Branch</th>
+                    <th>Prev Trips</th>
+                    <th>Latest Trips</th>
+                    <th>Prev Avg Loading Ticket</th>
+                    <th>Latest Avg Loading Ticket</th>
+                    <th>Prev Packages</th>
+                    <th>Latest Packages</th>
+                    <th>Impact</th>
+                  </tr>
+                </thead>
+                <tbody id="branchBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Positive branches table -->
+          <div class="card">
+            <h2><span class="icon">🟢</span> Shipping Branches That Lifted the Average</h2>
+            <p class="section-note">Branches with positive impact on overall SLU average</p>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Shipping Branch</th>
+                    <th>Prev Trips</th>
+                    <th>Latest Trips</th>
+                    <th>Prev Avg Loading Ticket</th>
+                    <th>Latest Avg Loading Ticket</th>
+                    <th>Prev Packages</th>
+                    <th>Latest Packages</th>
+                    <th>Impact</th>
+                  </tr>
+                </thead>
+                <tbody id="branchPosBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- More trips -->
+          <div class="card">
+            <h2><span class="icon">➕</span> Routes With More Departures</h2>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    <th>Prev Trips</th>
+                    <th>Latest Trips</th>
+                    <th>Extra Trips</th>
+                  </tr>
+                </thead>
+                <tbody id="moreTripsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          
+          <!-- Trip-level Detail Table -->
+          <div class="card">
+            <h2><span class="icon">📋</span> Trip Detail</h2>
+            <p class="section-note"></p>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 12px;">
+              <label for="detailDateFilter" style="font-size:0.85rem;font-weight:600;color:#555;">Filter Date</label>
+              <select id="detailDateFilter" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                <option value="ALL">All dates</option>
+              </select>
+              <label for="detailTaskSearch" style="font-size:0.85rem;font-weight:600;color:#555;">Search TaskID</label>
+              <input type="search" id="detailTaskSearch" placeholder="e.g. JB00159691" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;min-width:180px;">
+              <button type="button" id="detailTaskSearchClear" style="padding:6px 12px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;font-size:0.82rem;cursor:pointer;">Clear</button>
+              <label for="detailLtSort" style="font-size:0.85rem;font-weight:600;color:#555;">Sort by</label>
+              <select id="detailLtSort" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                <option value="lt-desc">Loading Tickets (High → Low)</option>
+                <option value="lt-asc">Loading Tickets (Low → High)</option>
+                <option value="date-desc">Date (Newest → Oldest)</option>
+                <option value="date-asc">Date (Oldest → Newest)</option>
+              </select>
+              <span id="detailTableCount" style="font-size:0.82rem;color:#757575;"></span>
+            </div>
+            <div class="table-scroll" style="max-height:420px;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>TaskID</th>
+                    <th>Date (Checkout)</th>
+                    <th>Route Owner</th>
+                    <th>Plate No.</th>
+                    <th>Actual Size</th>
+                    <th>Planning Truck Size</th>
+                    <th>Shipping Branch</th>
+                    <th>Destination Branch</th>
+                    <th>Vehicle Carrier Name</th>
+                    <th>Carrier</th>
+                    <th>Wheels</th>
+                    <th>Loading Tickets</th>
+                    <th>Region</th>
+                    <th>Route</th>
+                  </tr>
+                </thead>
+                <tbody id="detailTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Mainline Loading Tickets Daily Trend Card -->
+          <div class="card">
+            <h2><span class="icon">📅</span> Mainline Loading Tickets Daily Trend</h2>
+            <p class="section-note">Daily average loading tickets breakdown for SLU Departure DCs</p>
+            <div class="table-scroll" style="margin-top: 10px;">
+              <table>
+                <thead id="trendTableHead"></thead>
+                <tbody id="trendTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- JavaScript Modular Scripts -->
+  <script src="dcData.js"></script>
+  <script src="referenceManager.js"></script>
+  <script src="chartManager.js"></script>
+  <script src="dataAnalyzer.js"></script>
+  <script src="uiManager.js"></script>
+  <script src="dailyTrendManager.js"></script>
+  <script src="detailTableManager.js"></script>
+  <script src="aiReasoningManager.js"></script>
+  <script src="fileProcessor.js"></script>
+  <script src="app.js"></script>
+<footer class="app-watermark">
+   © 2026 <strong>Vince Adesa</strong> - Loading Rate Analyzer
+</footer>
+</body>
+</html>
