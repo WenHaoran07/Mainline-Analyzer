@@ -38,20 +38,21 @@
       overflow-x: hidden;
     }
     .logo-gif {
-  width: 132px;
-  height: 132px;
+  width: min(132px, 18vw);
+  height: auto;
+  max-height: 132px;
   object-fit: contain;
   border-radius: 10px;
   padding: 4px;
   display: block;
-  margin-left: 250px;
+  flex-shrink: 0;
 }
 
 /* Header */
 .header {
   background: linear-gradient(135deg, var(--jt-red) 0%, var(--jt-red-dark) 100%);
   color: white;
-  padding: 14px 24px;
+  padding: 12px 16px;
   box-shadow: 0 2px 12px rgba(230,0,18,0.3);
 }
 .header-inner {
@@ -65,7 +66,10 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: 300px;
+  gap: clamp(12px, 4vw, 40px);
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 .logo {
   width: 42px; height: 42px;
@@ -73,11 +77,13 @@
   border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
   font-weight: 900; font-size: 1.1rem; color: var(--jt-red);
+  flex-shrink: 0;
 }
-.header h1 { 
-  font-size: 2.4rem;
-  font-weight: 700; 
+.header h1 {
+  font-size: clamp(1.15rem, 4vw, 2.2rem);
+  font-weight: 700;
   line-height: 1.2;
+  text-align: center;
 }
 .header p { font-size: 0.82rem; opacity: 0.9; margin-top: 2px; }
 
@@ -85,9 +91,10 @@
     .container {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 36px 20px 48px;
+      padding: 28px 16px 40px;
       flex: 1;
       width: 100%;
+      overflow-x: hidden;
     }
 
     .intro {
@@ -114,6 +121,7 @@
       perspective: 1200px;
       margin: 0 auto 12px;
       user-select: none;
+      overflow: visible;
     }
     .carousel-stage {
       position: relative;
@@ -122,6 +130,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: visible;
     }
 
     .card {
@@ -384,27 +393,115 @@
       color: var(--text);
     }
 
-    @media (max-width: 700px) {
-      .header h1 { font-size: 1.2rem; }
-      .header-left { gap: 16px; }
-      .logo-gif { margin-left: 0; width: 64px; height: 64px; }
-      .container { padding: 24px 14px 36px; }
-      .card { width: 260px; padding: 22px 18px 20px; }
+    /* ===== Responsive breakpoints ===== */
+
+    /* Tablet */
+    @media (max-width: 900px) {
       .carousel-stage { height: 400px; }
+      .card { width: 270px; }
       .card.pos-left {
-        transform: translateX(-120px) translateZ(-40px) rotateY(26deg) scale(0.78);
+        transform: translateX(-160px) translateZ(-30px) rotateY(24deg) scale(0.82);
       }
       .card.pos-right {
-        transform: translateX(120px) translateZ(-40px) rotateY(-26deg) scale(0.78);
+        transform: translateX(160px) translateZ(-30px) rotateY(-24deg) scale(0.82);
       }
-      .card.pos-far-left,
+      .card.pos-far-left {
+        transform: translateX(-300px) translateZ(-100px) rotateY(36deg) scale(0.68);
+        opacity: 0.25;
+      }
       .card.pos-far-right {
-        opacity: 0;
-        pointer-events: none;
+        transform: translateX(300px) translateZ(-100px) rotateY(-36deg) scale(0.68);
+        opacity: 0.25;
       }
+    }
+
+    /* Mobile / small tablet */
+    @media (max-width: 700px) {
+      .header { padding: 10px 12px; }
+      .header h1 { font-size: 1.15rem; }
+      .header-left { gap: 10px; justify-content: center; }
+      .logo-gif { width: 56px; height: 56px; margin-left: 0; }
+      .container { padding: 18px 12px 32px; }
+      .intro { margin-bottom: 12px; }
+      .intro h2 { font-size: 1.15rem; }
+      .intro p { font-size: 0.88rem; }
+
+      .carousel-wrap { max-width: 100%; }
+      .carousel-stage { height: 390px; }
+      .card {
+        width: min(280px, 82vw);
+        padding: 20px 16px 18px;
+      }
+      .card h3 { font-size: 1.05rem; }
+      .card p { font-size: 0.85rem; margin-bottom: 12px; }
+      .card-icon { width: 48px; height: 48px; font-size: 1.35rem; margin-bottom: 12px; }
+      .card-btn { padding: 10px 14px; font-size: 0.88rem; }
+
+      /* Only show front + neighbors; hide far cards */
       .card.pos-front {
         transform: translateX(0) translateZ(40px) rotateY(0deg) scale(1);
       }
+      .card.pos-left {
+        transform: translateX(-105px) translateZ(-50px) rotateY(22deg) scale(0.78);
+        opacity: 0.55;
+      }
+      .card.pos-right {
+        transform: translateX(105px) translateZ(-50px) rotateY(-22deg) scale(0.78);
+        opacity: 0.55;
+      }
+      .card.pos-far-left,
+      .card.pos-far-right,
+      .card.pos-back {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: translateX(0) translateZ(-200px) scale(0.5);
+      }
+      .card:hover.pos-front {
+        transform: translateX(0) translateZ(50px) rotateY(0deg) scale(1.02);
+      }
+      .card:hover.pos-left,
+      .card:hover.pos-right {
+        opacity: 0.7;
+      }
+
+      .nav-btn { width: 44px; height: 44px; font-size: 1.25rem; }
+      .carousel-controls { gap: 14px; margin-top: 4px; }
+      .hint { font-size: 0.78rem; padding: 0 8px; }
+    }
+
+    /* Very small phones */
+    @media (max-width: 400px) {
+      .carousel-stage { height: 420px; }
+      .card {
+        width: min(260px, 88vw);
+        padding: 18px 14px 16px;
+      }
+      .card.pos-left {
+        transform: translateX(-72px) translateZ(-60px) rotateY(18deg) scale(0.72);
+        opacity: 0.4;
+      }
+      .card.pos-right {
+        transform: translateX(72px) translateZ(-60px) rotateY(-18deg) scale(0.72);
+        opacity: 0.4;
+      }
+      .header h1 { font-size: 1.05rem; }
+      .login-card { padding: 24px 18px 22px; }
+    }
+
+    /* Reduce motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      .card {
+        transition: opacity 0.2s ease, box-shadow 0.2s ease;
+      }
+    }
+
+    /* Landscape phones */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .carousel-stage { height: 320px; }
+      .card { width: 240px; padding: 14px 14px 12px; }
+      .card p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+      .container { padding: 12px 12px 20px; }
+      .intro { margin-bottom: 6px; }
     }
 
     /* ===== Login gate ===== */
@@ -496,6 +593,10 @@
     .login-error.show { display: block; }
     body.locked > :not(#loginGate) {
       visibility: hidden;
+    }
+    .Password, .login-card img {
+      max-width: min(120px, 40vw);
+      height: auto;
     }
 
   </style>
@@ -595,8 +696,7 @@
         </div>
         <div class="card-btn">Open Vehicle Size Accuracy →</div>
       </a>
-
-              <a class="card vehicle-size" href="" data-index="3" title="Future Update">
+      <a class="card vehicle-size" href="#" data-index="4" title="Future Update" onclick="return false;">
        <div class="card-icon" style="text-align: center; margin-left: auto; margin-right: auto; display: block;">﹖</div>
         <h3 style="text-align: center;"></h3>
         <p>
@@ -607,7 +707,6 @@
         </div>
         <div class="card-btn">Future Update</div>
       </a>
-
       </div>
     </div>
 
@@ -618,6 +717,7 @@
         <button type="button" class="dot" data-go="1" aria-label="Travel Time"></button>
         <button type="button" class="dot" data-go="2" aria-label="Waiting for Departure"></button>
         <button type="button" class="dot" data-go="3" aria-label="Vehicle Size Accuracy"></button>
+        <button type="button" class="dot" data-go="4" aria-label="Future Update"></button>
       </div>
       <button type="button" class="nav-btn" id="btnNext" aria-label="Next">›</button>
     </div>
