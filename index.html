@@ -353,7 +353,6 @@
 </head>
 <body class="locked">
 
-  <!-- Password gate (SHA-256 hash — password is not stored in plain text) -->
   <div id="loginGate">
     <div class="login-card">
       <div> <img src="JNTLogo.png" alt="J&T Express Logo" class="Password"
@@ -457,12 +456,9 @@
 
   <script>
   (function () {
-    // SHA-256 hash of the password (NOT the plain password).
-    // Default password: slu2026
-    // To change: open browser console on any page and run:
-    //   crypto.subtle.digest("SHA-256", new TextEncoder().encode("YOUR_NEW_PASSWORD"))
+    //   crypto.subtle.digest("SHA-256", new TextEncoder().encode("PASSWORD"))
     //     .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("")))
-    // Then paste the result below.
+
     const PASS_HASH = "e28a35e454e8c0757935d4364278ef018a60ec7b9d88a28a00b011f213b9aed9";
     const STORAGE_KEY = "slu_hub_unlocked";
 
