@@ -43,7 +43,7 @@
   border-radius: 10px;
   padding: 4px;
   display: block;
-  margin-left: 370px;
+  margin-left: 250px;
 }
 
 /* Header */
@@ -257,9 +257,117 @@
       .container { padding: 24px 14px 36px; }
       .card { padding: 22px 18px 20px; }
     }
+
+    /* ===== Login gate ===== */
+    #loginGate {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: linear-gradient(145deg, #B8000E 0%, #E60012 45%, #7f0a12 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #loginGate.hidden { display: none; }
+    .login-card {
+      background: #fff;
+      width: 100%;
+      max-width: 380px;
+      border-radius: 16px;
+      padding: 32px 28px 28px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+    }
+    .login-card .login-logo {
+      width: 52px; height: 52px;
+      background: var(--jt-red);
+      color: #fff;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1.15rem;
+      margin: 0 auto 14px;
+    }
+    .login-card h2 {
+      text-align: center;
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .login-card .login-sub {
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+    .login-card label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .login-card input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .login-card input:focus {
+      border-color: var(--jt-red);
+      box-shadow: 0 0 0 3px rgba(230,0,18,0.12);
+    }
+    .login-card button {
+      width: 100%;
+      padding: 12px;
+      background: var(--jt-red);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.15s;
+    }
+    .login-card button:hover { background: var(--jt-red-dark); }
+    .login-error {
+      display: none;
+      background: #FFEBEE;
+      color: #C62828;
+      font-size: 0.85rem;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .login-error.show { display: block; }
+    body.locked > :not(#loginGate) {
+      visibility: hidden;
+    }
+
   </style>
 </head>
-<body>
+<body class="locked">
+
+  <!-- Password gate (SHA-256 hash — password is not stored in plain text) -->
+  <div id="loginGate">
+    <div class="login-card">
+      <div> <img src="JNTLogo.png" alt="J&T Express Logo" class="Password"
+  style="width:120px;height:auto;object-fit:contain;display:block;margin:0 auto 16px;border-radius:10px;">
+             </div>
+      <h2>Mainline Analyzers</h2>
+      <p class="login-sub">Enter password to continue</p>
+      <div id="loginError" class="login-error">Incorrect password. Please try again.</div>
+      <label for="loginPass">Password</label>
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+      <button type="button" id="loginBtn">Unlock</button>
+    </div>
+  </div>
+
 
   <header class="header">
       <div class="header-left">
@@ -343,8 +451,70 @@
   </main>
 
   <footer>
-    © 2026 Vince Adesa · J&T Performance Analyzer Hub
+    © Vince Adesa · J&T Performance Analyzer Hub
   </footer>
+
+
+  <script>
+  (function () {
+    // SHA-256 hash of the password (NOT the plain password).
+    // Default password: slu2026
+    // To change: open browser console on any page and run:
+    //   crypto.subtle.digest("SHA-256", new TextEncoder().encode("YOUR_NEW_PASSWORD"))
+    //     .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("")))
+    // Then paste the result below.
+    const PASS_HASH = "e28a35e454e8c0757935d4364278ef018a60ec7b9d88a28a00b011f213b9aed9";
+    const STORAGE_KEY = "slu_hub_unlocked";
+
+    const gate = document.getElementById("loginGate");
+    const input = document.getElementById("loginPass");
+    const btn = document.getElementById("loginBtn");
+    const err = document.getElementById("loginError");
+
+    async function sha256(text) {
+      const data = new TextEncoder().encode(text);
+      const buf = await crypto.subtle.digest("SHA-256", data);
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function unlock() {
+      document.body.classList.remove("locked");
+      if (gate) gate.classList.add("hidden");
+      try { sessionStorage.setItem(STORAGE_KEY, "1"); } catch (e) {}
+    }
+
+    async function tryLogin() {
+      err.classList.remove("show");
+      const value = (input.value || "").trim();
+      if (!value) {
+        err.textContent = "Please enter the password.";
+        err.classList.add("show");
+        return;
+      }
+      const hash = await sha256(value);
+      if (hash === PASS_HASH) {
+        unlock();
+      } else {
+        err.textContent = "Incorrect password. Please try again.";
+        err.classList.add("show");
+        input.select();
+      }
+    }
+
+    // Already unlocked this browser session?
+    try {
+      if (sessionStorage.getItem(STORAGE_KEY) === "5") {
+        unlock();
+      }
+    } catch (e) {}
+
+    btn.addEventListener("click", tryLogin);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") tryLogin();
+    });
+    setTimeout(function () { input && input.focus(); }, 100);
+  })();
+  </script>
 
 </body>
 </html>
