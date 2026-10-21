@@ -21,7 +21,7 @@
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
-        <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
+        <a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
       </div>
     </div>
   </div>
@@ -113,6 +113,8 @@
           <div class="tab" data-tab="tabLateDetail">Late Trip Detail</div>
           <div class="tab" data-tab="tabHistory">Daily History</div>
           <div class="tab" data-tab="tabGraphs">Graphs</div>
+          <div class="tab" data-tab="tabWeekly">Weekly</div>
+          <div class="tab" data-tab="tabMonthly">Monthly</div>
           <div class="tab" data-tab="tabDelayReason">Delay Reason</div>
         </div>
 
@@ -188,6 +190,121 @@
           </div>
         </div>
 
+
+        <div id="tabWeekly" class="tab-panel">
+          <div class="wm-toolbar">
+            <div>
+              <label class="pe-label">Previous week</label>
+              <select id="wmWeekPrev"></select>
+            </div>
+            <div>
+              <label class="pe-label">Current week</label>
+              <select id="wmWeekCurr"></select>
+            </div>
+            <div>
+              <label class="pe-label">Scope</label>
+              <select id="wmWeekScope">
+                <option value="ALL">Overall (96%)</option>
+                <option value="LUZON">Luzon Route (97%)</option>
+                <option value="VISMIN">VisMin Route (85%)</option>
+              </select>
+            </div>
+            <button type="button" id="btnWmWeek" class="wm-run-btn">Compare weeks</button>
+          </div>
+          <div class="metrics" id="wmWeekMetrics"></div>
+          <div class="summary-box" id="wmWeekSummary"></div>
+          <div class="charts-row">
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">📈</span> Weekly on-time trend</h2>
+              <p class="section-note"></p>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartWmWeekTrend"></canvas></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">🔀</span> Current vs previous week</h2>
+              <div class="chart-wrap"><canvas id="chartWmWeekCompare"></canvas></div>
+            </div>
+          </div>
+          <div class="wm-subtabs" data-wm-mode="weekly">
+            <button type="button" class="wm-subtab active" data-wm-detail="region">Region </button>
+            <button type="button" class="wm-subtab" data-wm-detail="trucker">Trucker</button>
+            <button type="button" class="wm-subtab" data-wm-detail="split">Overall / Luzon / VisMin</button>
+            <button type="button" class="wm-subtab" data-wm-detail="snapshot">Selected Period (Region)</button>
+          </div>
+          <p class="section-note" id="wmWeekDetailNote">Rates across every week.</p>
+          <div class="charts-row">
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">📊</span> <span id="wmWeekDetailTitle">Region rates over time</span></h2>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartWmWeekDetail"></canvas></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">📶</span> <span id="wmWeekCompareTitle">Current vs previous week</span></h2>
+              <p class="section-note" id="wmWeekCompareNote"></p>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartWmWeekSide"></canvas></div>
+            </div>
+          </div>
+          <div class="table-scroll"><table>
+            <thead id="wmWeekHead"></thead>
+            <tbody id="wmWeekBody"></tbody>
+          </table></div>
+        </div>
+
+        <div id="tabMonthly" class="tab-panel">
+          <div class="wm-toolbar">
+            <div>
+              <label class="pe-label">Previous month</label>
+              <select id="wmMonthPrev"></select>
+            </div>
+            <div>
+              <label class="pe-label">Current month</label>
+              <select id="wmMonthCurr"></select>
+            </div>
+            <div>
+              <label class="pe-label">Scope</label>
+              <select id="wmMonthScope">
+                <option value="ALL">Overall (96%)</option>
+                <option value="LUZON">Luzon Route (97%)</option>
+                <option value="VISMIN">VisMin Route (85%)</option>
+              </select>
+            </div>
+            <button type="button" id="btnWmMonth" class="wm-run-btn">Compare months</button>
+          </div>
+          <div class="metrics" id="wmMonthMetrics"></div>
+          <div class="summary-box" id="wmMonthSummary"></div>
+          <div class="charts-row">
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">📈</span> Monthly on-time trend</h2>
+              <p class="section-note"></p>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartWmMonthTrend"></canvas></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">🔀</span> Current vs previous month</h2>
+              <div class="chart-wrap"><canvas id="chartWmMonthCompare"></canvas></div>
+            </div>
+          </div>
+          <div class="wm-subtabs" data-wm-mode="monthly">
+            <button type="button" class="wm-subtab active" data-wm-detail="region">Region</button>
+            <button type="button" class="wm-subtab" data-wm-detail="trucker">Trucker </button>
+            <button type="button" class="wm-subtab" data-wm-detail="split">Overall / Luzon / VisMin</button>
+            <button type="button" class="wm-subtab" data-wm-detail="snapshot">Selected Period (Region)</button>
+          </div>
+          <p class="section-note" id="wmMonthDetailNote">Rates across every month </p>
+          <div class="charts-row">
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">📊</span> <span id="wmMonthDetailTitle">Region rates over time</span></h2>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartWmMonthDetail"></canvas></div>
+            </div>
+            <div class="card" style="margin-bottom:0;">
+              <h2><span class="icon">📶</span> <span id="wmMonthCompareTitle">Current vs previous month</span></h2>
+              <p class="section-note" id="wmMonthCompareNote"></p>
+              <div class="chart-wrap history-chart-wrap"><canvas id="chartWmMonthSide"></canvas></div>
+            </div>
+          </div>
+          <div class="table-scroll"><table>
+            <thead id="wmMonthHead"></thead>
+            <tbody id="wmMonthBody"></tbody>
+          </table></div>
+        </div>
+
         <div id="tabDelayReason" class="tab-panel">
           <div class="pe-toolbar">
             <div id="peDateFilterWrap">
@@ -228,6 +345,7 @@
   <script src="mttChartManager.js"></script>
   <script src="mttUIManager.js"></script>
   <script src="mttDelayReason.js"></script>
+  <script src="mttWeeklyMonthly.js"></script>
   <script src="mttApp.js"></script>
 </body>
 </html>
