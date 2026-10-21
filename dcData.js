@@ -4,6 +4,7 @@
 
 const dcMasterData = [
   {"DC CODE": 320, "DC NAME": "CebuDC1", "LOCATION / AREA": "CEBU", "REGION": "WVA"},
+  {"DC CODE": 321, "DC NAME": "Consolacion DC", "LOCATION / AREA": "CEBU", "REGION": "WVA"},
   {"DC CODE": 330, "DC NAME": "IloiloDC1", "LOCATION / AREA": "ILOILO", "REGION": "WVA"},
   {"DC CODE": 340, "DC NAME": "BacolodDC1", "LOCATION / AREA": "BACOLOD", "REGION": "WVA"},
   {"DC CODE": 360, "DC NAME": "KALIBO DC", "LOCATION / AREA": "KALIBO", "REGION": "WVA"},
