@@ -266,7 +266,7 @@ const MttWeeklyMonthly = (() => {
           {
             label: pKey || ('Previous ' + unitLabel),
             data: prevRates,
-            backgroundColor: '#90CAF9',
+            backgroundColor: '#505050a1',
             borderRadius: 6,
             maxBarThickness: 28
           },
@@ -402,7 +402,7 @@ const MttWeeklyMonthly = (() => {
               stP.rate == null ? null : +(stP.rate * 100).toFixed(2),
               st.rate == null ? null : +(st.rate * 100).toFixed(2)
             ],
-            backgroundColor: ['#90CAF9', '#E60012'],
+            backgroundColor: ['#505050a1', '#E60012'],
             borderRadius: 8
           },
           {
