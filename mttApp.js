@@ -34,6 +34,9 @@ const MttApp = (() => {
         if (typeof MttDelayReason !== 'undefined') {
           MttDelayReason.render(dateLatest);
         }
+        if (typeof MttWeeklyMonthly !== 'undefined') {
+          MttWeeklyMonthly.onDataReady();
+        }
       } catch (err) {
         console.error(err);
         alert('Error during comparison: ' + err.message);
@@ -57,6 +60,7 @@ const MttApp = (() => {
   function init() {
     MttUIManager.initTabs();
     if (typeof MttDelayReason !== 'undefined') MttDelayReason.init();
+    if (typeof MttWeeklyMonthly !== 'undefined') MttWeeklyMonthly.init();
 
     MttFileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group || 'ALL', false);
