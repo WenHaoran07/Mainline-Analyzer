@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coming Soon | J&T</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #B8000E 0%, #E60012 45%, #7f0a12 100%);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 24px;
+    }
+    .wrap {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px 24px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+    }
+    .wrap img {
+      width: 100%;
+      max-width: 360px;
+      height: auto;
+      display: block;
+      margin: 0 auto 20px;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+    .wrap h1 {
+      font-size: 1.35rem;
+      color: #212121;
+      margin-bottom: 6px;
+    }
+    .wrap p {
+      color: #757575;
+      font-size: 0.92rem;
+      margin-bottom: 20px;
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #E60012;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.92rem;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      transition: background 0.15s;
+    }
+    .back-btn:hover { background: #B8000E; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Change ComingSoon.gif to your GIF file name -->
+    <img src="FutureUpdate.gif" alt="Coming Soon"
+         onerror="this.style.display='none';">
+    <h1>Coming Soon</h1>
+    <p>Future Update ngani.....</p>
+    <a class="back-btn" href="index.html">← Back to Hub</a>
+  </div>
+</body>
+</html>
