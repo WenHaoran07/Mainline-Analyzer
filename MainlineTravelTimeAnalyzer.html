@@ -230,6 +230,20 @@
             <button type="button" class="wm-subtab" data-wm-detail="split">Overall / Luzon / VisMin</button>
             <button type="button" class="wm-subtab" data-wm-detail="snapshot">Selected Period (Region)</button>
           </div>
+          <div id="wmWeekFilterBar" class="wm-filter-bar hidden">
+            <div class="wm-dd" id="wmWeekEntityDd">
+              <label class="pe-label" id="wmWeekEntityLabel">Filter</label>
+              <button type="button" class="wm-dd-toggle" id="wmWeekEntityToggle">All selected ▾</button>
+              <div class="wm-dd-panel hidden" id="wmWeekEntityPanel">
+                <div class="wm-dd-actions">
+                  <button type="button" class="wm-mini-btn" data-wm-dd-all="wmWeekEntityList">Select all</button>
+                  <button type="button" class="wm-mini-btn" data-wm-dd-none="wmWeekEntityList">Clear</button>
+                </div>
+                <div class="wm-dd-list" id="wmWeekEntityList"></div>
+              </div>
+            </div>
+            <button type="button" id="btnWmWeekExport" class="wm-export-btn hidden">Export Excel</button>
+          </div>
           <p class="section-note" id="wmWeekDetailNote">Rates across every week.</p>
           <div class="charts-row">
             <div class="card" style="margin-bottom:0;">
@@ -287,6 +301,20 @@
             <button type="button" class="wm-subtab" data-wm-detail="split">Overall / Luzon / VisMin</button>
             <button type="button" class="wm-subtab" data-wm-detail="snapshot">Selected Period (Region)</button>
           </div>
+          <div id="wmMonthFilterBar" class="wm-filter-bar hidden">
+            <div class="wm-dd" id="wmMonthEntityDd">
+              <label class="pe-label" id="wmMonthEntityLabel">Filter</label>
+              <button type="button" class="wm-dd-toggle" id="wmMonthEntityToggle">All selected ▾</button>
+              <div class="wm-dd-panel hidden" id="wmMonthEntityPanel">
+                <div class="wm-dd-actions">
+                  <button type="button" class="wm-mini-btn" data-wm-dd-all="wmMonthEntityList">Select all</button>
+                  <button type="button" class="wm-mini-btn" data-wm-dd-none="wmMonthEntityList">Clear</button>
+                </div>
+                <div class="wm-dd-list" id="wmMonthEntityList"></div>
+              </div>
+            </div>
+            <button type="button" id="btnWmMonthExport" class="wm-export-btn hidden">Export Excel</button>
+          </div>
           <p class="section-note" id="wmMonthDetailNote">Rates across every month </p>
           <div class="charts-row">
             <div class="card" style="margin-bottom:0;">
@@ -338,7 +366,6 @@
    © 2026 <strong>Vince Adesa</strong> - Mainline Travel Time Analyzer
   </footer>
 
-  <!-- Modular scripts (same pattern as Loading Rate Analyzer) -->
   <script src="mttUtils.js"></script>
   <script src="mttFileProcessor.js"></script>
   <script src="mttDataAnalyzer.js"></script>
