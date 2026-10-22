@@ -863,3 +863,105 @@ tr.late-row td { background: #FFF5F5; }
   background: #fff;
   z-index: 1;
 }
+
+
+.wm-trucker-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #FAFAFA;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.wm-trucker-bar select {
+  min-width: 200px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 0.88rem;
+  background: #fff;
+}
+.wm-export-btn {
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid #2E7D32;
+  background: #E8F5E9;
+  color: #1B5E20;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.wm-export-btn:hover { background: #C8E6C9; }
+
+.wm-trucker-bar select[multiple] {
+  min-width: 220px;
+  min-height: 100px;
+  padding: 6px;
+}
+.wm-trucker-actions { display: flex; gap: 6px; margin-top: 6px; }
+.wm-mini-btn {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+}
+.wm-mini-btn:hover { background: #f5f5f5; }
+
+.wm-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #FAFAFA;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.wm-dd { position: relative; min-width: 220px; }
+.wm-dd-toggle {
+  display: block;
+  width: 100%;
+  min-width: 220px;
+  max-width: 320px;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.wm-dd-toggle:hover { border-color: #9E9E9E; }
+.wm-dd-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 240px;
+  max-width: 360px;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 8px;
+}
+.wm-dd-actions { display: flex; gap: 6px; margin-bottom: 8px; }
+.wm-dd-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  font-size: 0.84rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.wm-dd-list label:hover { background: #F5F5F5; }
+.wm-dd-list input { accent-color: #E60012; }
