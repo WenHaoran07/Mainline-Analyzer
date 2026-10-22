@@ -77,6 +77,114 @@ const MttWeeklyMonthly = (() => {
     return rows.filter(r => (mode === 'weekly' ? r.week : r.month) === key);
   }
 
+  function listEntities(rows, kind) {
+    const set = new Set();
+    (rows || []).forEach(r => {
+      const v = kind === 'trucker' ? (r.trucker || '').trim() : (r.region || '').trim();
+      if (v && v !== '(blank)') set.add(v);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }
+
+  // Remember checkbox selections per mode+kind so switching subtabs keeps choices
+  const entitySel = {
+    weekly: { region: null, trucker: null },
+    monthly: { region: null, trucker: null }
+  };
+
+  function fillEntityList(listId, entities, mode, kind) {
+    const list = document.getElementById(listId);
+    if (!list) return;
+    const prev = entitySel[mode][kind];
+    const selected = (prev instanceof Set) ? prev : null;
+    list.innerHTML = entities.map(name => {
+      const checked = !selected || selected.has(name);
+      return '<label><input type="checkbox" value="' +
+        name.replace(/"/g, '&quot;') + '"' + (checked ? ' checked' : '') + '> ' +
+        name.replace(/</g, '&lt;') + '</label>';
+    }).join('');
+    // default all if nothing stored
+    if (!selected) {
+      entitySel[mode][kind] = null; // null means all
+    }
+    updateEntityToggleLabel(mode, kind);
+  }
+
+  function readEntitySelection(mode, kind) {
+    const listId = mode === 'weekly' ? 'wmWeekEntityList' : 'wmMonthEntityList';
+    const list = document.getElementById(listId);
+    if (!list) return null;
+    const boxes = [...list.querySelectorAll('input[type=checkbox]')];
+    if (!boxes.length) return null;
+    const picked = boxes.filter(b => b.checked).map(b => b.value);
+    if (!picked.length || picked.length === boxes.length) {
+      entitySel[mode][kind] = null;
+      return null;
+    }
+    const set = new Set(picked);
+    entitySel[mode][kind] = set;
+    return set;
+  }
+
+  function getActiveEntityKind(mode) {
+    const detail = mode === 'weekly' ? weekDetail : monthDetail;
+    if (detail === 'trucker') return 'trucker';
+    if (detail === 'region' || detail === 'snapshot') return 'region';
+    return null;
+  }
+
+  function applyEntityFilter(rows, mode) {
+    const kind = getActiveEntityKind(mode);
+    if (!kind) return rows;
+    const set = readEntitySelection(mode, kind);
+    if (!set) return rows;
+    if (kind === 'trucker') return rows.filter(r => set.has(r.trucker));
+    return rows.filter(r => set.has(r.region));
+  }
+
+  function updateEntityToggleLabel(mode, kind) {
+    const toggleId = mode === 'weekly' ? 'wmWeekEntityToggle' : 'wmMonthEntityToggle';
+    const toggle = document.getElementById(toggleId);
+    if (!toggle) return;
+    const listId = mode === 'weekly' ? 'wmWeekEntityList' : 'wmMonthEntityList';
+    const list = document.getElementById(listId);
+    if (!list) return;
+    const boxes = [...list.querySelectorAll('input[type=checkbox]')];
+    const n = boxes.filter(b => b.checked).length;
+    const total = boxes.length;
+    const noun = kind === 'trucker' ? 'trucker' : 'region';
+    if (!total || n === total) toggle.textContent = 'All ' + noun + 's ▾';
+    else if (n === 0) toggle.textContent = 'None selected ▾';
+    else if (n === 1) toggle.textContent = boxes.find(b => b.checked).value + ' ▾';
+    else toggle.textContent = n + ' ' + noun + 's selected ▾';
+  }
+
+  function refreshEntityDropdown(mode) {
+    const kind = getActiveEntityKind(mode);
+    const bar = document.getElementById(mode === 'weekly' ? 'wmWeekFilterBar' : 'wmMonthFilterBar');
+    const label = document.getElementById(mode === 'weekly' ? 'wmWeekEntityLabel' : 'wmMonthEntityLabel');
+    const exp = document.getElementById(mode === 'weekly' ? 'btnWmWeekExport' : 'btnWmMonthExport');
+    if (!bar) return;
+
+    if (!kind) {
+      bar.classList.add('hidden');
+      return;
+    }
+    bar.classList.remove('hidden');
+    if (label) label.textContent = kind === 'trucker' ? 'Trucker' : 'Region';
+    if (exp) exp.classList.toggle('hidden', kind !== 'trucker');
+
+    const rows = getRows();
+    const entities = listEntities(rows, kind);
+    const listId = mode === 'weekly' ? 'wmWeekEntityList' : 'wmMonthEntityList';
+    fillEntityList(listId, entities, mode, kind);
+  }
+
+  function updateTruckerBarVisibility(mode) {
+    // kept name for compatibility — now refreshes entity dropdown bar
+    refreshEntityDropdown(mode);
+  }
+
   function fillSelects() {
     const rows = getRows();
     if (!rows.length) return;
@@ -99,6 +207,9 @@ const MttWeeklyMonthly = (() => {
     };
     fill('wmWeekPrev', 'wmWeekCurr', weeks);
     fill('wmMonthPrev', 'wmMonthCurr', months);
+    // entity dropdowns filled when subtab is active via refreshEntityDropdown
+    refreshEntityDropdown('weekly');
+    refreshEntityDropdown('monthly');
   }
 
   function metricHtml(lbl, val, sub, extraCls) {
@@ -194,12 +305,10 @@ const MttWeeklyMonthly = (() => {
     const { periods, map, entities } = buildPeriodMatrix(rows, mode, scope, keyFn);
     // Cap columns if huge
     const showPeriods = periods.length > 16 ? periods.slice(-16) : periods;
-    head.innerHTML = '<tr><th>' + label + '</th><th>All trips</th><th>All rate</th>' +
+    head.innerHTML = '<tr><th>' + label + '</th><th>All trips</th><th>On Time</th><th>Not On Time</th><th>All rate</th>' +
       showPeriods.map(p => '<th>' + p + '</th>').join('') + '</tr>';
 
     body.innerHTML = entities.map(ent => {
-      let allRows = [];
-      showPeriods.forEach(p => { if (map[ent][p]) allRows = allRows.concat(map[ent][p]); });
       // full all-period rate across ALL periods not just shown
       let full = [];
       periods.forEach(p => { if (map[ent][p]) full = full.concat(map[ent][p]); });
@@ -209,11 +318,13 @@ const MttWeeklyMonthly = (() => {
         const st = stats(map[ent][p] || []);
         if (!st.total) return '<td class="wm-muted">—</td>';
         const cls = st.rate >= target ? 'rate-ok' : 'rate-bad';
-        return '<td class="' + cls + '" title="' + st.yes + '/' + st.total + '">' + fmtPct(st.rate) + '</td>';
+        return '<td class="' + cls + '" title="' + st.yes + ' on time / ' + st.no + ' late / ' + st.total + '">' +
+          fmtPct(st.rate) + '</td>';
       }).join('');
       return '<tr><td>' + escapeHtml(ent) + '</td><td>' + allSt.total +
+        '</td><td class="rate-ok">' + allSt.yes + '</td><td class="' + (allSt.no ? 'rate-bad' : '') + '">' + allSt.no +
         '</td><td class="' + allCls + '">' + fmtPct(allSt.rate) + '</td>' + cells + '</tr>';
-    }).join('') || '<tr><td colspan="' + (3 + showPeriods.length) + '">No data.</td></tr>';
+    }).join('') || '<tr><td colspan="' + (5 + showPeriods.length) + '">No data.</td></tr>';
 
     return { periods: showPeriods, map, entities };
   }
@@ -266,7 +377,7 @@ const MttWeeklyMonthly = (() => {
           {
             label: pKey || ('Previous ' + unitLabel),
             data: prevRates,
-            backgroundColor: '#505050a1',
+            backgroundColor: '#5a5a5a9d',
             borderRadius: 6,
             maxBarThickness: 28
           },
@@ -303,11 +414,12 @@ const MttWeeklyMonthly = (() => {
   }
 
   function run(mode) {
-    const rows = getRows();
+    let rows = getRows();
     if (!rows.length) {
       alert('Please upload an Excel file first.');
       return;
     }
+    rows = applyEntityFilter(rows, mode);
     const isWeek = mode === 'weekly';
     const pKey = document.getElementById(isWeek ? 'wmWeekPrev' : 'wmMonthPrev').value;
     const cKey = document.getElementById(isWeek ? 'wmWeekCurr' : 'wmMonthCurr').value;
@@ -315,6 +427,8 @@ const MttWeeklyMonthly = (() => {
     const detail = isWeek ? weekDetail : monthDetail;
     const target = TARGET[scope] || TARGET.ALL;
     const scopeLabel = scope === 'LUZON' ? 'Luzon Route' : scope === 'VISMIN' ? 'VisMin Route' : 'Overall';
+
+    updateTruckerBarVisibility(mode);
 
     const prevRaw = rowsInPeriod(rows, mode, pKey);
     const currRaw = rowsInPeriod(rows, mode, cKey);
@@ -611,6 +725,219 @@ const MttWeeklyMonthly = (() => {
     }
   }
 
+  /**
+   * Export trucker comparison Excel matching Yunyi&CJComparison layout:
+   * three side-by-side blocks (OVERALL / LUZON ROUTE / VISMIN ROUTE)
+   * with red merged headers and percent rates.
+   */
+  function exportComparison(mode) {
+    const allRows = getRows();
+    if (!allRows.length) {
+      alert('Please upload an Excel file first.');
+      return;
+    }
+    const isWeek = mode === 'weekly';
+    const cKey = document.getElementById(isWeek ? 'wmWeekCurr' : 'wmMonthCurr').value;
+    if (!cKey) {
+      alert('Select a current period first.');
+      return;
+    }
+
+    // Use trucker multi-filter for which names appear
+    let periodRows = rowsInPeriod(allRows, mode, cKey);
+    const listId = mode === 'weekly' ? 'wmWeekEntityList' : 'wmMonthEntityList';
+    const listEl = document.getElementById(listId);
+    let picked = null;
+    if (listEl) {
+      const boxes = [...listEl.querySelectorAll('input[type=checkbox]')];
+      const checked = boxes.filter(b => b.checked).map(b => b.value);
+      if (checked.length && checked.length < boxes.length) picked = new Set(checked);
+    }
+    let truckers = listEntities(periodRows, 'trucker');
+    if (picked) {
+      truckers = truckers.filter(t => picked.has(t));
+      periodRows = periodRows.filter(r => picked.has(r.trucker));
+    }
+    if (!truckers.length) {
+      alert('No trucker data for the selected period / filter.');
+      return;
+    }
+
+    function blockStats(list, trucker) {
+      const st = stats(list.filter(r => r.trucker === trucker));
+      if (!st.total) return { total: 'N/A', yes: 'N/A', no: 'N/A', rate: 'N/A' };
+      return {
+        total: st.total,
+        yes: st.yes,
+        no: st.no,
+        rate: st.rate != null ? st.rate : 'N/A'
+      };
+    }
+
+    const overallList = periodRows;
+    const luzonList = periodRows.filter(r => r.routeType === 'LUZON');
+    const visminList = periodRows.filter(r => r.routeType === 'VISMIN');
+
+    // Build AOA with blank spacer columns (col F and L) like the sample
+    const aoa = [];
+    aoa.push([]); // row 1
+    aoa.push([]); // row 2
+    aoa.push([]); // row 3
+    // row 4 — section titles
+    aoa.push(['OVERALL', null, null, null, null, null, 'LUZON ROUTE', null, null, null, null, null, 'VISMIN ROUTE', null, null, null, null]);
+    // row 5 — column headers
+    aoa.push([
+      'TRUCKER', 'ALL TRIPS', 'ON TIME', 'NOT ON TIME', 'MONTHLY RATE', null,
+      'TRUCKER', 'ALL TRIPS', 'ON TIME', 'NOT ON TIME', 'MONTHLY RATE', null,
+      'TRUCKER', 'ALL TRIPS', 'ON TIME', 'NOT ON TIME', 'MONTHLY RATE'
+    ]);
+
+    truckers.forEach(tr => {
+      const o = blockStats(overallList, tr);
+      const l = blockStats(luzonList, tr);
+      const v = blockStats(visminList, tr);
+      aoa.push([
+        tr, o.total, o.yes, o.no, o.rate, null,
+        tr, l.total, l.yes, l.no, l.rate, null,
+        tr, v.total, v.yes, v.no, v.rate
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Merges for red header bands
+    ws['!merges'] = [
+      { s: { r: 3, c: 0 }, e: { r: 3, c: 4 } },   // OVERALL
+      { s: { r: 3, c: 6 }, e: { r: 3, c: 10 } },  // LUZON
+      { s: { r: 3, c: 12 }, e: { r: 3, c: 16 } }  // VISMIN
+    ];
+
+    ws['!cols'] = [
+      { wch: 16 }, { wch: 11 }, { wch: 10 }, { wch: 12 }, { wch: 13 }, { wch: 2 },
+      { wch: 16 }, { wch: 11 }, { wch: 10 }, { wch: 12 }, { wch: 13 }, { wch: 2 },
+      { wch: 16 }, { wch: 11 }, { wch: 10 }, { wch: 12 }, { wch: 13 }
+    ];
+
+    // Apply cell styles via cell objects (SheetJS community supports limited style on write with xlsx style fork;
+    // we embed basic styles that Excel-compatible writers honor when present)
+    const redFill = { patternType: 'solid', fgColor: { rgb: 'C00000' } };
+    const redFont = { bold: true, color: { rgb: 'FFFFFF' }, name: 'Calibri', sz: 12 };
+    const headFill = { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } };
+    const headFont = { bold: true, name: 'Calibri', sz: 10 };
+    const thin = { style: 'thin', color: { rgb: '000000' } };
+    const border = { top: thin, bottom: thin, left: thin, right: thin };
+    const center = { horizontal: 'center', vertical: 'center' };
+    const redPctFont = { color: { rgb: 'FF0000' }, name: 'Calibri', sz: 11 };
+
+    function styleCell(addr, style) {
+      if (!ws[addr]) return;
+      ws[addr].s = Object.assign({}, ws[addr].s || {}, style);
+    }
+
+    // Section title row (Excel row 4 → r=3)
+    ['A4', 'G4', 'M4'].forEach(addr => {
+      styleCell(addr, { font: redFont, fill: redFill, alignment: center, border });
+    });
+    // Fill merged title cells
+    ['B4','C4','D4','E4','H4','I4','J4','K4','N4','O4','P4','Q4'].forEach(addr => {
+      if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+      styleCell(addr, { fill: redFill, border });
+    });
+
+    // Column header row (row 5)
+    const headerCols = ['A','B','C','D','E','G','H','I','J','K','M','N','O','P','Q'];
+    headerCols.forEach(col => {
+      styleCell(col + '5', { font: headFont, fill: headFill, alignment: center, border });
+    });
+
+    // Data rows
+    const dataStart = 6; // Excel row
+    truckers.forEach((_, i) => {
+      const r = dataStart + i;
+      // borders + alignment for all data cells in the three blocks
+      ['A','B','C','D','E','G','H','I','J','K','M','N','O','P','Q'].forEach(col => {
+        const addr = col + r;
+        if (!ws[addr]) return;
+        const isRate = col === 'E' || col === 'K' || col === 'Q';
+        const isNum = ['B','C','D','H','I','J','N','O','P'].includes(col);
+        if (isRate && typeof ws[addr].v === 'number') {
+          ws[addr].z = '0.00%';
+          ws[addr].t = 'n';
+          styleCell(addr, { font: redPctFont, alignment: center, border });
+        } else if (ws[addr].v === 'N/A') {
+          styleCell(addr, { font: redPctFont, alignment: center, border });
+        } else {
+          styleCell(addr, {
+            font: { name: 'Calibri', sz: 11 },
+            alignment: isNum || col === 'A' || col === 'G' || col === 'M' ? center : center,
+            border
+          });
+        }
+      });
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Overall');
+
+    // Note: community SheetJS ignores .s on writeFile unless xlsx-js-style is loaded.
+    // Embed a second approach: write HTML-table based styled xls via Blob for reliable formatting.
+    const rateFmt = (v) => {
+      if (v === 'N/A' || v == null) return 'N/A';
+      if (typeof v === 'number') return (v * 100).toFixed(2) + '%';
+      return String(v);
+    };
+    const cell = (v, cls) => '<td class="' + (cls || '') + '">' + (v == null ? '' : v) + '</td>';
+
+    let tableHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Overall</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>';
+    tableHtml += 'table { border-collapse: collapse; font-family: Calibri, Arial, sans-serif; font-size: 11pt; }';
+    tableHtml += 'td, th { border: 1px solid #000; padding: 4px 8px; text-align: center; }';
+    tableHtml += '.title { background: #C00000; color: #fff; font-weight: bold; font-size: 12pt; }';
+    tableHtml += '.head { background: #F2F2F2; font-weight: bold; }';
+    tableHtml += '.rate { color: #FF0000; font-weight: bold; }';
+    tableHtml += '.spacer { border: none !important; width: 12px; }';
+    tableHtml += '</style></head><body>';
+    tableHtml += '<table>';
+    // blank rows
+    tableHtml += '<tr><td colspan="17" style="border:none;height:12px;"></td></tr>';
+    tableHtml += '<tr><td colspan="17" style="border:none;height:8px;"></td></tr>';
+    // titles
+    tableHtml += '<tr>';
+    tableHtml += '<td class="title" colspan="5">OVERALL</td><td class="spacer"></td>';
+    tableHtml += '<td class="title" colspan="5">LUZON ROUTE</td><td class="spacer"></td>';
+    tableHtml += '<td class="title" colspan="5">VISMIN ROUTE</td>';
+    tableHtml += '</tr>';
+    // headers
+    const heads = ['TRUCKER','ALL TRIPS','ON TIME','NOT ON TIME','MONTHLY RATE'];
+    tableHtml += '<tr>';
+    heads.forEach(h => { tableHtml += '<td class="head">' + h + '</td>'; });
+    tableHtml += '<td class="spacer"></td>';
+    heads.forEach(h => { tableHtml += '<td class="head">' + h + '</td>'; });
+    tableHtml += '<td class="spacer"></td>';
+    heads.forEach(h => { tableHtml += '<td class="head">' + h + '</td>'; });
+    tableHtml += '</tr>';
+
+    truckers.forEach(tr => {
+      const o = blockStats(overallList, tr);
+      const l = blockStats(luzonList, tr);
+      const v = blockStats(visminList, tr);
+      function block(b) {
+        return cell(tr) + cell(b.total) + cell(b.yes) + cell(b.no) + cell(rateFmt(b.rate), 'rate');
+      }
+      tableHtml += '<tr>' + block(o) + '<td class="spacer"></td>' + block(l) + '<td class="spacer"></td>' + block(v) + '</tr>';
+    });
+    tableHtml += '</table></body></html>';
+
+    const fname = 'TruckerComparison_' + cKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '.xls';
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+  }
+
   function onDataReady() {
     fillSelects();
     const rows = getRows();
@@ -629,6 +956,77 @@ const MttWeeklyMonthly = (() => {
     const btnM = document.getElementById('btnWmMonth');
     if (btnW) btnW.addEventListener('click', () => run('weekly'));
     if (btnM) btnM.addEventListener('click', () => run('monthly'));
+
+    const expW = document.getElementById('btnWmWeekExport');
+    const expM = document.getElementById('btnWmMonthExport');
+    if (expW) expW.addEventListener('click', () => exportComparison('weekly'));
+    if (expM) expM.addEventListener('click', () => exportComparison('monthly'));
+
+    function bindEntityDropdown(mode) {
+      const toggle = document.getElementById(mode === 'weekly' ? 'wmWeekEntityToggle' : 'wmMonthEntityToggle');
+      const panel = document.getElementById(mode === 'weekly' ? 'wmWeekEntityPanel' : 'wmMonthEntityPanel');
+      const list = document.getElementById(mode === 'weekly' ? 'wmWeekEntityList' : 'wmMonthEntityList');
+      if (toggle && panel) {
+        toggle.addEventListener('click', e => {
+          e.stopPropagation();
+          panel.classList.toggle('hidden');
+        });
+      }
+      if (list) {
+        list.addEventListener('change', () => {
+          const kind = getActiveEntityKind(mode);
+          if (kind) updateEntityToggleLabel(mode, kind);
+          run(mode);
+        });
+      }
+      document.querySelectorAll('[data-wm-dd-all]').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-wm-dd-all');
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = true; });
+          const m = id.indexOf('Week') >= 0 ? 'weekly' : 'monthly';
+          const kind = getActiveEntityKind(m);
+          if (kind) {
+            entitySel[m][kind] = null;
+            updateEntityToggleLabel(m, kind);
+          }
+          run(m);
+        });
+      });
+      document.querySelectorAll('[data-wm-dd-none]').forEach(btn => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-wm-dd-none');
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; });
+          const m = id.indexOf('Week') >= 0 ? 'weekly' : 'monthly';
+          const kind = getActiveEntityKind(m);
+          if (kind) {
+            entitySel[m][kind] = new Set();
+            updateEntityToggleLabel(m, kind);
+          }
+          run(m);
+        });
+      });
+    }
+    bindEntityDropdown('weekly');
+    bindEntityDropdown('monthly');
+    // Close dropdown when clicking outside
+    document.addEventListener('click', () => {
+      ['wmWeekEntityPanel', 'wmMonthEntityPanel'].forEach(id => {
+        const p = document.getElementById(id);
+        if (p) p.classList.add('hidden');
+      });
+    });
+    ['wmWeekEntityPanel', 'wmMonthEntityPanel'].forEach(id => {
+      const p = document.getElementById(id);
+      if (p) p.addEventListener('click', e => e.stopPropagation());
+    });
 
     document.querySelectorAll('.wm-subtabs').forEach(group => {
       group.addEventListener('click', e => {
