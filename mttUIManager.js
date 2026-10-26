@@ -160,15 +160,36 @@ const MttUIManager = (() => {
   }
 
   function initTabs() {
-    document.querySelectorAll('.tab').forEach(tab => {
+    document.querySelectorAll('.sidebar-tabs .tab, .tabs .tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.sidebar-tabs .tab, .tabs .tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         const panel = document.getElementById(tab.dataset.tab);
         if (panel) panel.classList.add('active');
       });
     });
+    initSidebarToggle();
+  }
+
+  function initSidebarToggle() {
+    const layout = document.getElementById('analysisLayout');
+    const hideBtn = document.getElementById('sidebarToggle');
+    const showBtn = document.getElementById('sidebarShowBtn');
+    if (!layout) return;
+
+    function setCollapsed(collapsed) {
+      layout.classList.toggle('sidebar-collapsed', collapsed);
+      if (showBtn) showBtn.classList.toggle('hidden', !collapsed);
+      try { localStorage.setItem('mttSidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+    }
+
+    if (hideBtn) hideBtn.addEventListener('click', () => setCollapsed(true));
+    if (showBtn) showBtn.addEventListener('click', () => setCollapsed(false));
+
+    try {
+      if (localStorage.getItem('mttSidebarCollapsed') === '1') setCollapsed(true);
+    } catch (e) {}
   }
 
   return { render, initTabs };
