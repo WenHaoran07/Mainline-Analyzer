@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SLU Mainline Travel Time Analyzer | J&T</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <link rel="stylesheet" href="mtt.css">
 </head>
@@ -104,19 +104,30 @@
         <div class="card"><h2><span class="icon">📍</span> Late by DC Intended</h2><div class="chart-wrap"><canvas id="chartDC"></canvas></div></div>
       </div>
 
-      <div class="card">
-        <div class="tabs">
-          <div class="tab active" data-tab="tabRoutes">Routes</div>
-          <div class="tab" data-tab="tabRegions">Regions</div>
-          <div class="tab" data-tab="tabDC">DC Intended</div>
-          <div class="tab" data-tab="tabTrucker">Truckers</div>
-          <div class="tab" data-tab="tabLateDetail">Late Trip Detail</div>
-          <div class="tab" data-tab="tabHistory">Daily History</div>
-          <div class="tab" data-tab="tabGraphs">Graphs</div>
-          <div class="tab" data-tab="tabWeekly">Weekly</div>
-          <div class="tab" data-tab="tabMonthly">Monthly</div>
-          <div class="tab" data-tab="tabDelayReason">Delay Reason</div>
-        </div>
+      <div class="card analysis-card">
+        <div class="analysis-layout" id="analysisLayout">
+          <aside class="analysis-sidebar" id="analysisSidebar">
+            <div class="sidebar-head">
+              <span class="sidebar-title">Navigation</span>
+              <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Hide sidebar" aria-label="Hide sidebar">«</button>
+            </div>
+            <nav class="tabs sidebar-tabs">
+              <div class="tab active" data-tab="tabRoutes"><span class="tab-ico">🛣</span><span class="tab-label">Routes</span></div>
+              <div class="tab" data-tab="tabRegions"><span class="tab-ico">🗺</span><span class="tab-label">Regions</span></div>
+              <div class="tab" data-tab="tabDC"><span class="tab-ico">📍</span><span class="tab-label">DC Intended</span></div>
+              <div class="tab" data-tab="tabTrucker"><span class="tab-ico">🚛</span><span class="tab-label">Truckers</span></div>
+              <div class="tab" data-tab="tabLateDetail"><span class="tab-ico">⏰</span><span class="tab-label">Late Trip Detail</span></div>
+              <div class="tab" data-tab="tabHistory"><span class="tab-ico">📅</span><span class="tab-label">Daily History</span></div>
+              <div class="tab" data-tab="tabGraphs"><span class="tab-ico">📊</span><span class="tab-label">Graphs</span></div>
+              <div class="tab" data-tab="tabWeekly"><span class="tab-ico">📆</span><span class="tab-label">Weekly</span></div>
+              <div class="tab" data-tab="tabMonthly"><span class="tab-ico">🗓</span><span class="tab-label">Monthly</span></div>
+              <div class="tab" data-tab="tabRateMatrix"><span class="tab-ico">📈</span><span class="tab-label">Rate Matrix</span></div>
+              <div class="tab" data-tab="tabDelayReason"><span class="tab-ico">📝</span><span class="tab-label">Delay Reason</span></div>
+              <div class="tab" data-tab="tabProblemReport"><span class="tab-ico">⚠</span><span class="tab-label">PE Auto Report</span></div>
+            </nav>
+          </aside>
+          <button type="button" class="sidebar-show-btn hidden" id="sidebarShowBtn" title="Show sidebar">» Menu</button>
+          <div class="analysis-main">
 
         <div id="tabRoutes" class="tab-panel active">
           <p class="section-note">Routes for the selected filter only</p>
@@ -333,6 +344,18 @@
           </table></div>
         </div>
 
+        <div id="tabRateMatrix" class="tab-panel">
+          <div class="pe-toolbar rm-toolbar">
+            <div class="pe-subtabs">
+              <button type="button" class="rm-subtab active" data-rm-mode="weekly">Weekly</button>
+              <button type="button" class="rm-subtab" data-rm-mode="monthly">Monthly</button>
+            </div>
+            <button type="button" class="wm-export-btn" id="btnRmExport">Export Excel</button>
+          </div>
+          <p class="section-note">SLU only · same layout as Travel Time Weekly Comparison (OVERALL · LUZON TO LUZON · LUZON TO VISMIN). Heat colors vs targets 96% / 97% / 85%. Export matches red-header design.</p>
+          <div id="rmView"></div>
+        </div>
+
         <div id="tabDelayReason" class="tab-panel">
           <div class="pe-toolbar">
             <div id="peDateFilterWrap">
@@ -358,7 +381,43 @@
             <div id="peTableView" class="hidden"></div>
           </div>
         </div>
-      </div>
+
+        <div id="tabProblemReport" class="tab-panel">
+          <div class="pe-toolbar">
+            <div id="prDateFilterWrap">
+              <label class="pe-label">Report date</label>
+              <select id="prSelectDate"></select>
+            </div>
+            <div id="prWeekFilterWrap" style="display:none;">
+              <label class="pe-label">Report week</label>
+              <select id="prSelectWeek"></select>
+            </div>
+            <div class="wm-dd" id="prRegionDd">
+              <label class="pe-label">Region filter</label>
+              <button type="button" class="wm-dd-toggle" id="prRegionToggle">All regions ▾</button>
+              <div class="wm-dd-panel hidden" id="prRegionPanel">
+                <div class="wm-dd-actions">
+                  <button type="button" class="wm-mini-btn" id="prRegionAll">All</button>
+                  <button type="button" class="wm-mini-btn" id="prRegionNone">None</button>
+                </div>
+                <div class="wm-dd-list" id="prRegionList"></div>
+              </div>
+            </div>
+            <div class="pe-subtabs pr-subtabs">
+              <button type="button" class="pr-subtab active" data-pr-view="daily">Daily Report</button>
+              <button type="button" class="pr-subtab" data-pr-view="weekly">Weekly Report</button>
+            </div>
+            <div class="pe-proof-wrap">
+              <a class="pe-proof-btn" href="https://jtexpress.feishu.cn/wiki/FK7mwi0qSiBT0Ykh50Ycq68Ine3?from=from_copylink" target="_blank" rel="noopener noreferrer">Photo Proof (Feishu)</a>
+            </div>
+          </div>
+          <div id="prDailyView"></div>
+          <div id="prWeeklyView" class="hidden"></div>
+        </div>
+
+          </div><!-- /.analysis-main -->
+        </div><!-- /.analysis-layout -->
+      </div><!-- /.analysis-card -->
     </div>
   </div>
 
@@ -372,7 +431,9 @@
   <script src="mttChartManager.js"></script>
   <script src="mttUIManager.js"></script>
   <script src="mttDelayReason.js"></script>
+  <script src="mttProblemReport.js"></script>
   <script src="mttWeeklyMonthly.js"></script>
+  <script src="mttRateMatrix.js"></script>
   <script src="mttApp.js"></script>
 </body>
 </html>
