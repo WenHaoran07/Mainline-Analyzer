@@ -21,7 +21,7 @@
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
-        <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
+        <a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
       </div>
     </div>
   </div>
@@ -123,7 +123,7 @@
               <div class="tab" data-tab="tabMonthly"><span class="tab-ico">🗓</span><span class="tab-label">Monthly</span></div>
               <div class="tab" data-tab="tabRateMatrix"><span class="tab-ico">📈</span><span class="tab-label">Rate Matrix</span></div>
               <div class="tab" data-tab="tabDelayReason"><span class="tab-ico">📝</span><span class="tab-label">Delay Reason</span></div>
-              <div class="tab" data-tab="tabProblemReport"><span class="tab-ico">⚠</span><span class="tab-label">Problem Encountered Report</span></div>
+              <div class="tab" data-tab="tabProblemReport"><span class="tab-ico">⚠</span><span class="tab-label">PE Auto Report</span></div>
             </nav>
           </aside>
           <button type="button" class="sidebar-show-btn hidden" id="sidebarShowBtn" title="Show sidebar">» Menu</button>
@@ -344,15 +344,15 @@
           </table></div>
         </div>
 
-        <div id="tabRateMatrix" class="tab-panel">
+                <div id="tabRateMatrix" class="tab-panel">
           <div class="pe-toolbar rm-toolbar">
             <div class="pe-subtabs">
               <button type="button" class="rm-subtab active" data-rm-mode="weekly">Weekly</button>
               <button type="button" class="rm-subtab" data-rm-mode="monthly">Monthly</button>
             </div>
-            <button type="button" class="wm-export-btn" id="btnRmExport">Export Excel</button>
+            <button type="button" class="wm-export-btn" id="btnRmExport">Export</button>
           </div>
-          <p class="section-note">SLU only · same layout as Travel Time Weekly Comparison (OVERALL · LUZON TO LUZON · LUZON TO VISMIN). Heat colors vs targets 96% / 97% / 85%. Export matches red-header design.</p>
+          <p class="section-note"></p>
           <div id="rmView"></div>
         </div>
 
