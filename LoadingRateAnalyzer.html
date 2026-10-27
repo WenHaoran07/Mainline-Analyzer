@@ -200,7 +200,7 @@
           <h1>Loading Rate Analyzer</h1>
         </div>
       </div>
-<a href="index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;margin-right:12px;">← Back to Hub</a>
+<a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;margin-right:12px;">← Back to Hub</a>
       <!-- Packing GIF inside Header -->
     </div>
   </div>
@@ -283,6 +283,13 @@
               <button id="btnGenerateAi" class="ai-btn">🤖 Generate AI Reasoning</button>
               <div id="aiReasoningBox" class="ai-reasoning-box hidden"></div>
             </div>
+          </div>
+
+          <!-- Daily Trips & Loading Qty (chart) -->
+          <div class="card">
+            <h2><span class="icon">📅</span> Daily Trips &amp; Loading Qty</h2>
+            <p class="section-note">Trips and total Loading Tickets each day (SLU overall)</p>
+            <div class="chart-wrap" style="height:300px;"><canvas id="chartDailyTripsLt"></canvas></div>
           </div>
 
           <!-- Charts -->
@@ -518,8 +525,8 @@
                 <div class="chart-wrap"><canvas id="lrWeekChartTrend"></canvas></div>
               </div>
               <div class="card">
-                <h2><span class="icon">📉</span> Week-over-Week Avg </h2>
-                <p class="section-note">By selected view</p>
+                <h2><span class="icon">📉</span> <span id="lrWeekCompareTitle">Weekly Trips & Loading Qty</span></h2>
+                <p class="section-note" id="lrWeekCompareNote">Trips and total Loading Tickets each week (SLU overall)</p>
                 <div class="chart-wrap"><canvas id="lrWeekChartCompare"></canvas></div>
               </div>
             </div>
