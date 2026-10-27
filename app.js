@@ -47,6 +47,9 @@ const App = (() => {
         if (typeof DetailTableManager !== 'undefined') {
           DetailTableManager.render(storedSlu, storedColMap, datePrev, dateLatest, routeGroup);
         }
+        if (typeof LrWeeklyManager !== 'undefined') {
+          LrWeeklyManager.onFileReady();
+        }
 
         // Explicitly hide BOTH loading overlays
         if (loadingUpload) loadingUpload.classList.add('hidden');
@@ -65,6 +68,7 @@ const App = (() => {
   function init() {
     ReferenceManager.init();
     if (typeof DetailTableManager !== 'undefined') DetailTableManager.init();
+    if (typeof LrWeeklyManager !== 'undefined') LrWeeklyManager.init();
 
     FileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group);
