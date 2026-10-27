@@ -313,41 +313,124 @@ const LrWeeklyManager = (() => {
       });
     }
 
-    // --- Right chart: WoW bar for current view (values on bars) ---
+    // --- Right chart: SLU = weekly trips + total Loading Qty; Region/DC = WoW Avg Δ ---
     if (chartCompare) try { chartCompare.destroy(); } catch (e) {}
     const elC = document.getElementById('lrWeekChartCompare');
+    const titleC = document.getElementById('lrWeekCompareTitle');
+    const noteC = document.getElementById('lrWeekCompareNote');
+
     if (elC) {
-      let list = entities.filter(e => e.name !== 'SLU (All)');
-      if (!list.length) list = entities;
-      list = [...list].sort((a, b) => Math.abs(b.avgDiff || 0) - Math.abs(a.avgDiff || 0)).slice(0, 10);
-      const labels = list.map(e => e.name.length > 18 ? e.name.slice(0, 16) + '…' : e.name);
-      const data = list.map(e => Math.round(e.avgDiff != null ? e.avgDiff : (e.latest.avgLt - e.prev.avgLt)));
-      chartCompare = new Chart(elC, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Avg LT Δ',
-            data,
-            backgroundColor: data.map(v => v < 0 ? '#E60012' : '#2E7D32'),
-            borderRadius: 6
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ' Δ ' + (ctx.raw > 0 ? '+' : '') + Number(ctx.raw).toLocaleString() } }
+      if (viewMode === 'SLU') {
+        const qtyVals = weekKeys.map(w => Math.round(stats(byWeek[w]).totalLt));
+        const tripVals = weekKeys.map(w => stats(byWeek[w]).trips);
+        if (titleC) titleC.textContent = 'Weekly Trips & Loading Qty';
+        if (noteC) noteC.textContent = 'Trips and total Loading Tickets each week (SLU overall)';
+        chartCompare = new Chart(elC, {
+          type: 'bar',
+          data: {
+            labels: weekKeys,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Trips',
+                data: tripVals,
+                backgroundColor: '#90A4AE',
+                borderRadius: 4,
+                yAxisID: 'yTrips',
+                order: 2,
+                maxBarThickness: 36
+              },
+              {
+                type: 'line',
+                label: 'Total Loading Qty',
+                data: qtyVals,
+                borderColor: '#E60012',
+                backgroundColor: 'rgba(230,0,18,0.12)',
+                tension: 0.25,
+                pointRadius: 4,
+                pointHoverRadius: 5,
+                yAxisID: 'yQty',
+                order: 1,
+                fill: false
+              }
+            ]
           },
-          scales: {
-            x: { grid: { color: '#F0F0F0' }, ticks: { callback: v => Number(v).toLocaleString() } },
-            y: { grid: { display: false } }
-          }
-        },
-        plugins: [valueLabelPlugin]
-      });
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'bottom',
+                labels: { boxWidth: 12, font: { size: 10 } }
+              },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const v = ctx.parsed.y;
+                    return ' ' + ctx.dataset.label + ': ' + (v == null ? '—' : Number(v).toLocaleString());
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+              yTrips: {
+                type: 'linear',
+                position: 'left',
+                beginAtZero: true,
+                title: { display: true, text: 'Trips', font: { size: 10 } },
+                grid: { color: '#F0F0F0' },
+                ticks: { font: { size: 10 }, callback: v => Number(v).toLocaleString() }
+              },
+              yQty: {
+                type: 'linear',
+                position: 'right',
+                beginAtZero: true,
+                title: { display: true, text: 'Loading Qty', font: { size: 10 } },
+                grid: { drawOnChartArea: false },
+                ticks: { font: { size: 10 }, callback: v => Number(v).toLocaleString() }
+              }
+            }
+          },
+          plugins: [valueLabelPlugin]
+        });
+      } else {
+        let list = entities.filter(e => e.name !== 'SLU (All)');
+        if (!list.length) list = entities;
+        list = [...list].sort((a, b) => Math.abs(b.avgDiff || 0) - Math.abs(a.avgDiff || 0)).slice(0, 10);
+        const labels = list.map(e => e.name.length > 18 ? e.name.slice(0, 16) + '…' : e.name);
+        const data = list.map(e => Math.round(e.avgDiff != null ? e.avgDiff : (e.latest.avgLt - e.prev.avgLt)));
+        if (titleC) titleC.textContent = 'Week-over-Week Avg ';
+        if (noteC) noteC.textContent = 'Avg Loading Tickets change between the two selected weeks';
+        chartCompare = new Chart(elC, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Avg LT ',
+              data,
+              backgroundColor: data.map(v => v < 0 ? '#E60012' : '#2E7D32'),
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: ctx => '' + (ctx.raw > 0 ? '+' : '') + Number(ctx.raw).toLocaleString() } }
+            },
+            scales: {
+              x: { grid: { color: '#F0F0F0' }, ticks: { callback: v => Number(v).toLocaleString() } },
+              y: { grid: { display: false } }
+            }
+          },
+          plugins: [valueLabelPlugin]
+        });
+      }
     }
 
     // --- Full-width multi-line: Region or Per DC weekly trend ---
