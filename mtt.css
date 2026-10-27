@@ -1262,3 +1262,36 @@ tr.late-row td { background: #FFF5F5; }
 .rm-table td.rm-trend { background: #FAFAFA; }
 .rm-spark { display: inline-block; vertical-align: middle; }
 .rm-spark-empty { color: #BDBDBD; }
+
+
+/* ===== Rate Matrix · Mainline Travel Time Report layout ===== */
+.rm-report-block { margin-bottom: 18px; }
+.rm-report-banner {
+  background: #C00000;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 8px 8px 0 0;
+  letter-spacing: 0.02em;
+}
+.rm-report-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.rm-report-table th, .rm-report-table td {
+  border: 1px solid #BDBDBD;
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.rm-th-region { background: #D9D9D9; font-weight: 700; }
+.rm-th-sum { background: #F9CB9C; font-weight: 700; }
+.rm-th-wk { background: #9FC5E8; font-weight: 700; }
+.rm-th-cmp { background: #B6D7A8; font-weight: 700; }
+.rm-th-mon { background: #E69138; color: #fff; font-weight: 700; }
+.rm-region { background: #EEEEEE; font-weight: 700; }
+.rm-yes { color: #2E7D32; font-weight: 600; }
+.rm-no { color: #C62828; font-weight: 600; }
+.rm-up { color: #2E7D32; font-weight: 700; }
+.rm-down { color: #C62828; font-weight: 700; }
+.rm-emoji { font-size: 1.1rem; }
+.rm-rate { font-weight: 700; }
