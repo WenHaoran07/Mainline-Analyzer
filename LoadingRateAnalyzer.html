@@ -147,6 +147,48 @@
       background: #E60012;
       color: #fff;
     }
+
+    .lr-main-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .lr-main-tab {
+      border: 1px solid var(--jt-red-soft, #FFCDD2);
+      background: #fff;
+      color: #757575;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+    }
+    .lr-main-tab.active {
+      background: #E60012;
+      border-color: #E60012;
+      color: #fff;
+    }
+    .lr-week-view-tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .lr-week-view-tabs button {
+      border: 1px solid #E0E0E0;
+      background: #FAFAFA;
+      color: #555;
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .lr-week-view-tabs button.active {
+      background: #E60012;
+      border-color: #E60012;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -203,6 +245,12 @@
         </div>
 
         <div id="results" class="hidden">
+          <div class="lr-main-tabs">
+            <button type="button" class="lr-main-tab active" id="tabLrDay">📅 Day Comparison</button>
+            <button type="button" class="lr-main-tab" id="tabLrWeek">📊 Weekly Comparison</button>
+          </div>
+
+          <div id="lrDayPanel">
           <!-- Comparison -->
           <div class="card">
             <h2><span class="icon">📊</span> SLU Comparison</h2>
@@ -436,6 +484,75 @@
             </div>
           </div>
 
+
+          </div><!-- /lrDayPanel -->
+
+          <!-- WEEKLY COMPARISON PANEL -->
+          <div id="lrWeeklyPanel" class="hidden">
+            <div class="card">
+              <h2><span class="icon">📊</span> SLU Weekly Comparison</h2>
+              <div class="date-selectors">
+                <div>
+                  <label>Previous week</label>
+                  <select id="lrWeekPrev"></select>
+                </div>
+                <div>
+                  <label>Latest week</label>
+                  <select id="lrWeekLatest"></select>
+                </div>
+                <button type="button" id="btnLrWeekCompare">Compare Weeks</button>
+              </div>
+              <div class="lr-week-view-tabs">
+                <button type="button" class="active" data-lr-week-view="SLU">SLU Overall</button>
+                <button type="button" data-lr-week-view="REGION">By Region</button>
+                <button type="button" data-lr-week-view="DC">Per DC</button>
+              </div>
+              <div class="date-info" id="lrWeekInfo">Select weeks and compare</div>
+              <div class="metrics" id="lrWeekMetrics"></div>
+            </div>
+
+            <div class="charts-row">
+              <div class="card">
+                <h2><span class="icon">📈</span> <span id="lrWeekTrendTitle">Weekly SLU Avg Loading Tickets Trend</span></h2>
+                <p class="section-note">Average Loading Tickets by week</p>
+                <div class="chart-wrap"><canvas id="lrWeekChartTrend"></canvas></div>
+              </div>
+              <div class="card">
+                <h2><span class="icon">📉</span> Week-over-Week Avg </h2>
+                <p class="section-note">By selected view</p>
+                <div class="chart-wrap"><canvas id="lrWeekChartCompare"></canvas></div>
+              </div>
+            </div>
+
+            <div class="card hidden" id="lrWeekEntityTrendCard">
+              <h2><span class="icon">📍</span> <span id="lrWeekEntityTrendTitle">Weekly Trend by Region / DC</span></h2>
+              <p class="section-note" id="lrWeekEntityTrendNote">Line chart of weekly average Loading Tickets</p>
+              <div class="chart-wrap" style="height:320px;"><canvas id="lrWeekChartEntityTrend"></canvas></div>
+            </div>
+
+            <div class="card">
+              <h2><span class="icon">📋</span> Weekly Breakdown Table</h2>
+              <p class="section-note">Trips, average Loading Tickets, and packages by week</p>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th id="lrWeekEntityCol">Scope</th>
+                      <th>Prev Trips</th>
+                      <th>Latest Trips</th>
+                      <th>Prev Avg LT</th>
+                      <th>Latest Avg LT</th>
+                      <th>Avg LT </th>
+                      <th>Prev Packages</th>
+                      <th>Latest Packages</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lrWeekTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
@@ -451,6 +568,7 @@
   <script src="detailTableManager.js"></script>
   <script src="aiReasoningManager.js"></script>
   <script src="fileProcessor.js"></script>
+  <script src="lrWeeklyManager.js"></script>
   <script src="app.js"></script>
 <footer class="app-watermark">
    © 2026 <strong>Vince Adesa</strong> - Loading Rate Analyzer
