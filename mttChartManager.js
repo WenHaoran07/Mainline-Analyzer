@@ -34,7 +34,7 @@ const MttChartManager = (() => {
         type: 'bar',
         data: {
           labels: regionLate.map(r => r.region),
-          datasets: [{ data: regionLate.map(r => r.late), backgroundColor: 'rgba(230,0,18,0.75)', borderRadius: 5 }]
+          datasets: [{ data: regionLate.map(r => r.late), backgroundColor: 'rgba(133, 2, 0, 0.95)', borderRadius: 5 }]
         },
         options: barOpts('Late trips')
       });
@@ -44,7 +44,7 @@ const MttChartManager = (() => {
         type: 'bar',
         data: {
           labels: routeLate.slice(0, 12).map(r => r.route),
-          datasets: [{ data: routeLate.slice(0, 12).map(r => r.late), backgroundColor: 'rgba(183,28,28,0.7)', borderRadius: 5 }]
+          datasets: [{ data: routeLate.slice(0, 12).map(r => r.late), backgroundColor: 'rgb(133, 2, 0)', borderRadius: 5 }]
         },
         options: barOpts('Late trips')
       });
@@ -54,7 +54,7 @@ const MttChartManager = (() => {
         type: 'bar',
         data: {
           labels: truckerLate.map(t => t.key.length > 16 ? t.key.slice(0, 14) + '…' : t.key),
-          datasets: [{ data: truckerLate.map(t => t.no), backgroundColor: 'rgba(198,40,40,0.7)', borderRadius: 5 }]
+          datasets: [{ data: truckerLate.map(t => t.no), backgroundColor: 'rgb(133, 2, 0)', borderRadius: 5 }]
         },
         options: barOpts('Late trips')
       });
@@ -64,7 +64,7 @@ const MttChartManager = (() => {
         type: 'bar',
         data: {
           labels: dcLate.map(d => d.key),
-          datasets: [{ data: dcLate.map(d => d.no), backgroundColor: 'rgba(239,83,80,0.75)', borderRadius: 5 }]
+          datasets: [{ data: dcLate.map(d => d.no), backgroundColor: 'rgb(133, 2, 0)', borderRadius: 5 }]
         },
         options: barOpts('Late trips')
       });
