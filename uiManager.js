@@ -35,7 +35,171 @@ const UIManager = (() => {
     return `background-color: rgb(${r}, ${g}, ${b}); color: #0F172A; text-align: right; font-weight: 600;`;
   }
 
+
+  function toYmdDaily(v) {
+    if (v == null || v === '') return null;
+    if (v instanceof Date && !isNaN(v.getTime())) {
+      const p = n => String(n).padStart(2, '0');
+      return v.getFullYear() + '-' + p(v.getMonth() + 1) + '-' + p(v.getDate());
+    }
+    if (typeof v === 'number' && isFinite(v) && v > 20000 && v < 100000) {
+      const ms = Date.UTC(1899, 11, 30) + Math.round(v) * 86400000;
+      const d = new Date(ms);
+      const p = n => String(n).padStart(2, '0');
+      return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate());
+    }
+    const s = String(v).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      const n = parseFloat(s);
+      if (n > 20000 && n < 100000) {
+        const ms = Date.UTC(1899, 11, 30) + Math.round(n) * 86400000;
+        const d = new Date(ms);
+        const p = x => String(x).padStart(2, '0');
+        return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate());
+      }
+    }
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return iso[1] + '-' + iso[2] + '-' + iso[3];
+    return s.length >= 10 ? s.substring(0, 10) : null;
+  }
+
+  function formatYmdDisplay(ymd) {
+    const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return ymd || '—';
+    return m[3] + '/' + m[2] + '/' + m[1];
+  }
+
+  let chartDailyTripsLt = null;
+
+  function renderDailyTripsLtTable() {
+    const el = document.getElementById('chartDailyTripsLt');
+    if (!el || typeof FileProcessor === 'undefined') return;
+    const { storedSlu, storedColMap } = FileProcessor.getState();
+    if (!storedSlu || !storedColMap) return;
+
+    const colMap = storedColMap;
+    const byDate = {};
+    storedSlu.forEach(r => {
+      const d = toYmdDaily(r[colMap.date]);
+      if (!d) return;
+      if (!byDate[d]) byDate[d] = { trips: 0, lt: 0 };
+      byDate[d].trips += 1;
+      byDate[d].lt += parseFloat(r[colMap.lt]) || 0;
+    });
+    const dates = Object.keys(byDate).sort();
+    if (!dates.length) return;
+
+    const labels = dates.map(formatYmdDisplay);
+    const tripVals = dates.map(d => byDate[d].trips);
+    const qtyVals = dates.map(d => Math.round(byDate[d].lt));
+
+    if (chartDailyTripsLt) {
+      try { chartDailyTripsLt.destroy(); } catch (e) {}
+      chartDailyTripsLt = null;
+    }
+
+    const valueLabelPlugin = {
+      id: 'dailyTripsLtLabels',
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = '600 10px Segoe UI, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        chart.data.datasets.forEach((ds, di) => {
+          const meta = chart.getDatasetMeta(di);
+          if (meta.hidden) return;
+          meta.data.forEach((pt, i) => {
+            const raw = ds.data[i];
+            if (raw === null || raw === undefined || isNaN(raw)) return;
+            const pos = pt.tooltipPosition ? pt.tooltipPosition() : { x: pt.x, y: pt.y };
+            const label = Number(raw).toLocaleString();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.strokeText(label, pos.x, pos.y - 4);
+            ctx.fillStyle = (typeof ds.borderColor === 'string' ? ds.borderColor : null) || '#212121';
+            ctx.fillText(label, pos.x, pos.y - 4);
+          });
+        });
+        ctx.restore();
+      }
+    };
+
+    chartDailyTripsLt = new Chart(el, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Trips',
+            data: tripVals,
+            backgroundColor: '#90A4AE',
+            borderRadius: 4,
+            yAxisID: 'yTrips',
+            order: 2,
+            maxBarThickness: 36
+          },
+          {
+            type: 'line',
+            label: 'Total Loading Qty',
+            data: qtyVals,
+            borderColor: '#E60012',
+            backgroundColor: 'rgba(230,0,18,0.12)',
+            tension: 0.25,
+            pointRadius: 4,
+            pointHoverRadius: 5,
+            yAxisID: 'yQty',
+            order: 1,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { boxWidth: 12, font: { size: 10 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const v = ctx.parsed.y;
+                return ' ' + ctx.dataset.label + ': ' + (v == null ? '—' : Number(v).toLocaleString());
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+          yTrips: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Trips', font: { size: 10 } },
+            grid: { color: '#F0F0F0' },
+            ticks: { font: { size: 10 }, callback: v => Number(v).toLocaleString() }
+          },
+          yQty: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            title: { display: true, text: 'Loading Qty', font: { size: 10 } },
+            grid: { drawOnChartArea: false },
+            ticks: { font: { size: 10 }, callback: v => Number(v).toLocaleString() }
+          }
+        }
+      },
+      plugins: [valueLabelPlugin]
+    });
+  }
+
   function renderComparisonView(data, routeGroup) {
+    renderDailyTripsLtTable();
     document.getElementById('datePrev').textContent = data.datePrev + (routeGroup !== 'ALL' ? ` (${routeGroup})` : '');
     document.getElementById('dateLatest').textContent = data.dateLatest + (routeGroup !== 'ALL' ? ` (${routeGroup})` : '');
 
