@@ -49,6 +49,12 @@
     </div>
 
     <div id="results" class="hidden">
+      <div class="mtt-main-tabs">
+        <button type="button" class="mtt-main-tab active" id="tabMttDay">📅 Date Comparison</button>
+        <button type="button" class="mtt-main-tab" id="tabMttAllData">📋 All Data</button>
+      </div>
+
+      <div id="mttDayPanel">
       <div class="card">
         <h2><span class="icon">📅</span> Date Comparison</h2>
         <div class="date-selectors">
@@ -350,9 +356,9 @@
               <button type="button" class="rm-subtab active" data-rm-mode="weekly">Weekly</button>
               <button type="button" class="rm-subtab" data-rm-mode="monthly">Monthly</button>
             </div>
-            <button type="button" class="wm-export-btn" id="btnRmExport">Export</button>
+            <button type="button" class="wm-export-btn" id="btnRmExport">Export Weekly + Monthly</button>
           </div>
-          <p class="section-note"></p>
+          <p class="section-note">Truck Owner SLU · heat matrix (OVERALL · LUZON ROUTE · VISMIN ROUTE). Targets 96% / 97% / 85%.</p>
           <div id="rmView"></div>
         </div>
 
@@ -418,6 +424,75 @@
           </div><!-- /.analysis-main -->
         </div><!-- /.analysis-layout -->
       </div><!-- /.analysis-card -->
+      </div><!-- /#mttDayPanel -->
+
+      <div id="mttAllDataPanel" class="hidden">
+        <div class="card">
+          <h2><span class="icon">📋</span> All Data Explorer</h2>
+          <div class="ad-filters">
+            <div>
+              <label class="pe-label">Task ID</label>
+              <input type="text" id="adSearchTask" placeholder="e.g. JB00160588" autocomplete="off">
+            </div>
+            <div>
+              <label class="pe-label">Plate number</label>
+              <input type="text" id="adSearchPlate" placeholder="e.g. CCB9506" autocomplete="off">
+            </div>
+            <div>
+              <label class="pe-label">Date from</label>
+              <select id="adDateFrom"></select>
+            </div>
+            <div>
+              <label class="pe-label">Date to</label>
+              <select id="adDateTo"></select>
+            </div>
+            <div>
+              <label class="pe-label">Route</label>
+              <select id="adRouteType">
+                <option value="ALL">Overall</option>
+                <option value="LUZON">Luzon Route</option>
+                <option value="VISMIN">VisMin Route</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">On time</label>
+              <select id="adOnTime">
+                <option value="ALL">All</option>
+                <option value="YES">YES only</option>
+                <option value="NO">NO (late) only</option>
+              </select>
+            </div>
+            <div class="ad-actions">
+              <button type="button" class="wm-mini-btn" id="adClear">Clear filters</button>
+            </div>
+          </div>
+          <div class="ad-meta" id="adMeta">Upload a file to browse trips.</div>
+          <div class="table-scroll ad-table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Task ID</th>
+                  <th>Plate</th>
+                  <th>Type</th>
+                  <th>Route</th>
+                  <th>Region</th>
+                  <th>Trucker</th>
+                  <th>DC Intended</th>
+                  <th>On Time</th>
+                  <th>Plan TT</th>
+                  <th>Actual TT</th>
+                </tr>
+              </thead>
+              <tbody id="adBody"></tbody>
+            </table>
+          </div>
+          <div class="ad-pager">
+            <button type="button" class="wm-mini-btn" id="adPrev">← Prev</button>
+            <button type="button" class="wm-mini-btn" id="adNext">Next →</button>
+          </div>
+        </div>
+      </div><!-- /#mttAllDataPanel -->
     </div>
   </div>
 
@@ -434,6 +509,7 @@
   <script src="mttProblemReport.js"></script>
   <script src="mttWeeklyMonthly.js"></script>
   <script src="mttRateMatrix.js"></script>
+  <script src="mttAllData.js"></script>
   <script src="mttApp.js"></script>
 </body>
 </html>
