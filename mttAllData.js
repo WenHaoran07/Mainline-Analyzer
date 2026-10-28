@@ -6,6 +6,17 @@ const MttAllData = (() => {
   const PAGE_SIZE = 200;
   let page = 0;
 
+  /** Decimal hours → H:MM:SS (e.g. 75.2658 → 75:15:57) */
+  function fmtDuration(hours) {
+    if (hours == null || hours === '' || isNaN(Number(hours))) return '—';
+    const totalSec = Math.round(Math.abs(Number(hours)) * 3600);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return h + ':' + pad(m) + ':' + pad(s);
+  }
+
   function allRows() {
     if (typeof MttFileProcessor === 'undefined') return [];
     return MttFileProcessor.getState().storedRows || [];
@@ -94,8 +105,8 @@ const MttAllData = (() => {
           '<td>' + (r.trucker || '') + '</td>' +
           '<td>' + (r.dcIntended || '') + '</td>' +
           '<td class="' + (late ? 'neg' : 'pos') + '">' + (r.onTime || '') + '</td>' +
-          '<td>' + (r.planTT || '') + '</td>' +
-          '<td>' + (r.actualTT || '') + '</td>' +
+          '<td>' + fmtDuration(r.planTT) + '</td>' +
+          '<td>' + fmtDuration(r.actualTT) + '</td>' +
           '</tr>';
       }).join('');
     }
