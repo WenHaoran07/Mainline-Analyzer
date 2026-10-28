@@ -43,6 +43,9 @@ const MttApp = (() => {
         if (typeof MttRateMatrix !== 'undefined') {
           MttRateMatrix.onDataReady();
         }
+        if (typeof MttAllData !== 'undefined') {
+          MttAllData.onDataReady();
+        }
       } catch (err) {
         console.error(err);
         alert('Error during comparison: ' + err.message);
@@ -69,6 +72,7 @@ const MttApp = (() => {
     if (typeof MttProblemReport !== 'undefined') MttProblemReport.init();
     if (typeof MttWeeklyMonthly !== 'undefined') MttWeeklyMonthly.init();
     if (typeof MttRateMatrix !== 'undefined') MttRateMatrix.init();
+    if (typeof MttAllData !== 'undefined') MttAllData.init();
 
     MttFileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group || 'ALL', false);
@@ -79,6 +83,30 @@ const MttApp = (() => {
 
     const selRoute = document.getElementById('selectRouteType');
     if (selRoute) selRoute.addEventListener('change', triggerCompare);
+
+    // Top-level Day Comparison / All Data (like Loading Rate Day / Weekly)
+    function switchMainTab(which) {
+      const day = document.getElementById('mttDayPanel');
+      const all = document.getElementById('mttAllDataPanel');
+      const btnDay = document.getElementById('tabMttDay');
+      const btnAll = document.getElementById('tabMttAllData');
+      if (which === 'all') {
+        if (day) day.classList.add('hidden');
+        if (all) all.classList.remove('hidden');
+        if (btnDay) btnDay.classList.remove('active');
+        if (btnAll) btnAll.classList.add('active');
+        if (typeof MttAllData !== 'undefined') MttAllData.render();
+      } else {
+        if (day) day.classList.remove('hidden');
+        if (all) all.classList.add('hidden');
+        if (btnDay) btnDay.classList.add('active');
+        if (btnAll) btnAll.classList.remove('active');
+      }
+    }
+    const btnDay = document.getElementById('tabMttDay');
+    const btnAll = document.getElementById('tabMttAllData');
+    if (btnDay) btnDay.addEventListener('click', () => switchMainTab('day'));
+    if (btnAll) btnAll.addEventListener('click', () => switchMainTab('all'));
   }
 
   return { init, runCompare };
