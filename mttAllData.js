@@ -26,6 +26,19 @@ const MttAllData = (() => {
     return [...new Set(rows.map(r => r.dateKey).filter(Boolean))].sort();
   }
 
+  function fillSelect(id, values, allLabel) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    const opts = ['<option value="ALL">' + allLabel + '</option>'].concat(
+      values.map(v => '<option value="' + String(v).replace(/"/g, '&quot;') + '">' + v + '</option>')
+    );
+    // date selects use empty string for all
+    sel.innerHTML = opts.join('');
+    if (prev && (prev === 'ALL' || values.indexOf(prev) >= 0)) sel.value = prev;
+    else sel.value = 'ALL';
+  }
+
   function fillDateSelects(rows) {
     const dates = uniqueDates(rows);
     ['adDateFrom', 'adDateTo'].forEach(id => {
@@ -38,6 +51,17 @@ const MttAllData = (() => {
     });
   }
 
+  function fillEntitySelects(rows) {
+    const regions = [...new Set(rows.map(r => r.region).filter(v => v && v !== '(blank)'))].sort(
+      (a, b) => String(a).localeCompare(String(b))
+    );
+    const truckers = [...new Set(rows.map(r => r.trucker).filter(v => v && v !== '(blank)'))].sort(
+      (a, b) => String(a).localeCompare(String(b))
+    );
+    fillSelect('adRegion', regions, 'All regions');
+    fillSelect('adTrucker', truckers, 'All truckers');
+  }
+
   function filters() {
     return {
       task: (document.getElementById('adSearchTask') || {}).value || '',
@@ -45,6 +69,8 @@ const MttAllData = (() => {
       dateFrom: (document.getElementById('adDateFrom') || {}).value || '',
       dateTo: (document.getElementById('adDateTo') || {}).value || '',
       route: (document.getElementById('adRouteType') || {}).value || 'ALL',
+      region: (document.getElementById('adRegion') || {}).value || 'ALL',
+      trucker: (document.getElementById('adTrucker') || {}).value || 'ALL',
       onTime: (document.getElementById('adOnTime') || {}).value || 'ALL'
     };
   }
@@ -60,6 +86,8 @@ const MttAllData = (() => {
       if (f.dateTo && r.dateKey > f.dateTo) return false;
       if (f.route === 'LUZON' && r.routeType !== 'LUZON') return false;
       if (f.route === 'VISMIN' && r.routeType !== 'VISMIN') return false;
+      if (f.region && f.region !== 'ALL' && String(r.region || '') !== f.region) return false;
+      if (f.trucker && f.trucker !== 'ALL' && String(r.trucker || '') !== f.trucker) return false;
       if (f.onTime === 'YES' && String(r.onTime).toUpperCase() !== 'YES') return false;
       if (f.onTime === 'NO' && String(r.onTime).toUpperCase() !== 'NO') return false;
       return true;
@@ -77,6 +105,7 @@ const MttAllData = (() => {
     if (!body) return;
     const rows = allRows();
     fillDateSelects(rows);
+    fillEntitySelects(rows);
     const filtered = applyFilters(rows);
     const total = filtered.length;
     const yes = filtered.filter(r => String(r.onTime).toUpperCase() === 'YES').length;
@@ -137,7 +166,7 @@ const MttAllData = (() => {
         timer = setTimeout(resetPageAndRender, 200);
       });
     });
-    ['adDateFrom', 'adDateTo', 'adRouteType', 'adOnTime'].forEach(id => {
+    ['adDateFrom', 'adDateTo', 'adRouteType', 'adRegion', 'adTrucker', 'adOnTime'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', resetPageAndRender);
     });
@@ -149,6 +178,8 @@ const MttAllData = (() => {
         const df = document.getElementById('adDateFrom'); if (df) df.value = '';
         const dt = document.getElementById('adDateTo'); if (dt) dt.value = '';
         const rt = document.getElementById('adRouteType'); if (rt) rt.value = 'ALL';
+        const rg = document.getElementById('adRegion'); if (rg) rg.value = 'ALL';
+        const tr = document.getElementById('adTrucker'); if (tr) tr.value = 'ALL';
         const ot = document.getElementById('adOnTime'); if (ot) ot.value = 'ALL';
         resetPageAndRender();
       });
