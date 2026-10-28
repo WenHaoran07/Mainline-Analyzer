@@ -82,6 +82,7 @@ const MttFileProcessor = (() => {
       if (lower.includes('actual arrival') || lower.includes('check in')) colMap.arrival = i;
       if (lower === 'date') colMap.date = i;
       if (lower.includes('task status')) colMap.status = i;
+      if (lower.includes('number plate') || lower === 'plate' || lower.includes('plate number')) colMap.plate = i;
       if (lower === 'task id' || lower === 'taskid' || lower === 'task_id' ||
           lower === 'tasklist' || lower === 'task list' || lower.includes('task list')) colMap.taskId = i;
     });
@@ -112,6 +113,7 @@ const MttFileProcessor = (() => {
       return {
         dateKey,
         taskId: String(get(colMap.taskId) || '').trim(),
+        plate: String(get(colMap.plate) || '').trim(),
         onTime: String(get(colMap.onTime) || '').toUpperCase().trim(),
         actualTT: parseFloat(get(colMap.actualTT)) || 0,
         planTT: parseFloat(get(colMap.planTT)) || 0,
