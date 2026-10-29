@@ -45,7 +45,102 @@ const WfdDataAnalyzer = (() => {
   }
 
   function bySupervisor(rows) {
-    return groupBy(rows, r => r.supervisor);
+    // Expand dual supervisors so Cañon & Bongosia each appear (Sheet2)
+    const map = new Map();
+    for (const r of rows) {
+      const names = (r.supervisors && r.supervisors.length)
+        ? r.supervisors
+        : [r.supervisor || 'Unassigned'];
+      for (const name of names) {
+        if (!map.has(name)) map.set(name, []);
+        map.get(name).push(r);
+      }
+    }
+    const out = [];
+    for (const [key, list] of map.entries()) {
+      out.push({ key, ...summarize(list) });
+    }
+    out.sort((a, b) => (b.total - a.total) || a.key.localeCompare(b.key));
+    return out;
+  }
+
+  /**
+   * Supervisor matrix (Excel Sheet2 style).
+   * Cañon & Bongosia separate; shared trips counted for both.
+   * dailyDetail holds total / onTime / late for hover tooltips.
+   */
+  function supervisorPerformanceMatrix(allRows, dates) {
+    const dateList = (dates && dates.length) ? dates.slice() : byDate(allRows).map(d => d.key);
+    dateList.sort();
+
+    const stats = new Map(); // name -> { dateKey -> { total, onTime, late } }
+    const ensure = (name) => {
+      if (!stats.has(name)) stats.set(name, new Map());
+      return stats.get(name);
+    };
+
+    for (const r of allRows) {
+      const names = (r.supervisors && r.supervisors.length)
+        ? r.supervisors
+        : [r.supervisor || 'Unassigned'];
+      for (const name of names) {
+        const m = ensure(name);
+        if (!m.has(r.dateKey)) m.set(r.dateKey, { total: 0, onTime: 0, late: 0 });
+        const cell = m.get(r.dateKey);
+        cell.total += 1;
+        if (r.onTime) cell.onTime += 1;
+        else cell.late += 1;
+      }
+    }
+
+    const sluByDate = new Map();
+    for (const r of allRows) {
+      if (!sluByDate.has(r.dateKey)) sluByDate.set(r.dateKey, { total: 0, onTime: 0, late: 0 });
+      const cell = sluByDate.get(r.dateKey);
+      cell.total += 1;
+      if (r.onTime) cell.onTime += 1;
+      else cell.late += 1;
+    }
+
+    function buildRow(name, byDateMap) {
+      const daily = {};
+      const dailyDetail = {};
+      let tot = 0, on = 0, late = 0;
+      for (const d of dateList) {
+        const c = byDateMap.get(d);
+        if (c && c.total > 0) {
+          daily[d] = c.onTime / c.total;
+          dailyDetail[d] = { total: c.total, onTime: c.onTime, late: c.late };
+          tot += c.total;
+          on += c.onTime;
+          late += c.late;
+        } else {
+          daily[d] = null;
+          dailyDetail[d] = null;
+        }
+      }
+      const accumulated = tot ? on / tot : null;
+      const target = WfdUtils.supervisorTarget(name);
+      const variance = accumulated != null ? accumulated - target : null;
+      return {
+        name, accumulated, target, variance, daily, dailyDetail,
+        total: tot, onTime: on, late
+      };
+    }
+
+    const named = Array.from(stats.keys()).filter(n => n !== 'Unassigned');
+    const ordered = [];
+    for (const n of WfdUtils.SUPERVISOR_ORDER) {
+      if (n === 'SLU') continue;
+      if (named.includes(n) || stats.has(n)) ordered.push(n);
+    }
+    for (const n of named.sort()) {
+      if (!ordered.includes(n)) ordered.push(n);
+    }
+
+    const rows = ordered.map(n => buildRow(n, stats.get(n) || new Map()));
+    rows.push(buildRow('SLU', sluByDate));
+    return { dates: dateList, rows };
   }
 
   function byRoute(rows) {
@@ -125,6 +220,7 @@ const WfdDataAnalyzer = (() => {
     byCarrier,
     byDate,
     compareDays,
+    supervisorPerformanceMatrix,
     listDcs,
     listSupervisors
   };
