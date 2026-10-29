@@ -372,3 +372,207 @@ tbody tr:hover { background: #FFF8F8; }
   background: var(--green-bg);
   color: var(--green);
 }
+/* Main tabs (Loading Rate style) */
+.wfd-main-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.wfd-main-tab {
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wfd-main-tab:hover {
+  border-color: var(--jt-red-soft);
+  color: var(--jt-red);
+  background: var(--jt-red-light);
+}
+.wfd-main-tab.active {
+  background: var(--jt-red);
+  border-color: var(--jt-red);
+  color: #fff;
+}
+
+.matrix-scroll {
+  max-height: 520px;
+}
+.sup-matrix-table th,
+.sup-matrix-table td {
+  white-space: nowrap;
+  font-size: 0.82rem;
+  padding: 8px 10px;
+}
+.sup-matrix-table th:first-child,
+.sup-matrix-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: #FAFAFA;
+  z-index: 2;
+}
+.sup-matrix-table thead th {
+  z-index: 3;
+}
+.sup-matrix-table thead th:first-child {
+  z-index: 4;
+}
+.sup-slu-row td {
+  background: #FFF8F8;
+  font-weight: 700;
+  border-top: 2px solid var(--jt-red-soft);
+}
+.muted-cell {
+  color: #BDBDBD;
+}
+
+.card-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.card-head-row h2 {
+  margin: 0;
+}
+
+.chart-type-toggle {
+  display: inline-flex;
+  gap: 4px;
+  background: #F5F5F5;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.chart-type-btn {
+  border: none;
+  background: transparent;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chart-type-btn:hover {
+  color: var(--jt-red);
+}
+.chart-type-btn.active {
+  background: #fff;
+  color: var(--jt-red);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.pct-cell {
+  cursor: help;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.sup-matrix-table td.pct-cell:hover {
+  outline: 2px solid var(--jt-red-soft);
+  background: #FFF5F5;
+}
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #FAFAFA;
+  z-index: 2;
+  min-width: 140px;
+}
+.sup-slu-row .sticky-col {
+  background: #FFF8F8;
+}
+
+/* Excel Sheet2-style supervisor matrix */
+.sup-report-card {
+  padding-top: 12px;
+}
+.sup-matrix-banner {
+  background: #C00000;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 0;
+}
+.sup-matrix-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 0.8rem;
+}
+.sup-matrix-table thead th {
+  background: #C00000;
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 9px;
+  border: 1px solid #8B0000;
+  white-space: nowrap;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.sup-matrix-table thead th.sticky-col,
+.sup-matrix-table td.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  min-width: 160px;
+  text-align: left;
+}
+.sup-matrix-table thead th.sticky-col {
+  background: #C00000;
+  z-index: 5;
+}
+.sup-matrix-table tbody td {
+  padding: 6px 9px;
+  border: 1px solid #E0E0E0;
+  text-align: center;
+  white-space: nowrap;
+  background: #fff;
+}
+.sup-matrix-table tbody td.sticky-col {
+  background: #FAFAFA;
+  text-align: left;
+  font-weight: 600;
+}
+.sup-matrix-table .cell-ok {
+  color: #1B5E20;
+  font-weight: 600;
+}
+.sup-matrix-table .cell-warn {
+  background: #FFF59D !important;
+  color: #E65100;
+  font-weight: 700;
+}
+.sup-matrix-table tr.sup-slu-row td {
+  background: #C00000 !important;
+  color: #fff !important;
+  font-weight: 800;
+  border-color: #8B0000;
+}
+.sup-matrix-table tr.sup-slu-row td.sticky-col {
+  background: #C00000 !important;
+}
+.sup-matrix-table tr.sup-slu-row .cell-warn {
+  background: #FFEB3B !important;
+  color: #BF360C !important;
+}
+.matrix-scroll {
+  max-height: 560px;
+  border: 1px solid #C00000;
+  border-radius: 0 0 6px 6px;
+}
