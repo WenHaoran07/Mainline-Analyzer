@@ -60,7 +60,7 @@ const WfdChartManager = (() => {
         scales: {
           y: {
             beginAtZero: true,
-            max: opts.isPercent ? 1 : undefined,
+            max: opts.isPercent ? 1.2 : undefined,
             ticks: opts.isPercent ? {
               callback: v => (v * 100).toFixed(0) + '%'
             } : undefined
@@ -94,8 +94,8 @@ const WfdChartManager = (() => {
         },
         scales: {
           y: {
-            min: 0.8,
-            max: 1.1,
+            min: 0,
+            max: 1.2,
             ticks: { callback: v => (v * 100).toFixed(0) + '%' }
           }
         }
@@ -148,11 +148,93 @@ const WfdChartManager = (() => {
     });
   }
 
+  let lastSupMatrix = null;
+  let lastSupChartType = 'bar';
+
+  function renderSupervisorAccumChart(matrix, chartType) {
+    if (matrix) lastSupMatrix = matrix;
+    if (chartType) lastSupChartType = chartType;
+    const m = lastSupMatrix;
+    if (!m || !m.rows) return;
+
+    const rows = m.rows.filter(r => r.name !== 'SLU' && r.accumulated != null);
+    const labels = rows.map(r => r.name.length > 20 ? r.name.slice(0, 18) + '…' : r.name);
+    const rates = rows.map(r => r.accumulated);
+    const totals = rows.map(r => r.total || 0);
+    const lates = rows.map(r => r.late || 0);
+    const type = lastSupChartType === 'line' ? 'line' : 'bar';
+    const canvasId = 'chartSupAccum';
+    destroy(canvasId);
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+
+    const colors = rates.map(v => rateColor(v));
+    charts[canvasId] = new Chart(el, {
+      type,
+      data: {
+        labels,
+        datasets: [{
+          label: 'Accumulated on-time',
+          data: rates,
+          backgroundColor: type === 'bar' ? colors : 'rgba(230,0,18,0.12)',
+          borderColor: type === 'line' ? '#E60012' : colors,
+          borderWidth: type === 'line' ? 2 : 0,
+          borderRadius: type === 'bar' ? 6 : 0,
+          maxBarThickness: 42,
+          tension: 0.3,
+          fill: type === 'line',
+          pointRadius: type === 'line' ? 5 : 0,
+          pointBackgroundColor: colors
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label(ctx) {
+                const i = ctx.dataIndex;
+                const rate = rates[i];
+                return [
+                  'Rate: ' + WfdUtils.pct(rate),
+                  'Total: ' + totals[i],
+                  'Late: ' + lates[i]
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            min: 0,
+            max: 1.2,
+            ticks: {
+              callback: v => (v * 100).toFixed(0) + '%'
+            }
+          },
+          x: {
+            ticks: { maxRotation: 45, minRotation: 0, font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+
+  function setSupervisorChartType(type) {
+    lastSupChartType = type === 'line' ? 'line' : 'bar';
+    renderSupervisorAccumChart(null, lastSupChartType);
+  }
+
   return {
     destroyAll,
     renderDcChart,
     renderSupChart,
     renderHistoryChart,
-    renderLateByDc
+    renderLateByDc,
+    renderSupervisorAccumChart,
+    setSupervisorChartType
   };
 })();
