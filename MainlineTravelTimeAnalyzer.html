@@ -50,8 +50,9 @@
 
     <div id="results" class="hidden">
       <div class="mtt-main-tabs">
-        <button type="button" class="mtt-main-tab active" id="tabMttDay">📅 Date Comparison</button>
+        <button type="button" class="mtt-main-tab active" id="tabMttDay">📅 Day Comparison</button>
         <button type="button" class="mtt-main-tab" id="tabMttAllData">📋 All Data</button>
+        <button type="button" class="mtt-main-tab" id="tabMttSup"> On-time by Supervisor</button>
       </div>
 
       <div id="mttDayPanel">
@@ -350,15 +351,15 @@
           </table></div>
         </div>
 
-                <div id="tabRateMatrix" class="tab-panel">
+        <div id="tabRateMatrix" class="tab-panel">
           <div class="pe-toolbar rm-toolbar">
             <div class="pe-subtabs">
               <button type="button" class="rm-subtab active" data-rm-mode="weekly">Weekly</button>
               <button type="button" class="rm-subtab" data-rm-mode="monthly">Monthly</button>
             </div>
-            <button type="button" class="wm-export-btn" id="btnRmExport">Export Excel File</button>
+            <button type="button" class="wm-export-btn" id="btnRmExport">Export Excel</button>
           </div>
-          <p class="section-note">Truck Owner SLU · heat matrix (OVERALL · LUZON ROUTE · VISMIN ROUTE). Targets 96% / 97% / 85%.</p>
+          <p class="section-note">SLU only · same layout as Travel Time Weekly Comparison (OVERALL · LUZON TO LUZON · LUZON TO VISMIN). Heat colors vs targets 96% / 97% / 85%. Export matches red-header design.</p>
           <div id="rmView"></div>
         </div>
 
@@ -423,12 +424,14 @@
 
           </div><!-- /.analysis-main -->
         </div><!-- /.analysis-layout -->
+
       </div><!-- /.analysis-card -->
       </div><!-- /#mttDayPanel -->
 
       <div id="mttAllDataPanel" class="hidden">
         <div class="card">
           <h2><span class="icon">📋</span> All Data Explorer</h2>
+          <p class="section-note">Search every SLU trip by Task ID, plate number, date, region, or trucker.</p>
           <div class="ad-filters">
             <div>
               <label class="pe-label">Task ID</label>
@@ -456,15 +459,11 @@
             </div>
             <div>
               <label class="pe-label">Region</label>
-              <select id="adRegion">
-                <option value="ALL">All regions</option>
-              </select>
+              <select id="adRegion"><option value="ALL">All regions</option></select>
             </div>
             <div>
               <label class="pe-label">Trucker</label>
-              <select id="adTrucker">
-                <option value="ALL">All truckers</option>
-              </select>
+              <select id="adTrucker"><option value="ALL">All truckers</option></select>
             </div>
             <div>
               <label class="pe-label">On time</label>
@@ -483,17 +482,8 @@
             <table>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Task ID</th>
-                  <th>Plate</th>
-                  <th>Type</th>
-                  <th>Route</th>
-                  <th>Region</th>
-                  <th>Trucker</th>
-                  <th>DC Intended</th>
-                  <th>On Time</th>
-                  <th>Plan TT</th>
-                  <th>Actual TT</th>
+                  <th>Date</th><th>Task ID</th><th>Plate</th><th>Type</th><th>Route</th>
+                  <th>Region</th><th>Trucker</th><th>DC Intended</th><th>On Time</th><th>Plan TT</th><th>Actual TT</th>
                 </tr>
               </thead>
               <tbody id="adBody"></tbody>
@@ -505,6 +495,24 @@
           </div>
         </div>
       </div><!-- /#mttAllDataPanel -->
+
+      <div id="mttSupPanel" class="hidden">
+        <div class="card sup-card">
+          <div class="sup-card-head">
+            <h2><span class="icon">👤</span> On-time by Supervisor</h2>
+          </div>
+          <div class="mtt-sup-subtabs">
+            <button type="button" class="mtt-sup-subtab active" data-sup-sheet="overview">Overview</button>
+            <button type="button" class="mtt-sup-subtab" data-sup-sheet="3plSup">3PL Supervisor</button>
+            <button type="button" class="mtt-sup-subtab" data-sup-sheet="luzonOwn">Luzon Own</button>
+            <button type="button" class="mtt-sup-subtab" data-sup-sheet="visminOwn">Vismin Own</button>
+            <button type="button" class="mtt-sup-subtab" data-sup-sheet="luzon3pl">Luzon 3PL</button>
+            <button type="button" class="mtt-sup-subtab" data-sup-sheet="vismin3pl">Vismin 3PL</button>
+          </div>
+          <div id="mttSupView"></div>
+        </div>
+      </div><!-- /#mttSupPanel -->
+
     </div>
   </div>
 
@@ -522,6 +530,7 @@
   <script src="mttWeeklyMonthly.js"></script>
   <script src="mttRateMatrix.js"></script>
   <script src="mttAllData.js"></script>
+  <script src="mttSupervisor.js"></script>
   <script src="mttApp.js"></script>
 </body>
 </html>
