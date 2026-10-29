@@ -17,7 +17,6 @@
         <div class="logo logo-fallback" style="display:none;">J&T</div>
         <div>
           <h1>Waiting for Departure Analyzer</h1>
-          <p></p>
         </div>
       </div>
       <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
@@ -45,121 +44,150 @@
     </div>
 
     <div id="results" class="hidden">
-      <div class="card">
-        <h2><span class="icon">📅</span> Date Comparison</h2>
-        <div class="date-selectors">
-          <div>
-            <label>Previous day</label>
-            <select id="selectPrev"></select>
+      <div class="wfd-main-tabs">
+        <button type="button" class="wfd-main-tab active" id="tabWfdDay"> Date Comparison</button>
+        <button type="button" class="wfd-main-tab" id="tabWfdSup"> On Time Performance per Supervisor</button>
+      </div>
+
+      <div id="wfdDayPanel">
+        <div class="card">
+          <h2><span class="icon">📅</span> Date Comparison</h2>
+          <div class="date-selectors">
+            <div>
+              <label>Previous day</label>
+              <select id="selectPrev"></select>
+            </div>
+            <div>
+              <label>Latest day (Current)</label>
+              <select id="selectLatest"></select>
+            </div>
+            <button id="btnCompare">Compare</button>
           </div>
-          <div>
-            <label>Latest day (Current)</label>
-            <select id="selectLatest"></select>
+          <div class="date-info">
+            Current day: <span class="badge" id="dateLatest"></span>
+            · vs <span class="badge" id="datePrev"></span>
+            <span class="target-badge">Target 97%</span>
           </div>
-          <button id="btnCompare">Compare</button>
+          <div class="metrics" id="metricsOverall"></div>
+          <div class="summary-box" id="summaryText"></div>
         </div>
-        <div class="date-info">
-          Current day: <span class="badge" id="dateLatest"></span>
-          · vs <span class="badge" id="datePrev"></span>
-          <span class="target-badge">Target 97%</span>
+
+        <div class="charts-row">
+          <div class="card">
+            <h2><span class="icon">🏢</span> On-time by Departure DC</h2>
+            <div class="chart-wrap"><canvas id="chartDc"></canvas></div>
+          </div>
+          <div class="card">
+            <h2><span class="icon">👤</span> On-time by Supervisor</h2>
+            <div class="chart-wrap"><canvas id="chartSup"></canvas></div>
+          </div>
         </div>
-        <div class="metrics" id="metricsOverall"></div>
-        <div class="summary-box" id="summaryText"></div>
+
+        <div class="charts-row">
+          <div class="card">
+            <h2><span class="icon">⚠</span> Late trips by DC (current day)</h2>
+            <div class="chart-wrap"><canvas id="chartLateDc"></canvas></div>
+          </div>
+          <div class="card">
+            <h2><span class="icon">📈</span> Daily on-time trend</h2>
+            <div class="chart-wrap history-chart-wrap"><canvas id="chartHistory"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tabs">
+            <div class="tab active" data-tab="tabDc">By DC</div>
+            <div class="tab" data-tab="tabSup">By Supervisor</div>
+            <div class="tab" data-tab="tabRoute">By Route</div>
+            <div class="tab" data-tab="tabCarrier">By Carrier</div>
+            <div class="tab" data-tab="tabLate">Late Detail</div>
+            <div class="tab" data-tab="tabHistory">Daily History</div>
+          </div>
+
+          <div id="tabDc" class="tab-panel active">
+            <p class="section-note">Departure DC performance on current day vs previous</p>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>DC Name</th><th>Total</th><th>On Time</th><th>Late</th>
+                <th>Rate</th><th>Prev Rate</th><th>Rate Diff</th><th>Avg Wait (min)</th>
+              </tr></thead>
+              <tbody id="dcBody"></tbody>
+            </table></div>
+          </div>
+
+          <div id="tabSup" class="tab-panel">
+            <p class="section-note">Supervisor in charge · current day vs previous</p>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Supervisor</th><th>Total</th><th>On Time</th><th>Late</th>
+                <th>Rate</th><th>Prev Rate</th><th>Rate Diff</th><th>Avg Wait (min)</th>
+              </tr></thead>
+              <tbody id="supBody"></tbody>
+            </table></div>
+          </div>
+
+          <div id="tabRoute" class="tab-panel">
+            <p class="section-note">Route name on current day</p>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Route</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Avg Wait (min)</th>
+              </tr></thead>
+              <tbody id="routeBody"></tbody>
+            </table></div>
+          </div>
+
+          <div id="tabCarrier" class="tab-panel">
+            <p class="section-note">Carrier / trucker on current day</p>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Carrier</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Avg Wait (min)</th>
+              </tr></thead>
+              <tbody id="carrierBody"></tbody>
+            </table></div>
+          </div>
+
+          <div id="tabLate" class="tab-panel">
+            <p class="section-note">Trips with waiting time over 30 minutes (current day)</p>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Task ID</th><th>Route</th><th>DC</th><th>Supervisor</th>
+                <th>Plate</th><th>Carrier</th><th>Wait (min)</th><th>Status</th>
+              </tr></thead>
+              <tbody id="lateBody"></tbody>
+            </table></div>
+          </div>
+
+          <div id="tabHistory" class="tab-panel">
+            <p class="section-note">Daily achievement across all loaded dates (Target 97%)</p>
+            <div class="table-scroll"><table>
+              <thead><tr>
+                <th>Date</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Avg Wait (min)</th>
+              </tr></thead>
+              <tbody id="historyBody"></tbody>
+            </table></div>
+          </div>
+        </div>
       </div>
 
-      <div class="charts-row">
-        <div class="card">
-          <h2><span class="icon">🏢</span> On-time by Departure DC</h2>
-          <div class="chart-wrap"><canvas id="chartDc"></canvas></div>
-        </div>
-        <div class="card">
-          <h2><span class="icon">👤</span> On-time by Supervisor</h2>
-          <div class="chart-wrap"><canvas id="chartSup"></canvas></div>
-        </div>
-      </div>
+      <div id="wfdSupPanel" class="hidden">
+        <div class="card sup-report-card">
+          <div class="card-head-row">
+            <div class="chart-type-toggle" role="group" aria-label="Chart type">
+              <button type="button" class="chart-type-btn active" data-type="bar">📊 Bar</button>
+              <button type="button" class="chart-type-btn" data-type="line">📈 Line</button>
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:280px;margin-bottom:16px;"><canvas id="chartSupAccum"></canvas></div>
 
-      <div class="charts-row">
-        <div class="card">
-          <h2><span class="icon">⚠</span> Late trips by DC (current day)</h2>
-          <div class="chart-wrap"><canvas id="chartLateDc"></canvas></div>
-        </div>
-        <div class="card">
-          <h2><span class="icon">📈</span> Daily on-time trend</h2>
-          <div class="chart-wrap history-chart-wrap"><canvas id="chartHistory"></canvas></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="tabs">
-          <div class="tab active" data-tab="tabDc">By DC</div>
-          <div class="tab" data-tab="tabSup">By Supervisor</div>
-          <div class="tab" data-tab="tabRoute">By Route</div>
-          <div class="tab" data-tab="tabCarrier">By Carrier</div>
-          <div class="tab" data-tab="tabLate">Late Detail</div>
-          <div class="tab" data-tab="tabHistory">Daily History</div>
-        </div>
-
-        <div id="tabDc" class="tab-panel active">
-          <p class="section-note">Departure DC performance on current day vs previous</p>
-          <div class="table-scroll"><table>
-            <thead><tr>
-              <th>DC Name</th><th>Total</th><th>On Time</th><th>Late</th>
-              <th>Rate</th><th>Prev Rate</th><th>Rate Diff</th><th>Avg Wait (min)</th>
-            </tr></thead>
-            <tbody id="dcBody"></tbody>
-          </table></div>
-        </div>
-
-        <div id="tabSup" class="tab-panel">
-          <p class="section-note">Supervisor in charge · current day vs previous</p>
-          <div class="table-scroll"><table>
-            <thead><tr>
-              <th>Supervisor</th><th>Total</th><th>On Time</th><th>Late</th>
-              <th>Rate</th><th>Prev Rate</th><th>Rate Diff</th><th>Avg Wait (min)</th>
-            </tr></thead>
-            <tbody id="supBody"></tbody>
-          </table></div>
-        </div>
-
-        <div id="tabRoute" class="tab-panel">
-          <p class="section-note">Route name on current day</p>
-          <div class="table-scroll"><table>
-            <thead><tr>
-              <th>Route</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Avg Wait (min)</th>
-            </tr></thead>
-            <tbody id="routeBody"></tbody>
-          </table></div>
-        </div>
-
-        <div id="tabCarrier" class="tab-panel">
-          <p class="section-note">Carrier / trucker on current day</p>
-          <div class="table-scroll"><table>
-            <thead><tr>
-              <th>Carrier</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Avg Wait (min)</th>
-            </tr></thead>
-            <tbody id="carrierBody"></tbody>
-          </table></div>
-        </div>
-
-        <div id="tabLate" class="tab-panel">
-          <p class="section-note">Trips with waiting time over 30 minutes (current day)</p>
-          <div class="table-scroll"><table>
-            <thead><tr>
-              <th>Task ID</th><th>Route</th><th>DC</th><th>Supervisor</th>
-              <th>Plate</th><th>Carrier</th><th>Wait (min)</th><th>Status</th>
-            </tr></thead>
-            <tbody id="lateBody"></tbody>
-          </table></div>
-        </div>
-
-        <div id="tabHistory" class="tab-panel">
-          <p class="section-note">Daily achievement across all loaded dates (Target 97%)</p>
-          <div class="table-scroll"><table>
-            <thead><tr>
-              <th>Date</th><th>Total</th><th>On Time</th><th>Late</th><th>Rate</th><th>Avg Wait (min)</th>
-            </tr></thead>
-            <tbody id="historyBody"></tbody>
-          </table></div>
+          <div class="sup-matrix-banner" id="supMatrixTitle">WAITING FOR DEPARTURE ON TIME PERFORMANCE PER SUPERVISOR</div>
+          <div class="table-scroll matrix-scroll">
+            <table class="sup-matrix-table">
+              <thead id="supMatrixHead"></thead>
+              <tbody id="supMatrixBody"></tbody>
+            </table>
+          </div>
+          <p class="section-note" style="margin-top:10px;">
+          </p>
         </div>
       </div>
     </div>
