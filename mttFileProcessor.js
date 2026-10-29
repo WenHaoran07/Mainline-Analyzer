@@ -4,10 +4,11 @@
 const MttFileProcessor = (() => {
   let storedRows = null;
   let storedDates = [];
+  let supervisorPack = null;
   let onReadyCallback = null;
 
   function getState() {
-    return { storedRows, storedDates };
+    return { storedRows, storedDates, supervisorPack };
   }
 
   function processDelaySheet(workbook) {
@@ -85,6 +86,7 @@ const MttFileProcessor = (() => {
       if (lower.includes('number plate') || lower === 'plate' || lower.includes('plate number')) colMap.plate = i;
       if (lower === 'task id' || lower === 'taskid' || lower === 'task_id' ||
           lower === 'tasklist' || lower === 'task list' || lower.includes('task list')) colMap.taskId = i;
+      if (lower.includes('supervisor') || lower.includes('incharge') || lower.includes('in charge')) colMap.supervisor = i;
     });
 
     function looksLikeRouteType(val) {
@@ -110,10 +112,29 @@ const MttFileProcessor = (() => {
       const status = String((colMap.status != null ? r[colMap.status] : '') || '').trim();
       const routeTypeRaw = routeTypeIdx != null ? r[routeTypeIdx] : null;
       const get = (idx) => (idx != null ? r[idx] : null);
+      // Supervisor: raw + optional next columns (W/X style split names)
+      const supervisorRaw = String(get(colMap.supervisor) || '').trim();
+      const colW = colMap.supervisor != null && r.length > colMap.supervisor + 1
+        ? String(r[colMap.supervisor + 1] || '').trim() : '';
+      const colX = colMap.supervisor != null && r.length > colMap.supervisor + 2
+        ? String(r[colMap.supervisor + 2] || '').trim() : '';
+      let supervisors = [];
+      if (colW || colX) {
+        if (colW) supervisors.push(colW);
+        if (colX && colX !== colW) supervisors.push(colX);
+      }
+      if (!supervisors.length && supervisorRaw) {
+        supervisors = supervisorRaw.split(/\s*[&/,+]\s*|\s+and\s+/i).map(s => s.trim()).filter(Boolean);
+      }
+      if (!supervisors.length) supervisors = ['Unassigned'];
+      const supervisor = supervisors[0] || 'Unassigned';
       return {
         dateKey,
         taskId: String(get(colMap.taskId) || '').trim(),
         plate: String(get(colMap.plate) || '').trim(),
+        supervisor,
+        supervisors,
+        supervisorRaw: supervisorRaw || supervisor,
         onTime: String(get(colMap.onTime) || '').toUpperCase().trim(),
         actualTT: parseFloat(get(colMap.actualTT)) || 0,
         planTT: parseFloat(get(colMap.planTT)) || 0,
@@ -155,6 +176,13 @@ const MttFileProcessor = (() => {
 
     // Also parse Delay Reason sheet (optional — does not block travel-time analysis)
     processDelaySheet(workbook);
+    // Supervisor performance sheets (3PL Supervisor, Luzon Own, Vismin Own, Luzon 3PL, Vismin 3PL)
+    if (typeof MttSupervisor !== 'undefined' && MttSupervisor.ingestWorkbook) {
+      try { supervisorPack = MttSupervisor.ingestWorkbook(workbook); }
+      catch (e) { console.warn('Supervisor sheets parse failed', e); supervisorPack = null; }
+    } else {
+      supervisorPack = null;
+    }
 
     if (onReadyCallback) onReadyCallback(prev, latest, 'ALL');
   }
