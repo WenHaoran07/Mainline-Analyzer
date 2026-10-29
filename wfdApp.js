@@ -46,11 +46,31 @@ const WfdApp = (() => {
     }, 30);
   }
 
+  function renderSupervisorTab(rows, dates) {
+    const matrix = WfdDataAnalyzer.supervisorPerformanceMatrix(rows, dates);
+    WfdUIManager.renderSupervisorMatrix(matrix);
+    const typeBtn = document.querySelector('.chart-type-btn.active');
+    const type = typeBtn ? typeBtn.getAttribute('data-type') : 'bar';
+    WfdChartManager.renderSupervisorAccumChart(matrix, type || 'bar');
+  }
+
+  function initChartTypeToggle() {
+    document.querySelectorAll('.chart-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const type = btn.getAttribute('data-type') || 'bar';
+        WfdChartManager.setSupervisorChartType(type);
+      });
+    });
+  }
+
   function onDataReady(rows, dates) {
     WfdUIManager.populateDateSelects(dates, 'selectPrev', 'selectLatest');
     const prev = dates.length >= 2 ? dates[dates.length - 2] : dates[0];
     const latest = dates[dates.length - 1];
     runCompare(prev, latest);
+    renderSupervisorTab(rows, dates);
   }
 
   function initUpload() {
@@ -79,6 +99,8 @@ const WfdApp = (() => {
   function init() {
     WfdFileProcessor.setOnReady(onDataReady);
     WfdUIManager.initTabs();
+    WfdUIManager.initMainTabs();
+    initChartTypeToggle();
     initUpload();
 
     const btn = document.getElementById('btnCompare');
