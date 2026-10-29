@@ -38,7 +38,7 @@ const WfdUIManager = (() => {
     const hit = L.rate != null && L.rate >= WfdUtils.TARGET;
     let html = `<strong>${WfdUtils.formatDateLabel(cmp.dateLatest)}</strong>: `;
     html += `${L.total} departures · <strong class="${WfdUtils.rateClass(L.rate)}">${WfdUtils.pct(L.rate)}</strong> on-time `;
-    html += hit ? '(✅ above target)' : '(⚠️ below 97% target)';
+    html += hit ? '(at/above target)' : '(below 97% target)';
     if (L.late) {
       html += `. <strong>${L.late}</strong> trip(s) waited over 30 minutes.`;
     } else {
@@ -197,6 +197,80 @@ const WfdUIManager = (() => {
     });
   }
 
+  function initMainTabs() {
+    const dayBtn = document.getElementById('tabWfdDay');
+    const supBtn = document.getElementById('tabWfdSup');
+    const dayPanel = document.getElementById('wfdDayPanel');
+    const supPanel = document.getElementById('wfdSupPanel');
+    if (!dayBtn || !supBtn || !dayPanel || !supPanel) return;
+
+    function show(which) {
+      const isDay = which === 'day';
+      dayBtn.classList.toggle('active', isDay);
+      supBtn.classList.toggle('active', !isDay);
+      dayPanel.classList.toggle('hidden', !isDay);
+      supPanel.classList.toggle('hidden', isDay);
+    }
+    dayBtn.addEventListener('click', () => show('day'));
+    supBtn.addEventListener('click', () => show('sup'));
+  }
+
+  /** Excel Sheet2-style matrix: red header, yellow below-target, hover totals */
+  function renderSupervisorMatrix(matrix) {
+    const head = document.getElementById('supMatrixHead');
+    const body = document.getElementById('supMatrixBody');
+    const titleEl = document.getElementById('supMatrixTitle');
+    if (!head || !body || !matrix) return;
+
+    if (titleEl) titleEl.textContent = 'WAITING FOR DEPARTURE ON TIME PERFORMANCE PER SUPERVISOR';
+
+    const dates = matrix.dates || [];
+    const dayLabels = dates.map(d => {
+      // Excel style: 1/Oct, 2/Oct
+      const parts = d.split('-');
+      if (parts.length === 3) {
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const mi = parseInt(parts[1], 10) - 1;
+        return parseInt(parts[2], 10) + '/' + (months[mi] || parts[1]);
+      }
+      return WfdUtils.formatDateLabel(d);
+    });
+
+    head.innerHTML = `<tr class="sup-matrix-hrow">
+      <th class="sticky-col">SUPERVISOR</th>
+      <th>ACCUMULATED</th>
+      <th>TARGET</th>
+      <th>VARIANCE</th>
+      ${dayLabels.map((lbl, i) => `<th title="${dates[i]}">${lbl}</th>`).join('')}
+    </tr>`;
+
+    body.innerHTML = (matrix.rows || []).map(row => {
+      const belowAcc = row.accumulated != null && row.target != null && row.accumulated < row.target;
+      const accCls = row.accumulated == null ? '' : (belowAcc ? 'cell-warn' : 'cell-ok');
+      const varCls = row.variance == null ? '' : (row.variance >= 0 ? 'cell-ok' : 'cell-warn');
+      const varText = row.variance == null ? '—'
+        : (row.variance >= 0 ? '+' : '') + WfdUtils.pct(row.variance, 2);
+      const accTip = `Total: ${row.total || 0} · On-time: ${row.onTime || 0} · Late: ${row.late || 0}`;
+      const dailyCells = dates.map(d => {
+        const r = row.daily[d];
+        const det = row.dailyDetail && row.dailyDetail[d];
+        if (r == null || !det) return '<td class="muted-cell">—</td>';
+        const below = r < (row.target || 0.98);
+        const cls = below ? 'cell-warn' : 'cell-ok';
+        const tip = `${WfdUtils.formatDateLabel(d)}\nTotal: ${det.total}\nOn-time: ${det.onTime}\nLate: ${det.late}`;
+        return `<td class="${cls} pct-cell" title="${tip.replace(/"/g, '&quot;')}">${WfdUtils.pct(r, 2)}</td>`;
+      }).join('');
+      const nameCls = row.name === 'SLU' ? 'sup-slu-row' : '';
+      return `<tr class="${nameCls}">
+        <td class="sticky-col"><strong>${row.name}</strong></td>
+        <td class="${accCls} pct-cell" title="${accTip}">${WfdUtils.pct(row.accumulated, 2)}</td>
+        <td>${WfdUtils.pct(row.target, 2)}</td>
+        <td class="${varCls}">${varText}</td>
+        ${dailyCells}
+      </tr>`;
+    }).join('') || '<tr><td colspan="4">No supervisor data</td></tr>';
+  }
+
   return {
     renderMetrics,
     renderSummaryText,
@@ -206,9 +280,11 @@ const WfdUIManager = (() => {
     renderCarrierTable,
     renderLateDetail,
     renderHistory,
+    renderSupervisorMatrix,
     populateDateSelects,
     setDateBadges,
     showResults,
-    initTabs
+    initTabs,
+    initMainTabs
   };
 })();
