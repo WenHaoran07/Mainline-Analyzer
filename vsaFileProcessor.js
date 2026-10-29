@@ -1,7 +1,7 @@
 /* ==========================================================================
-   MODULE: WFD FILE PROCESSOR (Excel upload & normalization)
+   MODULE: VSA FILE PROCESSOR (Excel upload & normalization)
    ========================================================================== */
-const WfdFileProcessor = (() => {
+const VsaFileProcessor = (() => {
   let storedRows = null;
   let storedDates = [];
   let onReadyCallback = null;
@@ -37,26 +37,34 @@ const WfdFileProcessor = (() => {
     reader.readAsArrayBuffer(file);
   }
 
-  function processWorkbook(workbook) {
-    const loading = document.getElementById('loading');
+  function pickDataSheet(workbook) {
+    // Prefer GENERATED (full YES/NO dump), then any sheet with SAME? + size columns
+    if (workbook.SheetNames.includes('GENERATED')) return 'GENERATED';
 
-    // Prefer DATA sheet; fallback to TEMPLATE or any sheet with interval / on-time columns
-    let sheetName = workbook.SheetNames.includes('DATA') ? 'DATA' : null;
-    if (!sheetName && workbook.SheetNames.includes('TEMPLATE')) sheetName = 'TEMPLATE';
-    if (!sheetName) {
-      for (const n of workbook.SheetNames) {
-        const sample = XLSX.utils.sheet_to_json(workbook.Sheets[n], { defval: null, header: 1 });
-        if (sample.length > 1) {
-          const hdr = (sample[0] || []).map(h => String(h || '').toLowerCase()).join(' ');
-          if (/whether on time|interval time|actual departure|finish loading/.test(hdr)) {
-            sheetName = n;
-            break;
-          }
-        }
+    for (const n of workbook.SheetNames) {
+      const sample = XLSX.utils.sheet_to_json(workbook.Sheets[n], { defval: null, header: 1 });
+      if (sample.length < 2) continue;
+      const hdr = (sample[0] || []).map(h => String(h || '').toLowerCase()).join(' ');
+      if (/same\?/.test(hdr) && (/actual size/.test(hdr) || /planning truck size/.test(hdr))) {
+        return n;
       }
     }
+    // Fallback: any sheet with SAME?
+    for (const n of workbook.SheetNames) {
+      const sample = XLSX.utils.sheet_to_json(workbook.Sheets[n], { defval: null, header: 1 });
+      if (sample.length < 2) continue;
+      const hdr = (sample[0] || []).map(h => String(h || '').toLowerCase()).join(' ');
+      if (/same\?/.test(hdr) || /is it consistent/.test(hdr)) return n;
+    }
+    return null;
+  }
+
+  function processWorkbook(workbook) {
+    const loading = document.getElementById('loading');
+    const sheetName = pickDataSheet(workbook);
+
     if (!sheetName) {
-      alert('No DATA / TEMPLATE sheet found with Waiting-for-Departure columns.');
+      alert('No data sheet found. Expected a sheet named GENERATED (or any sheet with SAME? / Actual size / Planning Truck Size columns).');
       if (loading) loading.classList.add('hidden');
       return;
     }
@@ -73,9 +81,9 @@ const WfdFileProcessor = (() => {
     }
 
     const headers = aoa[0];
-    const col = WfdUtils.findColMap(headers);
-    if (col.interval < 0 && col.onTime < 0) {
-      alert('Could not find Interval Time or Whether-on-time columns.');
+    const col = VsaUtils.findColMap(headers);
+    if (col.same < 0 && col.actualSize < 0) {
+      alert('Could not find SAME? or Actual size columns in sheet "' + sheetName + '".');
       if (loading) loading.classList.add('hidden');
       return;
     }
@@ -87,76 +95,73 @@ const WfdFileProcessor = (() => {
       const row = aoa[r];
       if (!row || !row.length) continue;
 
-      const dateKey = WfdUtils.parseDateKey(col.date >= 0 ? row[col.date] : null);
+      const sameRaw = col.same >= 0 ? row[col.same] : null;
+      const same = VsaUtils.normalizeSame(sameRaw);
+      // Skip rows with no usable consistency flag (blank / #VALUE! / empty)
+      if (same == null) continue;
+
+      const dateKey = VsaUtils.parseDateKey(col.date >= 0 ? row[col.date] : null);
       if (!dateKey) continue;
 
-      let interval = col.interval >= 0 ? row[col.interval] : null;
-      if (typeof interval === 'string') interval = parseFloat(interval);
-      if (interval != null && isNaN(interval)) interval = null;
+      const actualSize = VsaUtils.normalizeSize(col.actualSize >= 0 ? row[col.actualSize] : '');
+      const plannedSize = VsaUtils.normalizeSize(col.plannedSize >= 0 ? row[col.plannedSize] : '');
 
-      const whether = col.onTime >= 0 ? row[col.onTime] : null;
-      const onTime = WfdUtils.isOnTime(interval, whether);
-      if (onTime == null && interval == null) continue;
+      // If both sizes present but SAME not set, derive it
+      let isMatch = same === 'YES';
+      if (same == null && actualSize && plannedSize) {
+        isMatch = actualSize === plannedSize;
+      }
 
-      // DATA sheet cols S–V: Carrier · DEPARTURE DC NAME · DC INTENDED · SUPERVISOR INCHARGE
-      // W/X often hold split individual supervisor names (Sheet2 style)
-      const dcName = WfdUtils.safeStr(
-        (col.dcName >= 0 && row[col.dcName]) ||
-        (col.truckOwner >= 0 && row[col.truckOwner]) ||
+      const area = VsaUtils.safeStr(col.area >= 0 ? row[col.area] : '') ||
+        VsaUtils.safeStr(col.shippingRegion >= 0 ? row[col.shippingRegion] : '') ||
+        'Unknown';
+
+      const route = VsaUtils.safeStr(col.route >= 0 ? row[col.route] : '') || '—';
+      const plate = VsaUtils.safeStr(col.plate >= 0 ? row[col.plate] : '');
+      const shippingBranch = VsaUtils.safeStr(col.shippingBranch >= 0 ? row[col.shippingBranch] : '') ||
+        VsaUtils.safeStr(col.routeOwner >= 0 ? row[col.routeOwner] : '') || '—';
+      const destBranch = VsaUtils.safeStr(col.destBranch >= 0 ? row[col.destBranch] : '');
+      const carrier = VsaUtils.safeStr(
+        (col.carrier >= 0 && row[col.carrier]) ||
+        (col.carrierName >= 0 && row[col.carrierName]) ||
         ''
-      ) || 'Unknown';
+      ) || '—';
+      const shipmentNo = VsaUtils.safeStr(col.shipmentNo >= 0 ? row[col.shipmentNo] : '');
+      const mission = VsaUtils.safeStr(col.mission >= 0 ? row[col.mission] : '');
+      const status = VsaUtils.safeStr(col.status >= 0 ? row[col.status] : '');
+      const wheels = VsaUtils.safeStr(col.wheels >= 0 ? row[col.wheels] : '');
+      const driver = VsaUtils.safeStr(col.driver >= 0 ? row[col.driver] : '');
+      const aa = VsaUtils.safeStr(col.aa >= 0 ? row[col.aa] : '');
 
-      const supervisorRaw = WfdUtils.safeStr(col.supervisor >= 0 ? row[col.supervisor] : '');
-      // Prefer unnamed cols after SUPERVISOR INCHARGE (W/X in export) when present
-      const colW = col.supervisor >= 0 && row.length > col.supervisor + 1 ? row[col.supervisor + 1] : null;
-      const colX = col.supervisor >= 0 && row.length > col.supervisor + 2 ? row[col.supervisor + 2] : null;
-      // Sheet2: Cañon & Bongosia are separate rows (shared trips attributed to both)
-      const supervisors = WfdUtils.expandSupervisors(supervisorRaw, colW, colX);
-      const supervisor = supervisors[0] || 'Unassigned';
-
-      const region = WfdUtils.safeStr(col.region >= 0 ? row[col.region] : '') || 'SLU';
-      const routeName = WfdUtils.safeStr(col.routeName >= 0 ? row[col.routeName] : '') ||
-        WfdUtils.safeStr(col.routeLine >= 0 ? row[col.routeLine] : '');
-      const plate = WfdUtils.safeStr(col.plate >= 0 ? row[col.plate] : '');
-      // S = Carrier (Own / Third party); J = trucker abbreviation for carrier tab
-      const ownership = WfdUtils.safeStr(col.carrier >= 0 ? row[col.carrier] : '');
-      const carrier = WfdUtils.safeStr(col.carrierAbbr >= 0 ? row[col.carrierAbbr] : '') || ownership || '—';
-      const taskId = WfdUtils.safeStr(col.taskId >= 0 ? row[col.taskId] : '');
-      const status = WfdUtils.safeStr(col.status >= 0 ? row[col.status] : '');
-      const depStation = WfdUtils.safeStr(col.depStation >= 0 ? row[col.depStation] : '');
-      const unload = WfdUtils.safeStr(col.unloadStation >= 0 ? row[col.unloadStation] : '');
-      const vehicleType = WfdUtils.safeStr(col.vehicleType >= 0 ? row[col.vehicleType] : '');
-      const business = WfdUtils.safeStr(col.business >= 0 ? row[col.business] : '');
-      const truckOwner = WfdUtils.safeStr(col.truckOwner >= 0 ? row[col.truckOwner] : '');
-      const dcCode = WfdUtils.safeStr(col.dcCode >= 0 ? row[col.dcCode] : '') || depStation;
+      // Prefer AA=INCLUDED when present; otherwise keep all
+      if (aa && aa.toUpperCase() !== 'INCLUDED' && aa.toUpperCase() !== 'YES') {
+        // still include but flag
+      }
 
       rows.push({
         dateKey,
-        region,
-        taskId,
+        route,
+        area,
+        same,           // 'YES' | 'NO'
+        isMatch,        // boolean
+        shipmentNo,
+        mission,
         status,
-        routeName,
         plate,
+        actualSize,
+        plannedSize,
+        shippingBranch,
+        destBranch,
         carrier,
-        ownership,
-        vehicleType,
-        depStation,
-        unload,
-        interval: interval != null ? Number(interval) : null,
-        onTime: !!onTime,
-        truckOwner,
-        dcName,
-        dcCode,
-        supervisor,
-        supervisors,
-        supervisorRaw: supervisorRaw || supervisor,
-        business
+        wheels,
+        driver,
+        aa: aa || 'INCLUDED'
       });
       dateSet.add(dateKey);
     }
 
     if (!rows.length) {
-      alert('No valid departure records found after parsing.');
+      alert('No valid rows with SAME? = YES/NO and a valid DATE found in "' + sheetName + '".');
       if (loading) loading.classList.add('hidden');
       return;
     }
@@ -171,9 +176,8 @@ const WfdFileProcessor = (() => {
   }
 
   return {
-    handleFile,
-    processWorkbook,
     getState,
-    setOnReady
+    setOnReady,
+    handleFile
   };
 })();
