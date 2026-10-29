@@ -2,8 +2,51 @@
    MODULE: WFD UTILS (Waiting for Departure shared helpers)
    ========================================================================== */
 const WfdUtils = (() => {
-  const TARGET = 0.97;           // 97% on-time target
+  const TARGET = 0.97;           // 97% overall on-time target (Day Comparison)
   const THRESHOLD_MIN = 30;      // minutes: Finish Loading / Sealing → ATD
+
+  const CANON_NAME = 'Cañon Christopher John';
+  const BONGOSIA_NAME = 'Bongosia Katrina';
+
+  /** Per-supervisor targets from Excel Sheet2 (Cañon & Bongosia separate) */
+  const SUPERVISOR_TARGETS = {
+    'Caranguian Julius': 0.98,
+    'Hajan Haber': 0.99,
+    'Lizardo Dennis': 0.99,
+    'Reanzares Eddrian': 0.99,
+    'Tagsa Jeffrey': 0.99,
+    'Trinos Marvin': 0.98,
+    [CANON_NAME]: 0.98,
+    [BONGOSIA_NAME]: 0.98,
+    'SLU': 0.98
+  };
+
+  const SUPERVISOR_ORDER = [
+    'Caranguian Julius',
+    'Hajan Haber',
+    'Lizardo Dennis',
+    'Reanzares Eddrian',
+    'Tagsa Jeffrey',
+    'Trinos Marvin',
+    CANON_NAME,
+    BONGOSIA_NAME,
+    'SLU'
+  ];
+
+  function supervisorTarget(name) {
+    if (name && SUPERVISOR_TARGETS[name] != null) return SUPERVISOR_TARGETS[name];
+    return 0.98;
+  }
+
+  /** Canonical single name (no merge of Cañon/Bongosia) */
+  function normalizeSupervisorName(raw) {
+    const s = safeStr(raw);
+    if (!s) return 'Unassigned';
+    const lower = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/bongosia/.test(lower) && !/ca[nñ]on|canon/.test(lower)) return BONGOSIA_NAME;
+    if (/ca[nñ]on|canon/.test(lower) && !/bongosia/.test(lower)) return CANON_NAME;
+    return s;
+  }
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -115,9 +158,40 @@ const WfdUtils = (() => {
       carrier: find(/^carrier$/),
       dcName: find(/departure\s*dc\s*name/, /dc\s*name/),
       dcCode: find(/dc\s*intended/, /^dc\s*code$/),
-      supervisor: find(/supervisor/),
+      supervisor: find(/supervisor\s*incharge/, /supervisor/),
       remarks: find(/remarks/)
     };
+  }
+
+  /**
+   * Expand to individual supervisor names (Sheet2 style).
+   * "Cañon Christopher John, Bongosia Katrina" → both rows separately.
+   * Prefer W/X split columns when present; else split col V.
+   */
+  function expandSupervisors(supervisorRaw, colW, colX) {
+    const a = safeStr(colW);
+    const b = safeStr(colX);
+    if (a || b) {
+      const names = [];
+      if (a) names.push(normalizeSupervisorName(a));
+      if (b && normalizeSupervisorName(b) !== (a ? normalizeSupervisorName(a) : '')) {
+        names.push(normalizeSupervisorName(b));
+      }
+      if (names.length) return names;
+    }
+    const raw = safeStr(supervisorRaw);
+    if (!raw) return ['Unassigned'];
+    const lower = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const hasCanon = /ca[nñ]on|canon/.test(lower);
+    const hasBong = /bongosia/.test(lower);
+    if (hasCanon && hasBong) return [CANON_NAME, BONGOSIA_NAME];
+    if (hasCanon) return [CANON_NAME];
+    if (hasBong) return [BONGOSIA_NAME];
+    return raw.split(/[,;]/).map(s => normalizeSupervisorName(s)).filter(Boolean);
+  }
+
+  function resolveSupervisor(supervisorRaw, colW, colX) {
+    return expandSupervisors(supervisorRaw, colW, colX)[0] || 'Unassigned';
   }
 
   function safeStr(v) {
@@ -134,6 +208,13 @@ const WfdUtils = (() => {
   return {
     TARGET,
     THRESHOLD_MIN,
+    CANON_NAME,
+    BONGOSIA_NAME,
+    SUPERVISOR_TARGETS,
+    SUPERVISOR_ORDER,
+    supervisorTarget,
+    normalizeSupervisorName,
+    resolveSupervisor,
     parseDateKey,
     formatDateLabel,
     pct,
@@ -142,6 +223,7 @@ const WfdUtils = (() => {
     isOnTime,
     normalizeHeader,
     findColMap,
+    expandSupervisors,
     safeStr,
     avg,
     pad2
