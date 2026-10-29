@@ -46,6 +46,9 @@ const MttApp = (() => {
         if (typeof MttAllData !== 'undefined') {
           MttAllData.onDataReady();
         }
+        if (typeof MttSupervisor !== 'undefined') {
+          MttSupervisor.onDataReady();
+        }
       } catch (err) {
         console.error(err);
         alert('Error during comparison: ' + err.message);
@@ -73,6 +76,7 @@ const MttApp = (() => {
     if (typeof MttWeeklyMonthly !== 'undefined') MttWeeklyMonthly.init();
     if (typeof MttRateMatrix !== 'undefined') MttRateMatrix.init();
     if (typeof MttAllData !== 'undefined') MttAllData.init();
+    if (typeof MttSupervisor !== 'undefined') MttSupervisor.init();
 
     MttFileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group || 'ALL', false);
@@ -84,29 +88,39 @@ const MttApp = (() => {
     const selRoute = document.getElementById('selectRouteType');
     if (selRoute) selRoute.addEventListener('change', triggerCompare);
 
-    // Top-level Day Comparison / All Data (like Loading Rate Day / Weekly)
+    // Top-level: Day Comparison / All Data / On-time by Supervisor
     function switchMainTab(which) {
       const day = document.getElementById('mttDayPanel');
       const all = document.getElementById('mttAllDataPanel');
+      const sup = document.getElementById('mttSupPanel');
       const btnDay = document.getElementById('tabMttDay');
       const btnAll = document.getElementById('tabMttAllData');
+      const btnSup = document.getElementById('tabMttSup');
+      if (day) day.classList.add('hidden');
+      if (all) all.classList.add('hidden');
+      if (sup) sup.classList.add('hidden');
+      if (btnDay) btnDay.classList.remove('active');
+      if (btnAll) btnAll.classList.remove('active');
+      if (btnSup) btnSup.classList.remove('active');
       if (which === 'all') {
-        if (day) day.classList.add('hidden');
         if (all) all.classList.remove('hidden');
-        if (btnDay) btnDay.classList.remove('active');
         if (btnAll) btnAll.classList.add('active');
         if (typeof MttAllData !== 'undefined') MttAllData.render();
+      } else if (which === 'sup') {
+        if (sup) sup.classList.remove('hidden');
+        if (btnSup) btnSup.classList.add('active');
+        if (typeof MttSupervisor !== 'undefined') MttSupervisor.render();
       } else {
         if (day) day.classList.remove('hidden');
-        if (all) all.classList.add('hidden');
         if (btnDay) btnDay.classList.add('active');
-        if (btnAll) btnAll.classList.remove('active');
       }
     }
     const btnDay = document.getElementById('tabMttDay');
     const btnAll = document.getElementById('tabMttAllData');
+    const btnSup = document.getElementById('tabMttSup');
     if (btnDay) btnDay.addEventListener('click', () => switchMainTab('day'));
     if (btnAll) btnAll.addEventListener('click', () => switchMainTab('all'));
+    if (btnSup) btnSup.addEventListener('click', () => switchMainTab('sup'));
   }
 
   return { init, runCompare };
