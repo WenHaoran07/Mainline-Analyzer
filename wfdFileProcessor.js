@@ -1,172 +1,227 @@
 /* ==========================================================================
-   MODULE: WFD FILE PROCESSOR (Excel upload & normalization)
+   MODULE: WFD DATA ANALYZER
    ========================================================================== */
-const WfdFileProcessor = (() => {
-  let storedRows = null;
-  let storedDates = [];
-  let onReadyCallback = null;
+const WfdDataAnalyzer = (() => {
 
-  function getState() {
-    return { storedRows, storedDates };
+  function filterByDate(rows, dateKey) {
+    if (!dateKey) return rows;
+    return rows.filter(r => r.dateKey === dateKey);
   }
 
-  function setOnReady(cb) {
-    onReadyCallback = cb;
+  function filterByDc(rows, dc) {
+    if (!dc || dc === 'ALL') return rows;
+    return rows.filter(r => r.dcName === dc);
   }
 
-  function handleFile(file) {
-    const loading = document.getElementById('loading');
-    const results = document.getElementById('results');
-    if (loading) loading.classList.remove('hidden');
-    if (results) results.classList.add('hidden');
+  function summarize(rows) {
+    const total = rows.length;
+    const onTime = rows.filter(r => r.onTime).length;
+    const late = total - onTime;
+    const rate = total ? onTime / total : null;
+    const intervals = rows.map(r => r.interval).filter(x => x != null && !isNaN(x));
+    const avgWait = WfdUtils.avg(intervals);
+    const lateRows = rows.filter(r => !r.onTime);
+    return { total, onTime, late, rate, avgWait, lateRows };
+  }
 
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const workbook = XLSX.read(new Uint8Array(e.target.result), {
-          type: 'array',
-          cellDates: false,
-          raw: true
-        });
-        processWorkbook(workbook);
-      } catch (err) {
-        alert('Error reading file: ' + err.message);
-        if (loading) loading.classList.add('hidden');
+  function groupBy(rows, keyFn) {
+    const map = new Map();
+    for (const r of rows) {
+      const k = keyFn(r) || 'Unknown';
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
+    }
+    const out = [];
+    for (const [key, list] of map.entries()) {
+      const s = summarize(list);
+      out.push({ key, ...s });
+    }
+    out.sort((a, b) => (b.total - a.total) || a.key.localeCompare(b.key));
+    return out;
+  }
+
+  function byDc(rows) {
+    return groupBy(rows, r => r.dcName);
+  }
+
+  function bySupervisor(rows) {
+    // Expand dual supervisors so Cañon & Bongosia each appear (Sheet2)
+    const map = new Map();
+    for (const r of rows) {
+      const names = (r.supervisors && r.supervisors.length)
+        ? r.supervisors
+        : [r.supervisor || 'Unassigned'];
+      for (const name of names) {
+        if (!map.has(name)) map.set(name, []);
+        map.get(name).push(r);
       }
-    };
-    reader.readAsArrayBuffer(file);
+    }
+    const out = [];
+    for (const [key, list] of map.entries()) {
+      out.push({ key, ...summarize(list) });
+    }
+    out.sort((a, b) => (b.total - a.total) || a.key.localeCompare(b.key));
+    return out;
   }
 
-  function processWorkbook(workbook) {
-    const loading = document.getElementById('loading');
+  /**
+   * Supervisor matrix (Excel Sheet2 style).
+   * Cañon & Bongosia separate; shared trips counted for both.
+   * dailyDetail holds total / onTime / late for hover tooltips.
+   */
+  function supervisorPerformanceMatrix(allRows, dates) {
+    const dateList = (dates && dates.length) ? dates.slice() : byDate(allRows).map(d => d.key);
+    dateList.sort();
 
-    // Prefer DATA sheet; fallback to TEMPLATE or any sheet with interval / on-time columns
-    let sheetName = workbook.SheetNames.includes('DATA') ? 'DATA' : null;
-    if (!sheetName && workbook.SheetNames.includes('TEMPLATE')) sheetName = 'TEMPLATE';
-    if (!sheetName) {
-      for (const n of workbook.SheetNames) {
-        const sample = XLSX.utils.sheet_to_json(workbook.Sheets[n], { defval: null, header: 1 });
-        if (sample.length > 1) {
-          const hdr = (sample[0] || []).map(h => String(h || '').toLowerCase()).join(' ');
-          if (/whether on time|interval time|actual departure|finish loading/.test(hdr)) {
-            sheetName = n;
-            break;
-          }
+    const stats = new Map(); // name -> { dateKey -> { total, onTime, late } }
+    const ensure = (name) => {
+      if (!stats.has(name)) stats.set(name, new Map());
+      return stats.get(name);
+    };
+
+    for (const r of allRows) {
+      const names = (r.supervisors && r.supervisors.length)
+        ? r.supervisors
+        : [r.supervisor || 'Unassigned'];
+      for (const name of names) {
+        const m = ensure(name);
+        if (!m.has(r.dateKey)) m.set(r.dateKey, { total: 0, onTime: 0, late: 0 });
+        const cell = m.get(r.dateKey);
+        cell.total += 1;
+        if (r.onTime) cell.onTime += 1;
+        else cell.late += 1;
+      }
+    }
+
+    const sluByDate = new Map();
+    for (const r of allRows) {
+      if (!sluByDate.has(r.dateKey)) sluByDate.set(r.dateKey, { total: 0, onTime: 0, late: 0 });
+      const cell = sluByDate.get(r.dateKey);
+      cell.total += 1;
+      if (r.onTime) cell.onTime += 1;
+      else cell.late += 1;
+    }
+
+    function buildRow(name, byDateMap) {
+      const daily = {};
+      const dailyDetail = {};
+      let tot = 0, on = 0, late = 0;
+      for (const d of dateList) {
+        const c = byDateMap.get(d);
+        if (c && c.total > 0) {
+          daily[d] = c.onTime / c.total;
+          dailyDetail[d] = { total: c.total, onTime: c.onTime, late: c.late };
+          tot += c.total;
+          on += c.onTime;
+          late += c.late;
+        } else {
+          daily[d] = null;
+          dailyDetail[d] = null;
         }
       }
-    }
-    if (!sheetName) {
-      alert('No DATA / TEMPLATE sheet found with Waiting-for-Departure columns.');
-      if (loading) loading.classList.add('hidden');
-      return;
+      const accumulated = tot ? on / tot : null;
+      const target = WfdUtils.supervisorTarget(name);
+      const variance = accumulated != null ? accumulated - target : null;
+      return {
+        name, accumulated, target, variance, daily, dailyDetail,
+        total: tot, onTime: on, late
+      };
     }
 
-    const aoa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      header: 1,
-      defval: null,
-      raw: true
+    const named = Array.from(stats.keys()).filter(n => n !== 'Unassigned');
+    const ordered = [];
+    for (const n of WfdUtils.SUPERVISOR_ORDER) {
+      if (n === 'SLU') continue;
+      if (named.includes(n) || stats.has(n)) ordered.push(n);
+    }
+    for (const n of named.sort()) {
+      if (!ordered.includes(n)) ordered.push(n);
+    }
+
+    const rows = ordered.map(n => buildRow(n, stats.get(n) || new Map()));
+    rows.push(buildRow('SLU', sluByDate));
+    return { dates: dateList, rows };
+  }
+
+  function byRoute(rows) {
+    return groupBy(rows, r => r.routeName || '—');
+  }
+
+  function byCarrier(rows) {
+    return groupBy(rows, r => r.carrier || '—');
+  }
+
+  function byDate(rows) {
+    const groups = groupBy(rows, r => r.dateKey);
+    groups.sort((a, b) => a.key.localeCompare(b.key));
+    return groups;
+  }
+
+  /** Compare two days: current vs previous */
+  function compareDays(allRows, datePrev, dateLatest) {
+    const prevRows = filterByDate(allRows, datePrev);
+    const latestRows = filterByDate(allRows, dateLatest);
+    const prev = summarize(prevRows);
+    const latest = summarize(latestRows);
+
+    const dcLatest = byDc(latestRows);
+    const dcPrevMap = new Map(byDc(prevRows).map(d => [d.key, d]));
+    const dcCompare = dcLatest.map(d => {
+      const p = dcPrevMap.get(d.key);
+      return {
+        ...d,
+        prevRate: p ? p.rate : null,
+        rateDiff: p && d.rate != null && p.rate != null ? d.rate - p.rate : null,
+        prevTotal: p ? p.total : 0
+      };
     });
-    if (!aoa.length) {
-      alert('Selected sheet is empty.');
-      if (loading) loading.classList.add('hidden');
-      return;
-    }
 
-    const headers = aoa[0];
-    const col = WfdUtils.findColMap(headers);
-    if (col.interval < 0 && col.onTime < 0) {
-      alert('Could not find Interval Time or Whether-on-time columns.');
-      if (loading) loading.classList.add('hidden');
-      return;
-    }
+    const supLatest = bySupervisor(latestRows);
+    const supPrevMap = new Map(bySupervisor(prevRows).map(d => [d.key, d]));
+    const supCompare = supLatest.map(d => {
+      const p = supPrevMap.get(d.key);
+      return {
+        ...d,
+        prevRate: p ? p.rate : null,
+        rateDiff: p && d.rate != null && p.rate != null ? d.rate - p.rate : null
+      };
+    });
 
-    const rows = [];
-    const dateSet = new Set();
+    return {
+      prev,
+      latest,
+      datePrev,
+      dateLatest,
+      dcCompare,
+      supCompare,
+      routes: byRoute(latestRows),
+      carriers: byCarrier(latestRows),
+      history: byDate(allRows),
+      lateDetail: latest.lateRows
+    };
+  }
 
-    for (let r = 1; r < aoa.length; r++) {
-      const row = aoa[r];
-      if (!row || !row.length) continue;
+  function listDcs(rows) {
+    return Array.from(new Set(rows.map(r => r.dcName).filter(Boolean))).sort();
+  }
 
-      const dateKey = WfdUtils.parseDateKey(col.date >= 0 ? row[col.date] : null);
-      if (!dateKey) continue;
-
-      let interval = col.interval >= 0 ? row[col.interval] : null;
-      if (typeof interval === 'string') interval = parseFloat(interval);
-      if (interval != null && isNaN(interval)) interval = null;
-
-      const whether = col.onTime >= 0 ? row[col.onTime] : null;
-      const onTime = WfdUtils.isOnTime(interval, whether);
-      if (onTime == null && interval == null) continue;
-
-      const dcName = WfdUtils.safeStr(
-        (col.dcName >= 0 && row[col.dcName]) ||
-        (col.truckOwner >= 0 && row[col.truckOwner]) ||
-        ''
-      ) || 'Unknown';
-
-      const supervisorRaw = WfdUtils.safeStr(col.supervisor >= 0 ? row[col.supervisor] : '');
-      // Split combined supervisors "A, B" into primary for grouping; keep full for display
-      const supervisor = supervisorRaw || 'Unassigned';
-
-      const region = WfdUtils.safeStr(col.region >= 0 ? row[col.region] : '') || 'SLU';
-      const routeName = WfdUtils.safeStr(col.routeName >= 0 ? row[col.routeName] : '') ||
-        WfdUtils.safeStr(col.routeLine >= 0 ? row[col.routeLine] : '');
-      const plate = WfdUtils.safeStr(col.plate >= 0 ? row[col.plate] : '');
-      const carrier = WfdUtils.safeStr(
-        (col.carrier >= 0 && row[col.carrier]) ||
-        (col.carrierAbbr >= 0 && row[col.carrierAbbr]) ||
-        ''
-      );
-      const taskId = WfdUtils.safeStr(col.taskId >= 0 ? row[col.taskId] : '');
-      const status = WfdUtils.safeStr(col.status >= 0 ? row[col.status] : '');
-      const depStation = WfdUtils.safeStr(col.depStation >= 0 ? row[col.depStation] : '');
-      const unload = WfdUtils.safeStr(col.unloadStation >= 0 ? row[col.unloadStation] : '');
-      const vehicleType = WfdUtils.safeStr(col.vehicleType >= 0 ? row[col.vehicleType] : '');
-      const business = WfdUtils.safeStr(col.business >= 0 ? row[col.business] : '');
-      const truckOwner = WfdUtils.safeStr(col.truckOwner >= 0 ? row[col.truckOwner] : '');
-      const dcCode = WfdUtils.safeStr(col.dcCode >= 0 ? row[col.dcCode] : '') || depStation;
-
-      rows.push({
-        dateKey,
-        region,
-        taskId,
-        status,
-        routeName,
-        plate,
-        carrier,
-        vehicleType,
-        depStation,
-        unload,
-        interval: interval != null ? Number(interval) : null,
-        onTime: !!onTime,
-        truckOwner,
-        dcName,
-        dcCode,
-        supervisor,
-        business
-      });
-      dateSet.add(dateKey);
-    }
-
-    if (!rows.length) {
-      alert('No valid departure records found after parsing.');
-      if (loading) loading.classList.add('hidden');
-      return;
-    }
-
-    storedRows = rows;
-    storedDates = Array.from(dateSet).sort();
-
-    if (loading) loading.classList.add('hidden');
-    if (typeof onReadyCallback === 'function') {
-      onReadyCallback(storedRows, storedDates);
-    }
+  function listSupervisors(rows) {
+    return Array.from(new Set(rows.map(r => r.supervisor).filter(Boolean))).sort();
   }
 
   return {
-    handleFile,
-    processWorkbook,
-    getState,
-    setOnReady
+    filterByDate,
+    filterByDc,
+    summarize,
+    groupBy,
+    byDc,
+    bySupervisor,
+    byRoute,
+    byCarrier,
+    byDate,
+    compareDays,
+    supervisorPerformanceMatrix,
+    listDcs,
+    listSupervisors
   };
 })();
