@@ -52,7 +52,7 @@
       <div class="mtt-main-tabs">
         <button type="button" class="mtt-main-tab active" id="tabMttDay">📅 Day Comparison</button>
         <button type="button" class="mtt-main-tab" id="tabMttAllData">📋 All Data</button>
-        <button type="button" class="mtt-main-tab" id="tabMttSup"> On-time by Supervisor</button>
+        <button type="button" class="mtt-main-tab" id="tabMttSup">👤 On-time by Supervisor</button>
       </div>
 
       <div id="mttDayPanel">
@@ -193,17 +193,44 @@
           <p class="section-note" id="graphsNote">Achievement rate trends for Overall, Luzon Route, and VisMin Route</p>
           <div class="metrics" id="graphsMetrics"></div>
           <div class="graphs-triple">
-            <div class="card graph-card">
-              <h2><span class="icon">📊</span> Overall <span class="tag" style="background:#FFEBEE;color:#E60012;">Target 96%</span></h2>
+            <div class="card graph-card" data-graph-focus="overall" role="button" tabindex="0">
+              <div class="graph-card-head">
+                <h2><span class="icon">📊</span> Overall <span class="tag" style="background:#FFEBEE;color:#E60012;">Target 96%</span></h2>
+                <span class="graph-focus-chip">Focus</span>
+              </div>
               <div class="chart-wrap history-chart-wrap"><canvas id="chartOverallTrend"></canvas></div>
             </div>
-            <div class="card graph-card">
-              <h2><span class="icon">🛣️</span> Luzon Route <span class="tag tag-luzon">Target 97%</span></h2>
+            <div class="card graph-card" data-graph-focus="luzon" role="button" tabindex="0">
+              <div class="graph-card-head">
+                <h2><span class="icon">🛣️</span> Luzon Route <span class="tag tag-luzon">Target 97%</span></h2>
+                <span class="graph-focus-chip">Focus</span>
+              </div>
               <div class="chart-wrap history-chart-wrap"><canvas id="chartLuzonTrend"></canvas></div>
             </div>
-            <div class="card graph-card">
-              <h2><span class="icon">⛴️</span> VisMin Route <span class="tag tag-vismin">Target 85%</span></h2>
+            <div class="card graph-card" data-graph-focus="vismin" role="button" tabindex="0">
+              <div class="graph-card-head">
+                <h2><span class="icon">⛴️</span> VisMin Route <span class="tag tag-vismin">Target 85%</span></h2>
+                <span class="graph-focus-chip">Focus</span>
+              </div>
               <div class="chart-wrap history-chart-wrap"><canvas id="chartVisminTrend"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graph focus overlay -->
+        <div id="graphFocusOverlay" class="graph-focus-overlay hidden" aria-hidden="true">
+          <div class="graph-focus-panel" role="dialog" aria-modal="true">
+            <div class="graph-focus-bar">
+              <div>
+                <h2 id="graphFocusTitle">Focus</h2>
+                <p class="section-note" id="graphFocusSub"></p>
+              </div>
+              <button type="button" class="graph-focus-close" id="graphFocusClose" title="Close (Esc)">✕</button>
+            </div>
+            <div class="graph-focus-scroll-outer">
+              <div class="chart-wrap graph-focus-chart" id="graphFocusScroll">
+                <canvas id="chartFocusTrend"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -359,6 +386,7 @@
             </div>
             <button type="button" class="wm-export-btn" id="btnRmExport">Export Excel</button>
           </div>
+          <p class="section-note">SLU only · same layout as Travel Time Weekly Comparison (OVERALL · LUZON TO LUZON · LUZON TO VISMIN). Heat colors vs targets 96% / 97% / 85%. Export matches red-header design.</p>
           <div id="rmView"></div>
         </div>
 
@@ -430,7 +458,6 @@
       <div id="mttAllDataPanel" class="hidden">
         <div class="card">
           <h2><span class="icon">📋</span> All Data Explorer</h2>
-          <p class="section-note">Search every SLU trip by Task ID, plate number, date, region, or trucker.</p>
           <div class="ad-filters">
             <div>
               <label class="pe-label">Task ID</label>
@@ -499,6 +526,7 @@
         <div class="card sup-card">
           <div class="sup-card-head">
             <h2><span class="icon">👤</span> On-time by Supervisor</h2>
+            <p class="section-note">Travel-time performance by fleet group — Total Arrival · Followed · Not Followed · Rate</p>
           </div>
           <div class="mtt-sup-subtabs">
             <button type="button" class="mtt-sup-subtab active" data-sup-sheet="overview">Overview</button>
