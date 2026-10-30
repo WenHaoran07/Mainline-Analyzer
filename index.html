@@ -304,10 +304,10 @@
     .card.vehicle-size.pos-front:hover .card-btn {
       background: #4A148C;
     }
-    .card.future-update .card-btn {
+     .card.future-update .card-btn {
       background: var(--muted);
     }
-    .card.future-update.pos-front:hover .card-btn {
+       .card.future-update.pos-front:hover .card-btn {
       background: #004113;
     }
 
@@ -411,6 +411,80 @@
       .card.pos-front {
         transform: translateX(0) translateZ(40px) rotateY(0deg) scale(1);
       }
+    }
+
+
+    /* QR in header (own PNG) */
+    .header { position: relative; }
+    .header-qr {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      z-index: 5;
+      cursor: pointer;
+      background: #fff;
+      border-radius: 8px;
+      padding: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border: none;
+      line-height: 0;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .header-qr:hover {
+      transform: scale(1.06);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+    }
+    .header-qr img {
+      width: 52px;
+      height: 52px;
+      display: block;
+      border-radius: 4px;
+      object-fit: contain;
+    }
+    .header-qr span {
+      display: block;
+      font-size: 0.62rem;
+      color: #B8000E;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 2px;
+      line-height: 1.1;
+    }
+    #qrLightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0,0,0,0.72);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      cursor: pointer;
+    }
+    #qrLightbox.open { display: flex; }
+    #qrLightbox .qr-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 20px 16px;
+      text-align: center;
+      max-width: 92vw;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+      cursor: default;
+    }
+    #qrLightbox .qr-box img {
+      width: min(280px, 70vw);
+      height: auto;
+      display: block;
+      margin: 0 auto 12px;
+      object-fit: contain;
+    }
+    #qrLightbox .qr-box .qr-hint {
+      font-size: 0.78rem;
+      color: #757575;
+    }
+    @media (max-width: 700px) {
+      .header-qr img { width: 40px; height: 40px; }
+      .header-qr { top: 8px; right: 8px; padding: 3px; }
     }
 
     /* ===== Login gate ===== */
@@ -525,14 +599,24 @@
 
 
   <header class="header">
-      <div class="header-left">
-        <img src="jt-logo.gif" alt="J&T Express Logo" class="logo-gif"
-             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-        <div class="logo logo-fallback" style="display:none;">J&T</div>
-        <h1>Mainline Performance Analyzers</h1>
-      </div>
+    <div class="header-left">
+      <img src="jt-logo.gif" alt="J&T Express Logo" class="logo-gif"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+      <div class="logo logo-fallback" style="display:none;">J&T</div>
+      <h1>Mainline Performance Analyzers</h1>
     </div>
+    <button type="button" class="header-qr" id="headerQrBtn" title="Scan QR code">
+      <img src="MainQR.png" alt="QR code">
+      <span>Scan</span>
+    </button>
   </header>
+
+  <div id="qrLightbox" role="dialog" aria-label="Enlarged QR code">
+    <div class="qr-box" onclick="event.stopPropagation()">
+      <img src="MainQR.png" alt="QR code large">
+      <p class="qr-hint">Scan with your phone · click outside to close</p>
+    </div>
+  </div>
 
   <main class="container">
     <div class="intro">
@@ -603,14 +687,14 @@
         <div class="card-btn">Open Vehicle Size Accuracy →</div>
       </a>
 
-         <a class="card future-update" href="FutureUpdate.html" data-index="4" title="Coming Soon">
+             <a class="card future-update" href="FutureUpdate.html" data-index="4" title="Coming Soon">
        <div class="card-icon" style="text-align: center; margin-left: auto; margin-right: auto; display: block;">﹖</div>
         <h3 style="text-align: center;"></h3>
         <p>
 ㅤㅤㅤㅤㅤㅤㅤㅤㅤ
 ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ
-        ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ
-        </p>
+ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ
+       </p>
         <div class="card-meta">
         </div>
         <div class="card-btn">Future Update</div>
@@ -626,6 +710,7 @@
         <button type="button" class="dot" data-go="1" aria-label="Travel Time"></button>
         <button type="button" class="dot" data-go="2" aria-label="Waiting for Departure"></button>
         <button type="button" class="dot" data-go="3" aria-label="Vehicle Size Accuracy"></button>
+        <button type="button" class="dot" data-go="4" aria-label="Future Update"></button>
       </div>
       <button type="button" class="nav-btn" id="btnNext" aria-label="Next">›</button>
     </div>
@@ -778,6 +863,27 @@
     }, { passive: true });
 
     render();
+  })();
+  </script>
+
+
+  <script>
+  (function () {
+    // Your local qr-code.png — click header QR to enlarge
+    var btn = document.getElementById('headerQrBtn');
+    var box = document.getElementById('qrLightbox');
+    if (btn && box) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        box.classList.add('open');
+      });
+      box.addEventListener('click', function () {
+        box.classList.remove('open');
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') box.classList.remove('open');
+      });
+    }
   })();
   </script>
 
