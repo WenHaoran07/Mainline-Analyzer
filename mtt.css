@@ -1300,25 +1300,74 @@ tr.late-row td { background: #FFF5F5; }
 .mtt-main-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 14px;
 }
 .mtt-main-tab {
   padding: 10px 18px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 2px solid transparent;
   background: #fff;
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   color: var(--text);
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s, transform .12s;
 }
-.mtt-main-tab:hover { border-color: var(--jt-red-soft); background: var(--jt-red-light); }
-.mtt-main-tab.active {
-  background: var(--jt-red);
+/* Day Comparison — JT red */
+.mtt-tab-day {
+  border-color: #FFCDD2;
+  background: #FFF5F5;
+  color: #B8000E;
+}
+.mtt-tab-day:hover { background: #FFEBEE; border-color: #E60012; }
+.mtt-tab-day.active {
+  background: linear-gradient(135deg, #E60012, #B8000E);
   color: #fff;
-  border-color: var(--jt-red);
-  box-shadow: 0 2px 8px rgba(230, 0, 18, 0.25);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(230, 0, 18, 0.35);
+}
+/* All Data — blue */
+.mtt-tab-all {
+  border-color: #BBDEFB;
+  background: #E3F2FD;
+  color: #0D47A1;
+}
+.mtt-tab-all:hover { background: #BBDEFB; border-color: #1565C0; }
+.mtt-tab-all.active {
+  background: linear-gradient(135deg, #1976D2, #0D47A1);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(25, 118, 210, 0.35);
+}
+/* Mainline Report — teal / green */
+.mtt-tab-report {
+  border-color: #B2DFDB;
+  background: #E0F2F1;
+  color: #00695C;
+}
+.mtt-tab-report:hover { background: #B2DFDB; border-color: #00897B; }
+.mtt-tab-report.active {
+  background: linear-gradient(135deg, #00897B, #004D40);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 137, 123, 0.35);
+}
+/* Supervisor Performance — purple */
+.mtt-tab-sup {
+  border-color: #E1BEE7;
+  background: #F3E5F5;
+  color: #6A1B9A;
+}
+.mtt-tab-sup:hover { background: #E1BEE7; border-color: #8E24AA; }
+.mtt-tab-sup.active {
+  background: linear-gradient(135deg, #8E24AA, #4A148C);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(142, 36, 170, 0.35);
+}
+.mtt-main-tab.active {
+  transform: translateY(-1px);
 }
 
 .ad-filters {
@@ -1955,4 +2004,186 @@ body.graph-focus-open { overflow: hidden; }
   min-height: 380px;
   width: 100%;
   background: #fff;
+}
+
+
+/* ===== Travel Time Report — Excel-like colored groups ===== */
+.tr-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.tr-subtab {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #E0E0E0;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tr-subtab:hover { background: #FFF5F5; border-color: #FFCDD2; }
+.tr-subtab.active {
+  background: linear-gradient(135deg, #E60012, #B8000E);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(230,0,18,0.25);
+}
+.tr-block { margin-bottom: 22px; }
+.tr-block-title {
+  background: #C00000;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 8px 8px 0 0;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+.tr-scroll {
+  max-height: min(65vh, 600px);
+  overflow: auto;
+  border: 1px solid #BDBDBD;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  position: relative;
+}
+.tr-table.tr-excel {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.76rem;
+  white-space: nowrap;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+.tr-table.tr-excel thead th {
+  font-weight: 700;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 6px 7px;
+  text-align: center;
+  position: sticky;
+  border: 1px solid #9E9E9E;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+.tr-table.tr-excel thead tr.tr-h1 th {
+  top: 0;
+  z-index: 5;
+  color: #212121;
+}
+.tr-table.tr-excel thead tr.tr-h2 th {
+  top: 34px;
+  z-index: 4;
+  color: #212121;
+}
+/* Group colors matching Excel screenshot */
+.tr-g-id {
+  background: #D9D9D9 !important;
+  color: #000 !important;
+}
+.tr-g-daily {
+  background: #FFE699 !important; /* yellow */
+  color: #000 !important;
+}
+.tr-g-hist {
+  background: #BDD7EE !important; /* light blue */
+  color: #000 !important;
+}
+.tr-g-daily-cmp {
+  background: #DDEBF7 !important; /* pale blue */
+  color: #000 !important;
+}
+.tr-g-week {
+  background: #C6E0B4 !important; /* light green */
+  color: #000 !important;
+}
+.tr-g-month {
+  background: #A9D08E !important; /* olive green */
+  color: #000 !important;
+}
+.tr-table.tr-excel thead tr.tr-h1 th.tr-g-id,
+.tr-table.tr-excel thead tr.tr-h2 th.tr-g-id {
+  background: #D9D9D9 !important;
+}
+.tr-table.tr-excel td {
+  padding: 5px 7px;
+  border: 1px solid #BDBDBD;
+  text-align: center;
+  background: #fff;
+}
+.tr-table.tr-excel td.tr-sticky {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  min-width: 120px;
+  background: #F5F5F5;
+  z-index: 2;
+  font-weight: 700;
+  box-shadow: 1px 0 0 #BDBDBD;
+}
+.tr-table.tr-excel thead th.tr-sticky {
+  left: 0;
+  z-index: 7 !important;
+  background: #D9D9D9 !important;
+  color: #000 !important;
+}
+.tr-table.tr-excel thead tr.tr-h2 th.tr-sticky {
+  z-index: 6 !important;
+}
+.tr-table.tr-excel tr.tr-slu td {
+  background: #F2F2F2;
+  font-weight: 800;
+}
+.tr-table.tr-excel tr.tr-slu td.tr-sticky {
+  background: #D9D9D9;
+}
+.tr-ok {
+  background: #C6EFCE !important;
+  color: #006100 !important;
+  font-weight: 700;
+}
+.tr-bad {
+  background: #FFC7CE !important;
+  color: #9C0006 !important;
+  font-weight: 700;
+}
+.tr-rate-yellow {
+  background: #FFFF00 !important;
+  color: #000 !important;
+  font-weight: 800;
+}
+.tr-rate-yellow.tr-bad {
+  background: #FFC7CE !important;
+  color: #9C0006 !important;
+}
+.tr-rate-yellow.tr-ok {
+  background: #FFFF00 !important;
+  color: #000 !important;
+}
+.tr-rate-em { font-weight: 800; }
+.tr-muted { color: #9E9E9E; }
+.tr-arrow { font-size: 0.95rem; font-weight: 800; }
+.tr-rank { font-weight: 800; }
+.tr-code { font-weight: 700; color: #424242; }
+.tr-table.tr-excel td.neg { color: #C62828; font-weight: 700; }
+
+.tr-chart-card {
+  background: #F5F9FC;
+  border: 1px solid #BBDEFB;
+  border-radius: 10px;
+  padding: 12px 14px 8px;
+  margin: 0 0 22px;
+  height: 280px;
+}
+.tr-table.tr-excel tr.tr-group td {
+  background: #EEEEEE;
+  font-weight: 700;
+}
+.tr-table.tr-excel tr.tr-group td.tr-sticky {
+  background: #E0E0E0;
 }
