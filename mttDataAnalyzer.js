@@ -82,7 +82,18 @@ const MttDataAnalyzer = (() => {
       overrun: Math.max(0, (r.actualTT || 0) - (r.planTT || 0))
     })).sort((a, b) => b.overrun - a.overrun);
 
-    const histDates = (storedDates || []).slice(-14);
+    // Graphs + Daily History: full calendar month of the focus (latest) day
+    // (was slice(-14) — only ~2 weeks). Fall back to all dates if month empty.
+    const focusMonth = dateLatest ? String(dateLatest).slice(0, 7) : null;
+    let histDates = (storedDates || []).filter(d => {
+      if (!focusMonth) return true;
+      return String(d).slice(0, 7) === focusMonth;
+    });
+    if (!histDates.length) {
+      histDates = (storedDates || []).slice();
+    }
+    histDates = histDates.slice().sort();
+
     const histRows = histDates.map(d => {
       const day = rows.filter(r => r.dateKey === d);
       const o = stats(day);
