@@ -71,6 +71,7 @@ const MttApp = (() => {
 
   function init() {
     MttUIManager.initTabs();
+    if (typeof MttChartManager !== 'undefined' && MttChartManager.initGraphFocus) MttChartManager.initGraphFocus();
     if (typeof MttDelayReason !== 'undefined') MttDelayReason.init();
     if (typeof MttProblemReport !== 'undefined') MttProblemReport.init();
     if (typeof MttWeeklyMonthly !== 'undefined') MttWeeklyMonthly.init();
