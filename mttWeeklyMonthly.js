@@ -16,14 +16,16 @@ const MttWeeklyMonthly = (() => {
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
+  /** Sunday → Saturday (shared with Rate Matrix via MttUtils) */
+  function excelWeekNum(dateKey) {
+    return (typeof MttUtils !== 'undefined' && MttUtils.excelWeekNum)
+      ? MttUtils.excelWeekNum(dateKey)
+      : null;
+  }
+
   function weekKey(dateKey) {
-    const [y, m, d] = dateKey.split('-').map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    const day = dt.getUTCDay() || 7;
-    dt.setUTCDate(dt.getUTCDate() + 4 - day);
-    const yearStart = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1));
-    const weekNo = Math.ceil((((dt - yearStart) / 86400000) + 1) / 7);
-    return dt.getUTCFullYear() + '-W' + pad2(weekNo);
+    if (typeof MttUtils !== 'undefined' && MttUtils.weekKey) return MttUtils.weekKey(dateKey);
+    return null;
   }
 
   function monthKey(dateKey) {
@@ -44,9 +46,9 @@ const MttWeeklyMonthly = (() => {
 
   function stats(list) {
     if (!list || !list.length) return { total: 0, yes: 0, no: 0, rate: null };
-    const yes = list.filter(r => r.onTime === 'YES').length;
-    const no = list.filter(r => r.onTime === 'NO').length;
-    return { total: list.length, yes, no, rate: yes / list.length };
+    const yes = list.filter(r => String(r.onTime || '').toUpperCase() === 'YES').length;
+    const total = list.length;
+    return { total, yes, no: total - yes, rate: yes / total };
   }
 
   function fmtPct(v) {
