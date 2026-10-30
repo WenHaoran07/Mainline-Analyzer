@@ -49,6 +49,9 @@ const MttApp = (() => {
         if (typeof MttSupervisor !== 'undefined') {
           MttSupervisor.onDataReady();
         }
+        if (typeof MttTravelReport !== 'undefined') {
+          MttTravelReport.onDataReady();
+        }
       } catch (err) {
         console.error(err);
         alert('Error during comparison: ' + err.message);
@@ -78,6 +81,7 @@ const MttApp = (() => {
     if (typeof MttRateMatrix !== 'undefined') MttRateMatrix.init();
     if (typeof MttAllData !== 'undefined') MttAllData.init();
     if (typeof MttSupervisor !== 'undefined') MttSupervisor.init();
+    if (typeof MttTravelReport !== 'undefined') MttTravelReport.init();
 
     MttFileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group || 'ALL', false);
@@ -89,24 +93,32 @@ const MttApp = (() => {
     const selRoute = document.getElementById('selectRouteType');
     if (selRoute) selRoute.addEventListener('change', triggerCompare);
 
-    // Top-level: Day Comparison / All Data / On-time by Supervisor
+    // Top-level: Day Comparison / All Data / TT Report / On-time by Supervisor
     function switchMainTab(which) {
       const day = document.getElementById('mttDayPanel');
       const all = document.getElementById('mttAllDataPanel');
+      const report = document.getElementById('mttTravelReportPanel');
       const sup = document.getElementById('mttSupPanel');
       const btnDay = document.getElementById('tabMttDay');
       const btnAll = document.getElementById('tabMttAllData');
+      const btnReport = document.getElementById('tabMttReport');
       const btnSup = document.getElementById('tabMttSup');
       if (day) day.classList.add('hidden');
       if (all) all.classList.add('hidden');
+      if (report) report.classList.add('hidden');
       if (sup) sup.classList.add('hidden');
       if (btnDay) btnDay.classList.remove('active');
       if (btnAll) btnAll.classList.remove('active');
+      if (btnReport) btnReport.classList.remove('active');
       if (btnSup) btnSup.classList.remove('active');
       if (which === 'all') {
         if (all) all.classList.remove('hidden');
         if (btnAll) btnAll.classList.add('active');
         if (typeof MttAllData !== 'undefined') MttAllData.render();
+      } else if (which === 'report') {
+        if (report) report.classList.remove('hidden');
+        if (btnReport) btnReport.classList.add('active');
+        if (typeof MttTravelReport !== 'undefined') MttTravelReport.render();
       } else if (which === 'sup') {
         if (sup) sup.classList.remove('hidden');
         if (btnSup) btnSup.classList.add('active');
@@ -118,9 +130,11 @@ const MttApp = (() => {
     }
     const btnDay = document.getElementById('tabMttDay');
     const btnAll = document.getElementById('tabMttAllData');
+    const btnReport = document.getElementById('tabMttReport');
     const btnSup = document.getElementById('tabMttSup');
     if (btnDay) btnDay.addEventListener('click', () => switchMainTab('day'));
     if (btnAll) btnAll.addEventListener('click', () => switchMainTab('all'));
+    if (btnReport) btnReport.addEventListener('click', () => switchMainTab('report'));
     if (btnSup) btnSup.addEventListener('click', () => switchMainTab('sup'));
   }
 
