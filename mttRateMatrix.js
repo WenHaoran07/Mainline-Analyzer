@@ -5,7 +5,7 @@
      LUZON ROUTE
      VISMIN ROUTE
    Truck Owner = SLU (FileProcessor). Rate = YES ÷ trips in period.
-   Week = Excel WEEKNUM (Sunday-start).
+   Week = Excel WEEKNUM (Sunday→Saturday) via MttUtils — same as Weekly tab.
    ========================================================================== */
 const MttRateMatrix = (() => {
   const TARGET = { ALL: 0.96, LUZON: 0.97, VISMIN: 0.85 };
@@ -21,23 +21,16 @@ const MttRateMatrix = (() => {
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
-  /** Excel WEEKNUM(date, 1) — Sunday start */
+  /** Sunday → Saturday (shared with Weekly tab via MttUtils) */
   function excelWeekNum(dateKey) {
-    if (!dateKey) return null;
-    const [y, m, d] = dateKey.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    const jan1 = new Date(Date.UTC(y, 0, 1));
-    const dayOfYear = Math.floor((date - jan1) / 86400000) + 1;
-    const jan1Dow = jan1.getUTCDay();
-    return Math.floor((dayOfYear + jan1Dow - 1) / 7) + 1;
+    return (typeof MttUtils !== 'undefined' && MttUtils.excelWeekNum)
+      ? MttUtils.excelWeekNum(dateKey)
+      : null;
   }
 
   function weekKey(dateKey) {
-    if (!dateKey) return null;
-    const wn = excelWeekNum(dateKey);
-    if (wn == null) return null;
-    const [y] = dateKey.split('-').map(Number);
-    return y + '-W' + pad2(wn);
+    if (typeof MttUtils !== 'undefined' && MttUtils.weekKey) return MttUtils.weekKey(dateKey);
+    return null;
   }
 
   function monthKey(dateKey) {
@@ -188,8 +181,6 @@ const MttRateMatrix = (() => {
     }
     const periods = periodKeys(rows);
     let html = '<div class="rm-meta">';
-    html += '<strong>Truck Owner SLU</strong> · ' + (mode === 'weekly' ? 'Weekly' : 'Monthly') + ' rate matrix';
-    html += ' · ' + periods.length + ' period(s)';
     html += '</div>';
     SCOPES.forEach(scope => {
       html += renderBlock(scope, buildMatrix(rows, scope.id));
@@ -197,7 +188,7 @@ const MttRateMatrix = (() => {
     el.innerHTML = html;
   }
 
-
+  /* ---------- Export: Weekly + Monthly (no black-square glyphs) ---------- */
 
   /** Trend text safe for Excel — plain ASCII only */
   function trendText(series) {
