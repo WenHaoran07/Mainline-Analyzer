@@ -1847,3 +1847,112 @@ tr.late-row td { background: #FFF5F5; }
   font-size: 0.82rem;
   max-width: 280px;
 }
+
+/* ===== Graphs focus mode ===== */
+.graphs-hint { margin-bottom: 8px; }
+.graph-card {
+  cursor: pointer;
+  transition: box-shadow .15s ease, border-color .15s ease;
+  border: 1px solid var(--border);
+}
+.graph-card:hover {
+  border-color: #FFCDD2;
+  box-shadow: 0 4px 14px rgba(230,0,18,0.08);
+}
+.graph-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.graph-card-head h2 { margin: 0; }
+.graph-focus-chip {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #FFEBEE;
+  color: #B8000E;
+  border: 1px solid #FFCDD2;
+}
+.graph-card:hover .graph-focus-chip {
+  background: #E60012;
+  color: #fff;
+  border-color: #E60012;
+}
+
+.graph-focus-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(33, 33, 33, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.graph-focus-overlay.hidden { display: none !important; }
+.graph-focus-panel {
+  width: min(1100px, 96vw);
+  max-height: 92vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.22);
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.graph-focus-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #FFEBEE;
+}
+.graph-focus-bar h2 {
+  margin: 0 0 2px;
+  font-size: 1.15rem;
+}
+.graph-focus-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #E0E0E0;
+  background: #FAFAFA;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #424242;
+  flex-shrink: 0;
+}
+.graph-focus-close:hover {
+  background: #FFEBEE;
+  border-color: #EF9A9A;
+  color: #B71C1C;
+}
+.graph-focus-chart {
+  height: min(62vh, 520px);
+  min-height: 360px;
+}
+body.graph-focus-open { overflow: hidden; }
+
+.graph-focus-scroll-outer {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid #F0F0F0;
+  border-radius: 12px;
+  background: #FAFAFA;
+  -webkit-overflow-scrolling: touch;
+}
+.graph-focus-chart {
+  height: min(62vh, 520px);
+  min-height: 380px;
+  width: 100%;
+  background: #fff;
+}
