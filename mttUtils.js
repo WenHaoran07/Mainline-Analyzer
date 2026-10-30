@@ -7,6 +7,30 @@ const MttUtils = (() => {
   function pad2(n) { return String(n).padStart(2, '0'); }
 
   /**
+   * Excel WEEKNUM(date, 1) — week starts Sunday, ends Saturday.
+   * Shared by Weekly tab + Rate Matrix so rates match.
+   */
+  function excelWeekNum(dateKey) {
+    if (!dateKey) return null;
+    const [y, m, d] = String(dateKey).split('-').map(Number);
+    if (!y || !m || !d) return null;
+    const date = new Date(Date.UTC(y, m - 1, d));
+    const jan1 = new Date(Date.UTC(y, 0, 1));
+    const dayOfYear = Math.floor((date - jan1) / 86400000) + 1;
+    const jan1Dow = jan1.getUTCDay(); // 0=Sun .. 6=Sat
+    return Math.floor((dayOfYear + jan1Dow - 1) / 7) + 1;
+  }
+
+  /** Period key e.g. 2026-W41 (calendar year of date + Excel week num) */
+  function weekKey(dateKey) {
+    if (!dateKey) return null;
+    const wn = excelWeekNum(dateKey);
+    if (wn == null) return null;
+    const y = parseInt(String(dateKey).slice(0, 4), 10);
+    return y + '-W' + pad2(wn);
+  }
+
+  /**
    * Calendar day key YYYY-MM-DD from Excel serials / SheetJS Date / strings.
    * Avoids timezone off-by-one (e.g. Oct 10 showing as Oct 9).
    */
@@ -95,7 +119,9 @@ const MttUtils = (() => {
 
   return {
     TARGET_ALL, TARGET_LUZON, TARGET_VISMIN,
-    parseDateKey, classifyRouteType, groupBy, stats,
+    parseDateKey,
+    excelWeekNum,
+    weekKey, classifyRouteType, groupBy, stats,
     fmtPct, fmtNum, fmtPp, applyRouteFilter, targetForFilter, labelForFilter
   };
 })();
