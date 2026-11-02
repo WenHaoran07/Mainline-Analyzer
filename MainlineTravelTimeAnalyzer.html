@@ -53,6 +53,7 @@
         <button type="button" class="mtt-main-tab mtt-tab-day active" id="tabMttDay">📅 Day Comparison</button>
         <button type="button" class="mtt-main-tab mtt-tab-all" id="tabMttAllData">📋 All Data</button>
         <button type="button" class="mtt-main-tab mtt-tab-report" id="tabMttReport">📑 Mainline Report</button>
+        <button type="button" class="mtt-main-tab mtt-tab-monthly" id="tabMttMonthly">📆 Monthly Report</button>
         <button type="button" class="mtt-main-tab mtt-tab-sup" id="tabMttSup">👤 Supervisor Performance</button>
       </div>
 
@@ -193,6 +194,7 @@
         <div id="tabGraphs" class="tab-panel">
           <p class="section-note" id="graphsNote">Achievement rate trends for Overall, Luzon Route, and VisMin Route</p>
           <div class="metrics" id="graphsMetrics"></div>
+          <p class="section-note graphs-hint">Click a chart to <strong>focus</strong> — expand and show every date on the axis. Esc or ✕ to close.</p>
           <div class="graphs-triple">
             <div class="card graph-card" data-graph-focus="overall" role="button" tabindex="0">
               <div class="graph-card-head">
@@ -387,6 +389,7 @@
             </div>
             <button type="button" class="wm-export-btn" id="btnRmExport">Export Excel</button>
           </div>
+          <p class="section-note">SLU only · same layout as Travel Time Weekly Comparison (OVERALL · LUZON TO LUZON · LUZON TO VISMIN). Heat colors vs targets 96% / 97% / 85%. Export matches red-header design.</p>
           <div id="rmView"></div>
         </div>
 
@@ -526,8 +529,13 @@
       
       <div id="mttTravelReportPanel" class="hidden">
         <div class="card">
-          <h2><span class="icon">📑</span> Mainline Report</h2>
-          <p class="section-note" id="mttTravelReportNote">Mainline Travel Time Report (OVERALL + SLU TRAVEL TIME layout)</p>
+          <div class="tr-head-row">
+            <div>
+              <h2><span class="icon">📑</span> Mainline Report</h2>
+              <p class="section-note" id="mttTravelReportNote">Mainline Travel Time Report (OVERALL + SLU TRAVEL TIME layout)</p>
+            </div>
+            <button type="button" class="tr-export-btn" id="btnTrExport">⬇ Export Excel</button>
+          </div>
           <div class="tr-subtabs">
             <button type="button" class="tr-subtab active" data-tr-view="overall">Overall Report</button>
             <button type="button" class="tr-subtab" data-tr-view="byDc">SLU by DC</button>
@@ -540,10 +548,60 @@
         </div>
       </div><!-- /#mttTravelReportPanel -->
 
+      
+      <div id="mttMonthlyReportPanel" class="hidden">
+        <div class="card">
+          <div class="mr-head-row">
+            <div>
+              <h2><span class="icon">📆</span> Monthly Report</h2>
+              <p class="section-note" id="mttMonthlyReportNote">Weekly + monthly rates · JUL &amp; AUG SLU baselines fixed</p>
+            </div>
+            <button type="button" class="mr-export-btn" id="btnMrExport">⬇ Export Excel</button>
+          </div>
+          <div class="mr-subtabs">
+            <button type="button" class="mr-subtab active" data-mr-view="full">Full Report</button>
+            <button type="button" class="mr-subtab" data-mr-view="summary">Summary</button>
+            <button type="button" class="mr-subtab" data-mr-view="dc">By DC</button>
+            <button type="button" class="mr-subtab" data-mr-view="trucker">By Trucker</button>
+            <button type="button" class="mr-subtab" data-mr-view="luzon">Luzon Routes</button>
+            <button type="button" class="mr-subtab" data-mr-view="vismin">VisMin Routes</button>
+            <button type="button" class="mr-subtab" data-mr-view="visminContrib">VisMin Contributors</button>
+          </div>
+          <div id="mttMonthlyReportView"></div>
+        </div>
+      </div><!-- /#mttMonthlyReportPanel -->
+
+      <div id="mrTableExpandOverlay" class="mr-expand-overlay hidden" aria-hidden="true">
+        <div class="mr-expand-panel" role="dialog" aria-modal="true">
+          <div class="mr-expand-bar">
+            <h2 id="mrTableExpandTitle">Expanded table</h2>
+            <button type="button" class="mr-expand-close" id="mrTableExpandClose" title="Close (Esc)">✕</button>
+          </div>
+          <div id="mrTableExpandBody" class="mr-expand-scroll"></div>
+        </div>
+      </div>
+
+
       <div id="mttSupPanel" class="hidden">
         <div class="card sup-card">
           <div class="sup-card-head">
             <h2><span class="icon">👤</span> Supervisor Performance</h2>
+          </div>
+          <div class="sup-period-bar">
+            <label class="sup-period-label">Period
+              <select id="supPeriodMode" class="sup-period-select">
+                <option value="all">All dates</option>
+                <option value="week">Weekly</option>
+                <option value="month">Monthly</option>
+              </select>
+            </label>
+            <label class="sup-period-label hidden" id="supPeriodWeekWrap">Week
+              <select id="supPeriodWeek" class="sup-period-select"></select>
+            </label>
+            <label class="sup-period-label hidden" id="supPeriodMonthWrap">Month
+              <select id="supPeriodMonth" class="sup-period-select"></select>
+            </label>
+            <span class="sup-period-badge" id="supPeriodBadge">All dates</span>
           </div>
           <div class="mtt-sup-subtabs">
             <button type="button" class="mtt-sup-subtab active" data-sup-sheet="overview">Overview</button>
@@ -576,6 +634,7 @@
   <script src="mttAllData.js"></script>
   <script src="mttSupervisor.js"></script>
   <script src="mttTravelReport.js"></script>
+  <script src="mttMonthlyReport.js"></script>
   <script src="mttApp.js"></script>
 </body>
 </html>
