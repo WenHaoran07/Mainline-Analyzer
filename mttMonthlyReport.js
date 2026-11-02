@@ -450,15 +450,17 @@ const MttMonthlyReport = (() => {
     return 'mr-ach-low';
   }
 
+
   /**
-   * VisMin Contributors — one ACHIEVEMENT RATE table per REGION
-   * (BSL, CDO, DVO, WVA, SLU, …) separately
+   * Contributors — one ACHIEVEMENT RATE table per REGION
+   * scope: 'LUZON' | 'VISMIN' · period: focus month · SLU only
    */
-  function buildVisminContributors(focus, rows) {
-    const scoped = filterScope(rows, 'VISMIN');
+  function buildContributors(scope, focus, rows) {
+    const scoped = filterScope(rows, scope);
     const ym = monthKey(focus);
     const monthRows = scoped.filter(r => monthKey(r.dateKey) === ym);
     const data = monthRows.length ? monthRows : scoped;
+    const scopeLabel = scope === 'LUZON' ? 'Luzon' : 'VisMin';
 
     const byReg = new Map();
     data.forEach(r => {
@@ -489,7 +491,7 @@ const MttMonthlyReport = (() => {
       h += '</div>';
       h += '<div class="table-scroll mr-scroll" id="' + expandId + '">';
       h += '<table class="mr-table mr-achieve"><thead>';
-      h += '<tr class="mr-h1"><th colspan="7" class="mr-ach-title">ACHIEVEMENT RATE</th></tr>';
+      h += '<tr class="mr-h1"><th colspan="7" class="mr-ach-title">ACHIEVEMENT RATE · ' + scopeLabel.toUpperCase() + '</th></tr>';
       h += '<tr class="mr-h2">';
       h += '<th class="mr-g-id">REGION</th>';
       h += '<th class="mr-g-id">route</th>';
@@ -500,7 +502,6 @@ const MttMonthlyReport = (() => {
       h += '<th class="mr-g-month-rate">Travel Time</th>';
       h += '</tr></thead><tbody>';
 
-      // Region total row
       h += '<tr class="mr-ach-region">';
       h += '<td class="mr-sticky"><strong>' + reg + '</strong></td>';
       h += '<td></td><td></td>';
@@ -545,9 +546,17 @@ const MttMonthlyReport = (() => {
 
     const regions = [...byReg.keys()].sort();
     if (!regions.length) {
-      return '<p class="section-note">No VisMin trips in the focus month.</p>';
+      return '<p class="section-note">No ' + scopeLabel + ' trips in the focus month.</p>';
     }
     return regions.map(reg => oneRegionTable(reg, byReg.get(reg))).join('');
+  }
+
+  function buildLuzonContributors(focus, rows) {
+    return buildContributors('LUZON', focus, rows);
+  }
+
+  function buildVisminContributors(focus, rows) {
+    return buildContributors('VISMIN', focus, rows);
   }
 
   function renderChart(canvasId, key, labels, rates, targetPct, title, color) {
@@ -650,6 +659,8 @@ const MttMonthlyReport = (() => {
     const note = document.getElementById('mttMonthlyReportNote');
     if (note) {
       note.textContent = focus
+        ? ('Focus: ' + focus + ' · 3-week + monthly tables · JUL/AUG SLU baselines fixed · charts below')
+        : 'Upload data and run Compare to set the focus date.';
     }
     ['overall', 'luzon', 'vismin'].forEach(destroyChart);
 
@@ -675,6 +686,9 @@ const MttMonthlyReport = (() => {
     }
     if (activeView === 'vismin' || activeView === 'full') {
       html += buildRouteTable('VISMIN', focus, rows, weekKeys);
+    }
+    if (activeView === 'luzonContrib') {
+      html += buildLuzonContributors(focus, rows);
     }
     if (activeView === 'visminContrib') {
       html += buildVisminContributors(focus, rows);
@@ -1142,9 +1156,10 @@ const MttMonthlyReport = (() => {
     });
 
 
-    // VisMin Contributors — separate sheet per REGION
-    (function () {
-      const scoped = filterScope(rows, 'VISMIN');
+
+    // Luzon + VisMin Contributors — separate sheet per REGION
+    ['LUZON', 'VISMIN'].forEach(function (scope) {
+      const scoped = filterScope(rows, scope);
       const ym = monthKey(focus);
       const data = scoped.filter(function (r) { return monthKey(r.dateKey) === ym; });
       const use = data.length ? data : scoped;
@@ -1160,6 +1175,7 @@ const MttMonthlyReport = (() => {
         if (!byT.has(trucker)) byT.set(trucker, []);
         byT.get(trucker).push(r);
       });
+      const prefix = scope === 'LUZON' ? 'LZ ' : 'VM ';
       [...byReg.keys()].sort().forEach(function (reg) {
         const byRoute = byReg.get(reg);
         const regList = [];
@@ -1168,19 +1184,19 @@ const MttMonthlyReport = (() => {
         });
         const single = new Map();
         single.set(reg, byRoute);
-        // Excel sheet name max 31 chars
-        const sheetName = ('VM ' + reg).slice(0, 31);
+        const sheetName = (prefix + reg).slice(0, 31);
         packs.push({
           sheetHint: sheetName,
           _achieve: true,
           title: 'ACHIEVEMENT RATE',
           ym: ym,
           region: reg,
+          scope: scope,
           byReg: single,
           allRows: regList
         });
       });
-    })();
+    });
 
     return packs;
   }
