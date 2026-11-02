@@ -197,11 +197,37 @@ const MttTravelReport = (() => {
     return { labels, rates, target: (TARGET[scope] || 0.96) * 100 };
   }
 
+  /** Rate labels ABOVE point if >= target, BELOW if under */
+  function rateLabelPlugin(targetPct) {
+    return {
+      id: 'trRateLabels_' + String(targetPct),
+      afterDatasetsDraw: function (chart) {
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data) return;
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = 'bold 10px Segoe UI, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        meta.data.forEach(function (pt, i) {
+          const v = chart.data.datasets[0].data[i];
+          if (v == null || isNaN(v)) return;
+          const hit = v >= targetPct;
+          ctx.fillStyle = hit ? '#1B5E20' : '#B71C1C';
+          ctx.textBaseline = hit ? 'bottom' : 'top';
+          const y = hit ? (pt.y - 5) : (pt.y + 5);
+          ctx.fillText(Number(v).toFixed(1) + '%', pt.x, y);
+        });
+        ctx.restore();
+      }
+    };
+  }
+
   function renderMonthChart(canvasId, chartKey, scope, focus, title) {
     const el = document.getElementById(canvasId);
     if (!el || typeof Chart === 'undefined') return;
     destroyChart(chartKey);
     const series = monthDaySeries(scope, focus);
+    const targetPct = series.target;
     charts[chartKey] = new Chart(el, {
       type: 'line',
       data: {
@@ -224,7 +250,7 @@ const MttTravelReport = (() => {
           },
           {
             label: 'Target',
-            data: series.labels.map(() => series.target),
+            data: series.labels.map(() => targetPct),
             borderColor: '#1565C0',
             borderWidth: 2,
             pointRadius: 0,
@@ -237,6 +263,7 @@ const MttTravelReport = (() => {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
+        layout: { padding: { top: 16, bottom: 14 } },
         plugins: {
           title: { display: true, text: title, color: '#1565C0', font: { size: 15, weight: '700' } },
           legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
@@ -251,7 +278,7 @@ const MttTravelReport = (() => {
         },
         scales: {
           y: {
-            min: Math.max(0, series.target - 40),
+            min: Math.max(0, targetPct - 40),
             max: 105,
             title: { display: true, text: 'Rate %' }
           },
@@ -260,7 +287,8 @@ const MttTravelReport = (() => {
             ticks: { autoSkip: true, maxTicksLimit: 31 }
           }
         }
-      }
+      },
+      plugins: [rateLabelPlugin(targetPct)]
     });
   }
 
@@ -602,7 +630,7 @@ const MttTravelReport = (() => {
     const note = document.getElementById('mttTravelReportNote');
     if (note) {
       note.textContent = focusDate
-        ? ('Focus arrival date: ' + focusDate)
+        ? ('Focus arrival date: ' + focusDate + ' · SLU truck owner · content matches OVERALL + SLU TRAVEL TIME structure')
         : 'Upload data and run Compare to set the focus arrival date.';
     }
     destroyChart('luzonMonth');
