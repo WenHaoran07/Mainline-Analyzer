@@ -30,10 +30,156 @@ const MttSupervisor = (() => {
 
   let activeId = 'overview';
   let pack = null;
+  let periodMode = 'all';
+  let periodKey = '';
 
   function pct(v, d) {
     if (v == null || isNaN(v)) return '—';
     return (v * 100).toFixed(d == null ? 2 : d) + '%';
+  }
+
+  function weekKey(dateKey) {
+    return (typeof MttUtils !== 'undefined' && MttUtils.weekKey)
+      ? MttUtils.weekKey(dateKey)
+      : null;
+  }
+  function weekNum(dateKey) {
+    return (typeof MttUtils !== 'undefined' && MttUtils.excelWeekNum)
+      ? MttUtils.excelWeekNum(dateKey)
+      : null;
+  }
+  function monthKey(d) { return d ? String(d).slice(0, 7) : null; }
+
+  function allDateKeysFromPack() {
+    if (!pack || !pack.sheets) return [];
+    const set = new Set();
+    Object.keys(pack.sheets).forEach(function (id) {
+      const s = pack.sheets[id];
+      (s.rows || []).forEach(function (r) {
+        if (r.dateKey) set.add(r.dateKey);
+      });
+    });
+    return [...set].sort();
+  }
+
+  function availableWeeks() {
+    const set = new Map();
+    allDateKeysFromPack().forEach(function (d) {
+      const wk = weekKey(d);
+      const wn = weekNum(d);
+      if (wk && wn != null && !set.has(wk)) {
+        set.set(wk, 'WK ' + wn + ' · ' + wk);
+      }
+    });
+    return [...set.entries()].sort(function (a, b) { return a[0].localeCompare(b[0]); })
+      .map(function (e) { return { key: e[0], label: e[1] }; });
+  }
+
+  function availableMonths() {
+    const set = new Map();
+    allDateKeysFromPack().forEach(function (d) {
+      const mk = monthKey(d);
+      if (mk && !set.has(mk)) {
+        const parts = mk.split('-');
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        set.set(mk, months[parseInt(parts[1], 10) - 1] + ' ' + parts[0]);
+      }
+    });
+    return [...set.entries()].sort(function (a, b) { return a[0].localeCompare(b[0]); })
+      .map(function (e) { return { key: e[0], label: e[1] }; });
+  }
+
+  function filterRowsByPeriod(rows) {
+    if (!rows || !rows.length) return [];
+    if (periodMode === 'all' || !periodKey) return rows;
+    if (periodMode === 'week') {
+      return rows.filter(function (r) { return weekKey(r.dateKey) === periodKey; });
+    }
+    if (periodMode === 'month') {
+      return rows.filter(function (r) { return monthKey(r.dateKey) === periodKey; });
+    }
+    return rows;
+  }
+
+  function sheetView(id) {
+    if (!pack || !pack.sheets[id]) return null;
+    const s = pack.sheets[id];
+    if (s.missing) return s;
+    const rows = filterRowsByPeriod(s.rows || []);
+    return {
+      id: s.id,
+      label: s.label,
+      sheetName: s.sheetName,
+      kind: s.kind,
+      target: s.target,
+      carrier: s.carrier,
+      overall: summarize(rows),
+      byDc: aggregateByDc(rows),
+      bySupervisor: aggregateBySupervisor(rows),
+      rows: rows,
+      rowCount: rows.length,
+      missing: false,
+      filtered: periodMode !== 'all' && !!periodKey
+    };
+  }
+
+  function periodLabel() {
+    if (periodMode === 'all' || !periodKey) return 'All dates';
+    if (periodMode === 'week') {
+      const w = availableWeeks().find(function (x) { return x.key === periodKey; });
+      return w ? w.label : periodKey;
+    }
+    if (periodMode === 'month') {
+      const m = availableMonths().find(function (x) { return x.key === periodKey; });
+      return m ? m.label : periodKey;
+    }
+    return periodKey;
+  }
+
+  function syncPeriodSelects() {
+    const modeSel = document.getElementById('supPeriodMode');
+    const weekSel = document.getElementById('supPeriodWeek');
+    const monthSel = document.getElementById('supPeriodMonth');
+    const weekWrap = document.getElementById('supPeriodWeekWrap');
+    const monthWrap = document.getElementById('supPeriodMonthWrap');
+    const badge = document.getElementById('supPeriodBadge');
+
+    if (modeSel) modeSel.value = periodMode;
+
+    if (weekSel) {
+      const weeks = availableWeeks();
+      const cur = weekSel.value;
+      weekSel.innerHTML = weeks.length
+        ? weeks.map(function (w) {
+            return '<option value="' + w.key + '">' + w.label + '</option>';
+          }).join('')
+        : '<option value="">No weeks in data</option>';
+      if (periodMode === 'week' && periodKey && weeks.some(function (w) { return w.key === periodKey; })) {
+        weekSel.value = periodKey;
+      } else if (weeks.length) {
+        if (weeks.some(function (w) { return w.key === cur; })) weekSel.value = cur;
+        else weekSel.value = weeks[weeks.length - 1].key;
+      }
+    }
+    if (monthSel) {
+      const months = availableMonths();
+      const cur = monthSel.value;
+      monthSel.innerHTML = months.length
+        ? months.map(function (m) {
+            return '<option value="' + m.key + '">' + m.label + '</option>';
+          }).join('')
+        : '<option value="">No months in data</option>';
+      if (periodMode === 'month' && periodKey && months.some(function (m) { return m.key === periodKey; })) {
+        monthSel.value = periodKey;
+      } else if (months.length) {
+        if (months.some(function (m) { return m.key === cur; })) monthSel.value = cur;
+        else monthSel.value = months[months.length - 1].key;
+      }
+    }
+
+    if (weekWrap) weekWrap.classList.toggle('hidden', periodMode !== 'week');
+    if (monthWrap) monthWrap.classList.toggle('hidden', periodMode !== 'month');
+    if (badge) badge.textContent = periodLabel();
   }
 
   function normalizeDcCode(raw) {
@@ -434,11 +580,14 @@ const MttSupervisor = (() => {
     }
 
     let h = '<div class="sup-overview-intro">' +
+      '<span class="sup-pill">DC → Supervisor mapped</span>' +
+      '<span class="sup-pill sup-pill-period">Period: ' + periodLabel() + '</span>' +
+      '<span class="sup-intro-text">3PL Supervisor tab includes <strong>all Own + 3PL</strong> trips · other tabs keep fleet scope</span>' +
       '</div>';
     h += '<div class="sup-overview-grid">';
 
     SHEET_DEFS.forEach(def => {
-      const s = pack.sheets[def.id];
+      const s = sheetView(def.id);
       if (!s || s.missing) {
         h += '<div class="sup-overview-card is-missing">' +
           '<div class="sup-ov-top"><span class="sup-ov-title">' + def.label + '</span>' +
@@ -462,9 +611,9 @@ const MttSupervisor = (() => {
             '</div>')
           : '') +
         '<div class="sup-ov-stats">' +
-          '<div class="sup-ov-stat"><span class="k">Total</span><span class="v">' + (o.total || 0).toLocaleString() + '</span></div>' +
-          '<div class="sup-ov-stat"><span class="k">Followed</span><span class="v pos">' + (o.followed || 0).toLocaleString() + '</span></div>' +
-          '<div class="sup-ov-stat"><span class="k">Not followed</span><span class="v ' + (o.notFollowed ? 'neg' : '') + '">' + (o.notFollowed || 0).toLocaleString() + '</span></div>' +
+          '<div class="sup-ov-stat"><span class="k"></span><span class="v">' + (o.total || 0).toLocaleString() + '</span></div>' +
+          '<div class="sup-ov-stat"><span class="k"></span><span class="v pos">' + (o.followed || 0).toLocaleString() + '</span></div>' +
+          '<div class="sup-ov-stat"><span class="k"> </span><span class="v ' + (o.notFollowed ? 'neg' : '') + '">' + (o.notFollowed || 0).toLocaleString() + '</span></div>' +
         '</div>' +
         '<div class="sup-ov-cta">View breakdown →</div>' +
         '</button>';
@@ -474,14 +623,16 @@ const MttSupervisor = (() => {
   }
 
   function renderSheet(id) {
-    if (!pack || !pack.sheets[id]) {
+    const s = sheetView(id);
+    if (!s) {
       return '<p class="section-note">Sheet not loaded.</p>';
     }
-    const s = pack.sheets[id];
     if (s.missing) {
       return '<p class="section-note">Sheet <strong>' + s.label + '</strong> was not found in the uploaded workbook.</p>';
     }
     let h = '';
+    h += '<div class="sup-period-note">Showing: <strong>' + periodLabel() + '</strong>' +
+      (s.rowCount != null ? (' · ' + s.rowCount.toLocaleString() + ' trips') : '') + '</div>';
     h += metricCards(s.overall, s.target, s.label);
 
     if (id === '3plSup') {
@@ -523,6 +674,7 @@ const MttSupervisor = (() => {
       if (st.supervisorPack) pack = st.supervisorPack;
     }
 
+    syncPeriodSelects();
     host.innerHTML = activeId === 'overview' ? renderOverview() : renderSheet(activeId);
 
     host.querySelectorAll('[data-sup-goto]').forEach(btn => {
@@ -546,10 +698,39 @@ const MttSupervisor = (() => {
     render();
   }
 
+  function applyPeriodFromUI() {
+    const modeSel = document.getElementById('supPeriodMode');
+    const weekSel = document.getElementById('supPeriodWeek');
+    const monthSel = document.getElementById('supPeriodMonth');
+    periodMode = (modeSel && modeSel.value) || 'all';
+    if (periodMode === 'week') {
+      periodKey = (weekSel && weekSel.value) || '';
+      if (!periodKey) {
+        const weeks = availableWeeks();
+        periodKey = weeks.length ? weeks[weeks.length - 1].key : '';
+      }
+    } else if (periodMode === 'month') {
+      periodKey = (monthSel && monthSel.value) || '';
+      if (!periodKey) {
+        const months = availableMonths();
+        periodKey = months.length ? months[months.length - 1].key : '';
+      }
+    } else {
+      periodKey = '';
+    }
+    render();
+  }
+
   function init() {
     document.querySelectorAll('.mtt-sup-subtab').forEach(btn => {
       btn.addEventListener('click', () => setActive(btn.dataset.supSheet));
     });
+    const modeSel = document.getElementById('supPeriodMode');
+    const weekSel = document.getElementById('supPeriodWeek');
+    const monthSel = document.getElementById('supPeriodMonth');
+    if (modeSel) modeSel.addEventListener('change', applyPeriodFromUI);
+    if (weekSel) weekSel.addEventListener('change', applyPeriodFromUI);
+    if (monthSel) monthSel.addEventListener('change', applyPeriodFromUI);
   }
 
   return { init, render, onDataReady, ingestWorkbook, setActive };
