@@ -602,6 +602,8 @@ const MttTravelReport = (() => {
     const note = document.getElementById('mttTravelReportNote');
     if (note) {
       note.textContent = focusDate
+        ? ('Focus arrival date: ' + focusDate)
+        : 'Upload data and run Compare to set the focus arrival date.';
     }
     destroyChart('luzonMonth');
     destroyChart('visminMonth');
@@ -651,11 +653,426 @@ const MttTravelReport = (() => {
 
   function onDataReady() { render(); }
 
+
   function init() {
     document.querySelectorAll('.tr-subtab').forEach(btn => {
       btn.addEventListener('click', () => setView(btn.dataset.trView));
     });
+    const exp = document.getElementById('btnTrExport');
+    if (exp) exp.addEventListener('click', function () { exportExcel(); });
   }
 
-  return { init, render, onDataReady, setView };
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensureExcelJS() {
+    if (typeof ExcelJS !== 'undefined') return;
+    await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+  }
+
+  const XLS = {
+    thin: function (argb) {
+      const s = { style: 'thin', color: { argb: argb || 'FF9E9E9E' } };
+      return { top: s, left: s, bottom: s, right: s };
+    },
+    fill: function (argb) {
+      return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+    },
+    font: function (opts) {
+      return Object.assign({ name: 'Calibri', size: 10 }, opts || {});
+    }
+  };
+
+  function rateFill(rate, target) {
+    if (rate == null) return XLS.fill('FFFFFFFF');
+    if (target != null && rate >= target) return XLS.fill('FFC6EFCE');
+    if (target != null && rate < target) return XLS.fill('FFFFC7CE');
+    return XLS.fill('FFFFFFFF');
+  }
+
+  function rateFont(rate, target) {
+    if (rate == null) return XLS.font({ color: { argb: 'FF9E9E9E' } });
+    if (target != null && rate >= target) return XLS.font({ bold: true, color: { argb: 'FF006100' } });
+    if (target != null && rate < target) return XLS.font({ bold: true, color: { argb: 'FF9C0006' } });
+    return XLS.font({ bold: true });
+  }
+
+  function writeTitle(ws, row, colCount, text) {
+    ws.mergeCells(row, 1, row, colCount);
+    const cell = ws.getCell(row, 1);
+    cell.value = text;
+    cell.font = XLS.font({ bold: true, size: 13, color: { argb: 'FFFFFFFF' } });
+    cell.fill = XLS.fill('FFC00000');
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(row).height = 24;
+  }
+
+  function setCell(ws, r, c, value, opts) {
+    opts = opts || {};
+    const cell = ws.getCell(r, c);
+    cell.value = value;
+    if (opts.numFmt) cell.numFmt = opts.numFmt;
+    cell.font = opts.font || XLS.font();
+    cell.fill = opts.fill || XLS.fill('FFFFFFFF');
+    cell.border = XLS.thin('FFBDBDBD');
+    cell.alignment = opts.align || { horizontal: 'center', vertical: 'middle', wrapText: true };
+    return cell;
+  }
+
+  function writeEntityExcelRow(ws, rowIdx, leftVals, r, target, hist7, bold) {
+    let c = 1;
+    leftVals.forEach(function (v, i) {
+      setCell(ws, rowIdx, c++, v, {
+        font: XLS.font({ bold: true }),
+        fill: bold ? XLS.fill('FFFFCDD2') : XLS.fill('FFF5F5F5'),
+        align: { horizontal: i === 0 ? 'left' : 'center', vertical: 'middle' }
+      });
+    });
+    // Daily summary
+    setCell(ws, rowIdx, c++, r.total || 0, { fill: bold ? XLS.fill('FFFFEBEE') : XLS.fill('FFFFFFFF') });
+    setCell(ws, rowIdx, c++, r.followed || 0, { fill: bold ? XLS.fill('FFFFEBEE') : XLS.fill('FFFFFFFF') });
+    setCell(ws, rowIdx, c++, r.notFollowed || 0, {
+      font: XLS.font({ bold: !!(r.notFollowed), color: { argb: r.notFollowed ? 'FFC62828' : 'FF000000' } }),
+      fill: bold ? XLS.fill('FFFFEBEE') : XLS.fill('FFFFFFFF')
+    });
+    setCell(ws, rowIdx, c++, target != null ? target : r.target, {
+      numFmt: '0%',
+      fill: bold ? XLS.fill('FFFFEBEE') : XLS.fill('FFFFFFFF')
+    });
+    {
+      const rate = r.rate;
+      setCell(ws, rowIdx, c++, rate == null ? '—' : rate, {
+        numFmt: rate == null ? undefined : '0.00%',
+        fill: rateFill(rate, target),
+        font: rateFont(rate, target)
+      });
+    }
+    // 7-day history
+    const hist = r.histRates || [];
+    for (let i = 0; i < Math.max(hist7.length, 1); i++) {
+      const hr = hist[i];
+      const rate = hr ? hr.rate : null;
+      setCell(ws, rowIdx, c++, rate == null ? '—' : rate, {
+        numFmt: rate == null ? undefined : '0.00%',
+        fill: rateFill(rate, target),
+        font: rateFont(rate, target)
+      });
+    }
+    // Daily diff + mood
+    {
+      const d = r.dailyDiff;
+      setCell(ws, rowIdx, c++, d == null ? '—' : d, {
+        numFmt: d == null ? undefined : '0.00%',
+        fill: d == null ? XLS.fill('FFFFFFFF') : (d >= 0 ? XLS.fill('FFC6EFCE') : XLS.fill('FFFFC7CE')),
+        font: d == null ? XLS.font({ color: { argb: 'FF9E9E9E' } })
+          : XLS.font({ bold: true, color: { argb: d >= 0 ? 'FF006100' : 'FF9C0006' } })
+      });
+    }
+    setCell(ws, rowIdx, c++, r.mood || r.arrow || '', { align: { horizontal: 'center' } });
+    // Weekly
+    [r.wkPrev, r.wkCurr].forEach(function (rate) {
+      setCell(ws, rowIdx, c++, rate == null ? '—' : rate, {
+        numFmt: rate == null ? undefined : '0.00%',
+        fill: rateFill(rate, target),
+        font: rateFont(rate, target)
+      });
+    });
+    {
+      const d = r.weeklyDiff;
+      setCell(ws, rowIdx, c++, d == null ? '—' : d, {
+        numFmt: d == null ? undefined : '0.00%',
+        fill: d == null ? XLS.fill('FFFFFFFF') : (d >= 0 ? XLS.fill('FFC6EFCE') : XLS.fill('FFFFC7CE')),
+        font: d == null ? XLS.font({ color: { argb: 'FF9E9E9E' } })
+          : XLS.font({ bold: true, color: { argb: d >= 0 ? 'FF006100' : 'FF9C0006' } })
+      });
+    }
+    // Monthly
+    setCell(ws, rowIdx, c++, r.monthLate != null ? r.monthLate : '—');
+    setCell(ws, rowIdx, c++, r.monthOnTime != null ? r.monthOnTime : '—');
+    setCell(ws, rowIdx, c++, r.monthTotal != null ? r.monthTotal : '—');
+    {
+      const rate = r.monthRate;
+      setCell(ws, rowIdx, c++, rate == null ? '—' : rate, {
+        numFmt: rate == null ? undefined : '0.00%',
+        fill: rateFill(rate, target),
+        font: rateFont(rate, target)
+      });
+    }
+    setCell(ws, rowIdx, c++, bold ? '—' : (r.rank != null ? r.rank : '—'), {
+      font: XLS.font({ bold: true })
+    });
+  }
+
+  function appendTravelTable(ws, startRow, pack) {
+    // pack: title, leftHeaders, bodyItems[{left,row,bold}], hist7, target, sample
+    const leftN = pack.leftHeaders.length;
+    const hist7 = pack.hist7 || [];
+    const nHist = Math.max(hist7.length, 1);
+    const colCount = leftN + 5 + nHist + 2 + 3 + 5;
+    let r = startRow;
+
+    writeTitle(ws, r, colCount, pack.title);
+    r++;
+
+    // Header row 1 — group labels
+    let c = 1;
+    pack.leftHeaders.forEach(function (lh) {
+      setCell(ws, r, c++, lh, {
+        font: XLS.font({ bold: true, size: 9 }),
+        fill: XLS.fill('FFD9D9D9')
+      });
+    });
+    const groups = [
+      { label: 'DAILY SUMMARY', span: 5, color: 'FFFFE699' },
+      { label: '7 DAYS RATE HISTORY', span: nHist, color: 'FFBDD7EE' },
+      { label: 'DAILY COMPARISON', span: 2, color: 'FFDDEBF7' },
+      { label: 'WEEKLY RATE', span: 3, color: 'FFC6E0B4' },
+      { label: 'MONTHLY RATE', span: 5, color: 'FFA9D08E' }
+    ];
+    groups.forEach(function (g) {
+      const start = c;
+      const end = c + g.span - 1;
+      if (g.span > 1) {
+        try { ws.mergeCells(r, start, r, end); } catch (e) {}
+      }
+      setCell(ws, r, start, g.label, {
+        font: XLS.font({ bold: true, size: 10 }),
+        fill: XLS.fill(g.color)
+      });
+      for (let i = start + 1; i <= end; i++) {
+        setCell(ws, r, i, '', { fill: XLS.fill(g.color) });
+      }
+      c = end + 1;
+    });
+    ws.getRow(r).height = 22;
+    r++;
+
+    // Header row 2
+    c = 1;
+    pack.leftHeaders.forEach(function () {
+      setCell(ws, r, c++, '', { fill: XLS.fill('FFD9D9D9') });
+    });
+    const h2 = [
+      { t: 'Total Arrival Times', f: 'FFFFE699' },
+      { t: 'Followed Plan travel time', f: 'FFFFE699' },
+      { t: 'Not followed Plan travel time', f: 'FFFFE699' },
+      { t: 'TARGET', f: 'FFFFE699' },
+      { t: 'RATE', f: 'FFFFE699' }
+    ];
+    const hLabels = histHeaders(hist7);
+    if (hist7.length) {
+      hLabels.forEach(function (l) { h2.push({ t: l, f: 'FFBDD7EE' }); });
+    } else {
+      h2.push({ t: '—', f: 'FFBDD7EE' });
+    }
+    h2.push({ t: 'DAILY DIFF', f: 'FFDDEBF7' });
+    h2.push({ t: '', f: 'FFDDEBF7' });
+    const sample = pack.sample || {};
+    h2.push({ t: sample.wkPrevLabel || 'WK —', f: 'FFC6E0B4' });
+    h2.push({ t: sample.wkCurrLabel || 'WK —', f: 'FFC6E0B4' });
+    h2.push({ t: 'WEEKLY DIFF', f: 'FFC6E0B4' });
+    h2.push({ t: 'MONTHLY DELAY', f: 'FFA9D08E' });
+    h2.push({ t: 'MONTHLY ONTIME', f: 'FFA9D08E' });
+    h2.push({ t: 'TOTAL', f: 'FFA9D08E' });
+    h2.push({ t: 'RATE', f: 'FFA9D08E' });
+    h2.push({ t: 'RANK', f: 'FFA9D08E' });
+    h2.forEach(function (x) {
+      setCell(ws, r, c++, x.t, {
+        font: XLS.font({ bold: true, size: 8 }),
+        fill: XLS.fill(x.f)
+      });
+    });
+    ws.getRow(r).height = 32;
+    r++;
+
+    (pack.bodyItems || []).forEach(function (item) {
+      const left = item.left.slice();
+      while (left.length < leftN) left.push('');
+      writeEntityExcelRow(ws, r, left, item.row, pack.target, hist7, !!item.bold);
+      r++;
+    });
+
+    for (let i = 1; i <= colCount; i++) {
+      ws.getColumn(i).width = i <= leftN ? 16 : 11;
+    }
+    r++;
+    return r;
+  }
+
+  function collectTravelPacks(focus, dates) {
+    const rows = allRows();
+    const packs = [];
+
+    function overallPack(title, scope, target) {
+      const block = buildScopeBlock(title, scope, target, focus, dates);
+      const regionRows = (block.regionRows || []).filter(function (x) { return x.name !== 'SLU'; });
+      assignRanks(regionRows);
+      const bodyItems = [{ left: ['SLU'], row: block.slu, bold: true }]
+        .concat(regionRows.map(function (x) { return { left: [x.name], row: x }; }));
+      packs.push({
+        sheetHint: 'Summary',
+        title: title,
+        leftHeaders: ['REGION'],
+        bodyItems: bodyItems,
+        hist7: block.hist7,
+        target: target,
+        sample: block.slu
+      });
+    }
+
+    overallPack('Mainline Travel Time Report', 'ALL', TARGET.ALL);
+    overallPack('LUZON Route Mainline Travel Time Report', 'LUZON', TARGET.LUZON);
+    overallPack('VisMin Route Mainline Travel Time Report', 'VISMIN', TARGET.VISMIN);
+
+    // By DC
+    (function () {
+      const hist7 = last7Dates(focus, dates);
+      const by = new Map();
+      rows.forEach(function (r) {
+        const dc = resolveDc(r.dcIntended);
+        const key = dc.code || dc.name;
+        if (!by.has(key)) by.set(key, { name: dc.name, code: dc.code, list: [] });
+        by.get(key).list.push(r);
+      });
+      const entities = [...by.values()]
+        .map(function (e) { return buildEntityRow(e.name, e.code, e.list, focus, dates, TARGET.ALL); })
+        .filter(function (r) { return r.monthTotal > 0 || r.total > 0; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      assignRanks(entities);
+      const slu = buildEntityRow('SLU', '', rows, focus, dates, TARGET.ALL);
+      packs.push({
+        sheetHint: 'By DC',
+        title: 'SLU Mainline Travel Time Report',
+        leftHeaders: ['DC NAME', 'DC CODE'],
+        bodyItems: entities.map(function (e) {
+          return { left: [e.name, e.code || ''], row: e };
+        }).concat([{ left: ['SLU', ''], row: slu, bold: true }]),
+        hist7: hist7,
+        target: TARGET.ALL,
+        sample: slu
+      });
+    })();
+
+    // By Trucker
+    (function () {
+      const hist7 = last7Dates(focus, dates);
+      const by = new Map();
+      rows.forEach(function (r) {
+        const t = r.trucker || '(blank)';
+        if (!by.has(t)) by.set(t, []);
+        by.get(t).push(r);
+      });
+      const entities = [...by.entries()]
+        .map(function (ent) { return buildEntityRow(ent[0], '', ent[1], focus, dates, TARGET.ALL); })
+        .filter(function (r) { return r.monthTotal > 0 || r.total > 0; })
+        .sort(function (a, b) { return a.name.localeCompare(b.name); });
+      assignRanks(entities);
+      const slu = buildEntityRow('SLU', '', rows, focus, dates, TARGET.ALL);
+      packs.push({
+        sheetHint: 'By Trucker',
+        title: 'SLU Mainline Travel Time per Trucker Report',
+        leftHeaders: ['TRUCKERS'],
+        bodyItems: entities.map(function (e) {
+          return { left: [e.name], row: e };
+        }).concat([{ left: ['SLU'], row: slu, bold: true }]),
+        hist7: hist7,
+        target: TARGET.ALL,
+        sample: slu
+      });
+    })();
+
+    // Luzon / VisMin routes
+    ['LUZON', 'VISMIN'].forEach(function (scope) {
+      const target = scope === 'LUZON' ? TARGET.LUZON : TARGET.VISMIN;
+      const pack = buildRouteRegionPack(scope, target, focus, dates);
+      const bodyItems = (pack.items || []).map(function (item) {
+        return {
+          left: item.left,
+          row: item.row,
+          bold: !!item.bold
+        };
+      });
+      // ranks for route rows only
+      const routeOnly = bodyItems.filter(function (i) { return !i.bold && i.left[1]; }).map(function (i) { return i.row; });
+      assignRanks(routeOnly);
+      packs.push({
+        sheetHint: scope === 'LUZON' ? 'Luzon Routes' : 'VisMin Routes',
+        title: pack.title,
+        leftHeaders: ['REGION INTENDED', 'ROUTE'],
+        bodyItems: bodyItems,
+        hist7: pack.hist7,
+        target: target,
+        sample: bodyItems.length ? bodyItems[bodyItems.length - 1].row : {}
+      });
+    });
+
+    return packs;
+  }
+
+  async function exportExcel() {
+    const focus = getFocusDate();
+    const dates = allDates();
+    if (!focus || !allRows().length) {
+      alert('No SLU data to export. Upload a workbook and run Compare first.');
+      return;
+    }
+    const btn = document.getElementById('btnTrExport');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Exporting…';
+    }
+    try {
+      await ensureExcelJS();
+      const packs = collectTravelPacks(focus, dates);
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Mainline Travel Time Analyzer';
+      wb.created = new Date();
+
+      const sheetMap = {};
+      packs.forEach(function (p) {
+        const name = p.sheetHint || 'Report';
+        if (!sheetMap[name]) sheetMap[name] = [];
+        sheetMap[name].push(p);
+      });
+
+      Object.keys(sheetMap).forEach(function (name) {
+        const ws = wb.addWorksheet(name, { views: [{ showGridLines: false }] });
+        let row = 1;
+        sheetMap[name].forEach(function (pack) {
+          row = appendTravelTable(ws, row, pack);
+          row += 1;
+        });
+      });
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = 'SLU_Mainline_Travel_Time_Report_' + focus + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Export failed: ' + (err && err.message ? err.message : err));
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '⬇ Export Excel';
+      }
+    }
+  }
+
+  return { init, render, onDataReady, setView, exportExcel };
 })();
