@@ -17,6 +17,23 @@ const MttAllData = (() => {
     return h + ':' + pad(m) + ':' + pad(s);
   }
 
+  /** Positive overrun only (hours) */
+  function delayHours(r) {
+    const actual = Number(r.actualTT) || 0;
+    const plan = Number(r.planTT) || 0;
+    return Math.max(0, actual - plan);
+  }
+
+  /** Friendly total: "12h 34m" (+ optional seconds if needed) */
+  function fmtTotalDelay(hours) {
+    if (hours == null || isNaN(Number(hours)) || Number(hours) <= 0) return '0h 0m';
+    const totalMin = Math.round(Number(hours) * 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h <= 0) return m + 'm';
+    return h + 'h ' + m + 'm';
+  }
+
   function allRows() {
     if (typeof MttFileProcessor === 'undefined') return [];
     return MttFileProcessor.getState().storedRows || [];
@@ -110,17 +127,24 @@ const MttAllData = (() => {
     const total = filtered.length;
     const yes = filtered.filter(r => String(r.onTime).toUpperCase() === 'YES').length;
     const rate = total ? yes / total : null;
+    const totalDelayHrs = filtered.reduce(function (sum, r) {
+      return sum + delayHours(r);
+    }, 0);
+    const lateCount = filtered.filter(r => String(r.onTime).toUpperCase() === 'NO').length;
 
     if (meta) {
       meta.innerHTML = '<strong>' + total.toLocaleString() + '</strong> trip(s) matched' +
         (total ? ' · on-time <strong>' + fmtPct(rate) + '</strong> (' + yes + ' / ' + total + ')' : '') +
+        ' · late <strong>' + lateCount.toLocaleString() + '</strong>' +
+        ' · total delay <strong class="neg">' + fmtTotalDelay(totalDelayHrs) + '</strong>' +
+        ' <span style="color:#757575;">(' + fmtDuration(totalDelayHrs) + ')</span>' +
         ' · showing page ' + (page + 1) + ' of ' + Math.max(1, Math.ceil(total / PAGE_SIZE));
     }
 
     const start = page * PAGE_SIZE;
     const slice = filtered.slice(start, start + PAGE_SIZE);
     if (!slice.length) {
-      body.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#757575;padding:24px;">No trips match the current filters.</td></tr>';
+      body.innerHTML = '<tr><td colspan="14" style="text-align:center;color:#757575;padding:24px;">No trips match the current filters.</td></tr>';
     } else {
       body.innerHTML = slice.map(r => {
         const late = String(r.onTime).toUpperCase() === 'NO';
@@ -138,6 +162,8 @@ const MttAllData = (() => {
           '<td>' + (r.actualArrival || '—') + '</td>' +
           '<td>' + fmtDuration(r.planTT) + '</td>' +
           '<td>' + fmtDuration(r.actualTT) + '</td>' +
+          '<td class="' + (delayHours(r) > 0 ? 'neg' : '') + '">' +
+            (delayHours(r) > 0 ? ('+' + fmtDuration(delayHours(r))) : '—') + '</td>' +
           '</tr>';
       }).join('');
     }
