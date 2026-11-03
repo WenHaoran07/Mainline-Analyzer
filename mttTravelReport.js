@@ -630,8 +630,6 @@ const MttTravelReport = (() => {
     const note = document.getElementById('mttTravelReportNote');
     if (note) {
       note.textContent = focusDate
-        ? ('Focus arrival date: ' + focusDate + ' · SLU truck owner · content matches OVERALL + SLU TRAVEL TIME structure')
-        : 'Upload data and run Compare to set the focus arrival date.';
     }
     destroyChart('luzonMonth');
     destroyChart('visminMonth');
