@@ -120,7 +120,7 @@ const MttAllData = (() => {
     const start = page * PAGE_SIZE;
     const slice = filtered.slice(start, start + PAGE_SIZE);
     if (!slice.length) {
-      body.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#757575;padding:24px;">No trips match the current filters.</td></tr>';
+      body.innerHTML = '<tr><td colspan="13" style="text-align:center;color:#757575;padding:24px;">No trips match the current filters.</td></tr>';
     } else {
       body.innerHTML = slice.map(r => {
         const late = String(r.onTime).toUpperCase() === 'NO';
@@ -134,6 +134,8 @@ const MttAllData = (() => {
           '<td>' + (r.trucker || '') + '</td>' +
           '<td>' + (r.dcIntended || '') + '</td>' +
           '<td class="' + (late ? 'neg' : 'pos') + '">' + (r.onTime || '') + '</td>' +
+          '<td>' + (r.actualDeparture || '—') + '</td>' +
+          '<td>' + (r.actualArrival || '—') + '</td>' +
           '<td>' + fmtDuration(r.planTT) + '</td>' +
           '<td>' + fmtDuration(r.actualTT) + '</td>' +
           '</tr>';
