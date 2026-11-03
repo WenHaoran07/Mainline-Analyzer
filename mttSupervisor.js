@@ -581,8 +581,7 @@ const MttSupervisor = (() => {
 
     let h = '<div class="sup-overview-intro">' +
       '<span class="sup-pill">DC → Supervisor mapped</span>' +
-      '<span class="sup-pill sup-pill-period">Period: ' + periodLabel() + '</span>' +
-      '<span class="sup-intro-text">3PL Supervisor tab includes <strong>all Own + 3PL</strong> trips · other tabs keep fleet scope</span>' +
+      '<span class="sup-pill sup-pill-period">Period: ' + periodLabel() + '</span>'+
       '</div>';
     h += '<div class="sup-overview-grid">';
 
