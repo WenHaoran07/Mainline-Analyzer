@@ -34,6 +34,9 @@ const MttApp = (() => {
         if (typeof MttDelayReason !== 'undefined') {
           MttDelayReason.render(dateLatest);
         }
+        if (typeof MttDelayMonthlySummary !== 'undefined') {
+          MttDelayMonthlySummary.onDataReady();
+        }
         if (typeof MttProblemReport !== 'undefined') {
           MttProblemReport.render();
         }
@@ -79,6 +82,7 @@ const MttApp = (() => {
     MttUIManager.initTabs();
     if (typeof MttChartManager !== 'undefined' && MttChartManager.initGraphFocus) MttChartManager.initGraphFocus();
     if (typeof MttDelayReason !== 'undefined') MttDelayReason.init();
+    if (typeof MttDelayMonthlySummary !== 'undefined') MttDelayMonthlySummary.init();
     if (typeof MttProblemReport !== 'undefined') MttProblemReport.init();
     if (typeof MttWeeklyMonthly !== 'undefined') MttWeeklyMonthly.init();
     if (typeof MttRateMatrix !== 'undefined') MttRateMatrix.init();
