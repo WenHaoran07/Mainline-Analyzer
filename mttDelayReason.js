@@ -143,6 +143,7 @@ const MttDelayReason = (() => {
       if (h === 'PLANNED') idx.planned = i;
       if (h === 'TRUCKER') idx.trucker = i;
       if (h === 'LOCATION') idx.location = i;
+      if (h === 'REGION' || h === 'REGION INTENDED') idx.region = i;
       if (h === 'CATEGORY') idx.category = i;
       if (h === 'PROBLEM ENCOUNTERED') idx.problem = i;
       if (h === 'REMARKS') idx.remarks = i;
@@ -173,6 +174,7 @@ const MttDelayReason = (() => {
         planned: parseFloat(get(r, 'planned')) || 0,
         trucker: String(get(r, 'trucker') || '').trim(),
         location: String(get(r, 'location') || '').trim(),
+        region: String(get(r, 'region') || '').trim(),
         category: category === 'None' || category === 'null' ? '' : category,
         problem: problem === 'None' || problem === 'null' || problem === 'NO IR' ? '' : problem,
         remarks: remarks === 'NO IR' || remarks === 'None' ? '' : remarks,
@@ -635,16 +637,34 @@ const MttDelayReason = (() => {
         document.querySelectorAll('.pe-subtab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         const view = tab.dataset.peView;
+        // Built-in PE views
         ['table', 'daily', 'weekly'].forEach(v => {
           const el = document.getElementById('pe' + v.charAt(0).toUpperCase() + v.slice(1) + 'View');
           if (el) el.classList.toggle('hidden', view !== v);
         });
-        // Toggle filters + re-render so week list is ready
+        // Summary views (own hosts)
+        const monthlyEl = document.getElementById('peMonthlyView');
+        const weekSumEl = document.getElementById('peWeekSummaryView');
+        if (monthlyEl) monthlyEl.classList.toggle('hidden', view !== 'monthly');
+        if (weekSumEl) weekSumEl.classList.toggle('hidden', view !== 'weekSummary');
+
         const dateWrap = document.getElementById('peDateFilterWrap');
         const weekWrap = document.getElementById('peWeekFilterWrap');
-        if (dateWrap) dateWrap.style.display = (view === 'weekly') ? 'none' : '';
+        const monthWrap = document.getElementById('peMonthFilterWrap');
+        const weekSumWrap = document.getElementById('peWeekSummaryFilterWrap');
+        if (dateWrap) dateWrap.style.display = (view === 'weekly' || view === 'monthly' || view === 'weekSummary') ? 'none' : '';
         if (weekWrap) weekWrap.style.display = (view === 'weekly') ? '' : 'none';
-        render();
+        if (monthWrap) monthWrap.style.display = (view === 'monthly') ? '' : 'none';
+        if (weekSumWrap) weekSumWrap.style.display = (view === 'weekSummary') ? '' : 'none';
+
+        if (view === 'monthly') {
+          if (typeof MttDelayMonthlySummary !== 'undefined') MttDelayMonthlySummary.showView('monthly');
+        } else if (view === 'weekSummary') {
+          if (typeof MttDelayMonthlySummary !== 'undefined') MttDelayMonthlySummary.showView('weekSummary');
+        } else {
+          if (typeof MttDelayMonthlySummary !== 'undefined') MttDelayMonthlySummary.showView(null);
+          render();
+        }
       });
     });
     const sel = document.getElementById('selectDelayDate');
@@ -754,4 +774,3 @@ const MttDelayReason = (() => {
   };
 })();
 
- 
