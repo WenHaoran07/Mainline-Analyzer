@@ -659,7 +659,7 @@ const MttMonthlyReport = (() => {
     const note = document.getElementById('mttMonthlyReportNote');
     if (note) {
       note.textContent = focus
-        ? ('Focus: ' + focus + ' · 3-week + monthly tables · JUL/AUG SLU baselines fixed · charts below')
+        ? ('Focus: ' + focus)
         : 'Upload data and run Compare to set the focus date.';
     }
     ['overall', 'luzon', 'vismin'].forEach(destroyChart);
