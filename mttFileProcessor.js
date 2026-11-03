@@ -81,6 +81,7 @@ const MttFileProcessor = (() => {
       if (lower.includes('truck ownner') || lower.includes('carrier owner') || lower.includes('车辆归属')) colMap.owner = i;
       if (lower === 'region' || lower === 'region intended') colMap.region = i;
       if (lower.includes('actual arrival') || lower.includes('check in')) colMap.arrival = i;
+      if (lower.includes('actual departure') || lower.includes('check out')) colMap.departure = i;
       if (lower === 'date') colMap.date = i;
       if (lower.includes('task status')) colMap.status = i;
       if (lower.includes('number plate') || lower === 'plate' || lower.includes('plate number')) colMap.plate = i;
@@ -104,6 +105,37 @@ const MttFileProcessor = (() => {
     }
 
     const { parseDateKey, classifyRouteType } = MttUtils;
+
+    /** Format Excel date/time cell for display (CHECK IN / CHECK OUT) */
+    function formatDateTimeCell(val) {
+      if (val == null || val === '') return '';
+      if (val instanceof Date && !isNaN(val.getTime())) {
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        const hh = String(val.getHours()).padStart(2, '0');
+        const mm = String(val.getMinutes()).padStart(2, '0');
+        const ss = String(val.getSeconds()).padStart(2, '0');
+        return y + '-' + m + '-' + d + ' ' + hh + ':' + mm + ':' + ss;
+      }
+      if (typeof val === 'number' && isFinite(val)) {
+        // Excel serial (UTC-ish) → JS date
+        const ms = Math.round((val - 25569) * 86400 * 1000);
+        const dt = new Date(ms);
+        if (!isNaN(dt.getTime())) {
+          const y = dt.getUTCFullYear();
+          const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(dt.getUTCDate()).padStart(2, '0');
+          const hh = String(dt.getUTCHours()).padStart(2, '0');
+          const mm = String(dt.getUTCMinutes()).padStart(2, '0');
+          const ss = String(dt.getUTCSeconds()).padStart(2, '0');
+          // pure time serial (< 1) → time only
+          if (val > 0 && val < 1) return hh + ':' + mm + ':' + ss;
+          return y + '-' + m + '-' + d + ' ' + hh + ':' + mm + ':' + ss;
+        }
+      }
+      return String(val).trim();
+    }
 
     const normalized = aoa.slice(1).map(r => {
       const arrivalVal = (colMap.arrival != null ? r[colMap.arrival] : null) ?? (colMap.date != null ? r[colMap.date] : null);
@@ -144,7 +176,11 @@ const MttFileProcessor = (() => {
         trucker: String(get(colMap.truckerName) || get(colMap.truckerAbbr) || '').trim() || '(blank)',
         dcIntended: String(get(colMap.dcIntended) || '').trim() || '(blank)',
         region: String(get(colMap.region) || '').trim() || '(blank)',
-        owner, status
+        owner, status,
+        actualDeparture: formatDateTimeCell(get(colMap.departure)),
+        actualArrival: formatDateTimeCell(
+          colMap.arrival != null ? get(colMap.arrival) : arrivalVal
+        )
       };
     }).filter(r => r.dateKey);
 
