@@ -622,6 +622,281 @@ const MttTravelReport = (() => {
     return h;
   }
 
+
+  /** Heat color for achievement % (same as Monthly Report contributors) */
+  function achieveColor(rate) {
+    if (rate == null) return 'mr-ach-blank';
+    const p = rate * 100;
+    if (p >= 95) return 'mr-ach-hi';
+    if (p >= 85) return 'mr-ach-mid';
+    if (p >= 70) return 'mr-ach-warn';
+    return 'mr-ach-low';
+  }
+
+
+  /**
+   * Contributors — weekly ACHIEVEMENT RATE tables per REGION
+   * REGION → route → Trucker · NO · YES · Grand Total · Travel Time · Prev Rate · Diff
+   * Week = Sunday–Saturday (Excel WEEKNUM) of focus date
+   */
+  function buildContributors(scope, focus) {
+    const rows = allRows();
+    const scoped = filterScope(rows, scope);
+    const wk = weekKey(focus);
+    const wn = weekNum(focus);
+    const weekRows = wk
+      ? scoped.filter(r => weekKey(r.dateKey) === wk)
+      : scoped;
+    const data = weekRows.length ? weekRows : scoped;
+
+    // Previous week = 7 days before focus
+    let prevWk = null;
+    let prevWn = null;
+    if (focus) {
+      const [y, m, d] = focus.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d - 7));
+      const pk = dt.getUTCFullYear() + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate());
+      prevWk = weekKey(pk);
+      prevWn = weekNum(pk);
+    }
+    const prevData = prevWk
+      ? scoped.filter(r => weekKey(r.dateKey) === prevWk)
+      : [];
+
+    const scopeLabel = scope === 'LUZON' ? 'Luzon' : 'VisMin';
+    const weekLabel = wn != null ? ('WK ' + wn) : (wk || '—');
+    const prevWeekLabel = prevWn != null ? ('WK ' + prevWn) : (prevWk || 'prev');
+
+    function groupTree(list) {
+      const byReg = new Map();
+      list.forEach(r => {
+        const reg = r.region || '(blank)';
+        const route = r.route || '(blank)';
+        const trucker = r.trucker || '(blank)';
+        if (!byReg.has(reg)) byReg.set(reg, new Map());
+        const byRoute = byReg.get(reg);
+        if (!byRoute.has(route)) byRoute.set(route, new Map());
+        const byT = byRoute.get(route);
+        if (!byT.has(trucker)) byT.set(trucker, []);
+        byT.get(trucker).push(r);
+      });
+      return byReg;
+    }
+
+    function pickGroup(tree, reg, route, trucker) {
+      if (!tree.has(reg)) return [];
+      const byRoute = tree.get(reg);
+      if (route == null) {
+        const all = [];
+        byRoute.forEach(byT => byT.forEach(list => list.forEach(x => all.push(x))));
+        return all;
+      }
+      if (!byRoute.has(route)) return [];
+      const byT = byRoute.get(route);
+      if (trucker == null) {
+        const all = [];
+        byT.forEach(list => list.forEach(x => all.push(x)));
+        return all;
+      }
+      return byT.get(trucker) || [];
+    }
+
+    const currTree = groupTree(data);
+    const prevTree = groupTree(prevData);
+
+    function rateCells(currList, prevList) {
+      const st = stats(currList);
+      const prevSt = stats(prevList);
+      const diff = (st.rate != null && prevSt.rate != null) ? st.rate - prevSt.rate : null;
+      let diffHtml = '<td class="tr-muted">—</td>';
+      if (diff != null) {
+        const cls = diff >= 0 ? 'mr-ok' : 'mr-bad';
+        const arrow = diff >= 0 ? '↑ ' : '↓ ';
+        diffHtml = '<td class="' + cls + '">' + arrow + Math.abs(diff * 100).toFixed(2) + 'pp</td>';
+      }
+      return {
+        st: st,
+        prevRate: prevSt.rate,
+        diffHtml: diffHtml,
+        rateHtml: '<td class="' + achieveColor(st.rate) + '">' + pct(st.rate) + '</td>',
+        prevHtml: '<td class="' + achieveColor(prevSt.rate) + '">' + pct(prevSt.rate) + '</td>'
+      };
+    }
+
+    function oneRegionTable(reg, byRoute) {
+      const cells = rateCells(pickGroup(currTree, reg), pickGroup(prevTree, reg));
+
+      let h = '<div class="mr-block tr-contrib-block">';
+      h += '<div class="mr-block-title"><span>ACHIEVEMENT RATE — ' + reg +
+        ' · ' + weekLabel + '</span></div>';
+      h += '<div class="table-scroll mr-scroll">';
+      h += '<table class="mr-table mr-achieve"><thead>';
+      h += '<tr class="mr-h1"><th colspan="9" class="mr-ach-title">ACHIEVEMENT RATE · ' +
+        scopeLabel.toUpperCase() + ' · ' + weekLabel + '</th></tr>';
+      h += '<tr class="mr-h2">';
+      h += '<th class="mr-g-id">REGION</th>';
+      h += '<th class="mr-g-id">route</th>';
+      h += '<th class="mr-g-id">Trucker Name</th>';
+      h += '<th class="mr-g-month-core">NO</th>';
+      h += '<th class="mr-g-month-core">YES</th>';
+      h += '<th class="mr-g-month-core">Grand Total</th>';
+      h += '<th class="mr-g-month-rate">Prev (' + prevWeekLabel + ')</th>';
+      h += '<th class="mr-g-month-rate">Travel Time (' + weekLabel + ')</th>';
+      h += '<th class="mr-g-month-rate">Rate Diff</th>';
+      h += '</tr></thead><tbody>';
+
+      h += '<tr class="mr-ach-region">';
+      h += '<td class="mr-sticky"><strong>' + reg + '</strong></td>';
+      h += '<td></td><td></td>';
+      h += '<td>' + cells.st.no + '</td>';
+      h += '<td>' + cells.st.yes + '</td>';
+      h += '<td>' + cells.st.total + '</td>';
+      h += cells.prevHtml + cells.rateHtml + cells.diffHtml;
+      h += '</tr>';
+
+      [...byRoute.keys()].sort().forEach(route => {
+        const byT = byRoute.get(route);
+        const rc = rateCells(pickGroup(currTree, reg, route), pickGroup(prevTree, reg, route));
+        h += '<tr class="mr-ach-route">';
+        h += '<td class="mr-sticky"></td>';
+        h += '<td><strong>' + route + '</strong></td>';
+        h += '<td></td>';
+        h += '<td>' + rc.st.no + '</td>';
+        h += '<td>' + rc.st.yes + '</td>';
+        h += '<td>' + rc.st.total + '</td>';
+        h += rc.prevHtml + rc.rateHtml + rc.diffHtml;
+        h += '</tr>';
+
+        [...byT.keys()].sort().forEach(trucker => {
+          const tc = rateCells(
+            pickGroup(currTree, reg, route, trucker),
+            pickGroup(prevTree, reg, route, trucker)
+          );
+          h += '<tr>';
+          h += '<td class="mr-sticky"></td><td></td>';
+          h += '<td>' + trucker + '</td>';
+          h += '<td>' + tc.st.no + '</td>';
+          h += '<td>' + tc.st.yes + '</td>';
+          h += '<td>' + tc.st.total + '</td>';
+          h += tc.prevHtml + tc.rateHtml + tc.diffHtml;
+          h += '</tr>';
+        });
+      });
+
+      h += '</tbody></table></div></div>';
+      return h;
+    }
+
+    const regions = [...currTree.keys()].sort();
+    if (!regions.length) {
+      return '<p class="section-note">No ' + scopeLabel + ' trips in ' + weekLabel + '.</p>';
+    }
+    let intro = '<div class="tr-contrib-intro">';
+    intro += '<strong>' + scopeLabel + ' Contributors</strong> · week <strong>' + weekLabel +
+      '</strong> vs <strong>' + prevWeekLabel + '</strong>';
+    intro += '</div>';
+    return intro + regions.map(reg => oneRegionTable(reg, currTree.get(reg))).join('');
+  }
+
+  function renderLuzonContributors(focus) {
+    return buildContributors('LUZON', focus);
+  }
+  function renderVisminContributors(focus) {
+    return buildContributors('VISMIN', focus);
+  }
+
+  /** Structured contributor data for Excel export (weekly) */
+  function collectContributorExport(scope, focus) {
+    const rows = allRows();
+    const scoped = filterScope(rows, scope);
+    const wk = weekKey(focus);
+    const wn = weekNum(focus);
+    const weekRows = wk ? scoped.filter(r => weekKey(r.dateKey) === wk) : scoped;
+    const data = weekRows.length ? weekRows : scoped;
+
+    let prevWk = null;
+    let prevWn = null;
+    if (focus) {
+      const [y, m, d] = focus.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d - 7));
+      const pk = dt.getUTCFullYear() + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate());
+      prevWk = weekKey(pk);
+      prevWn = weekNum(pk);
+    }
+    const prevData = prevWk ? scoped.filter(r => weekKey(r.dateKey) === prevWk) : [];
+
+    function tree(list) {
+      const byReg = new Map();
+      list.forEach(r => {
+        const reg = r.region || '(blank)';
+        const route = r.route || '(blank)';
+        const trucker = r.trucker || '(blank)';
+        if (!byReg.has(reg)) byReg.set(reg, new Map());
+        const byRoute = byReg.get(reg);
+        if (!byRoute.has(route)) byRoute.set(route, new Map());
+        const byT = byRoute.get(route);
+        if (!byT.has(trucker)) byT.set(trucker, []);
+        byT.get(trucker).push(r);
+      });
+      return byReg;
+    }
+    function gather(t, reg, route, trucker) {
+      if (!t.has(reg)) return [];
+      const byRoute = t.get(reg);
+      if (route == null) {
+        const all = [];
+        byRoute.forEach(byT => byT.forEach(list => list.forEach(x => all.push(x))));
+        return all;
+      }
+      if (!byRoute.has(route)) return [];
+      const byT = byRoute.get(route);
+      if (trucker == null) {
+        const all = [];
+        byT.forEach(list => list.forEach(x => all.push(x)));
+        return all;
+      }
+      return byT.get(trucker) || [];
+    }
+
+    const currTree = tree(data);
+    const prevTree = tree(prevData);
+    const outRows = [];
+    [...currTree.keys()].sort().forEach(reg => {
+      const byRoute = currTree.get(reg);
+      const st = stats(gather(currTree, reg));
+      const pst = stats(gather(prevTree, reg));
+      outRows.push({
+        level: 'region', region: reg, route: '', trucker: '',
+        no: st.no, yes: st.yes, total: st.total, rate: st.rate, prevRate: pst.rate
+      });
+      [...byRoute.keys()].sort().forEach(route => {
+        const byT = byRoute.get(route);
+        const rst = stats(gather(currTree, reg, route));
+        const rpst = stats(gather(prevTree, reg, route));
+        outRows.push({
+          level: 'route', region: '', route: route, trucker: '',
+          no: rst.no, yes: rst.yes, total: rst.total, rate: rst.rate, prevRate: rpst.rate
+        });
+        [...byT.keys()].sort().forEach(trucker => {
+          const tst = stats(gather(currTree, reg, route, trucker));
+          const tpst = stats(gather(prevTree, reg, route, trucker));
+          outRows.push({
+            level: 'trucker', region: '', route: '', trucker: trucker,
+            no: tst.no, yes: tst.yes, total: tst.total, rate: tst.rate, prevRate: tpst.rate
+          });
+        });
+      });
+    });
+
+    return {
+      scope: scope,
+      scopeLabel: scope === 'LUZON' ? 'Luzon' : 'VisMin',
+      weekLabel: wn != null ? ('WK ' + wn) : (wk || ''),
+      prevWeekLabel: prevWn != null ? ('WK ' + prevWn) : (prevWk || 'Prev'),
+      rows: outRows
+    };
+  }
+
   function render() {
     const host = document.getElementById('mttTravelReportView');
     if (!host) return;
@@ -630,6 +905,8 @@ const MttTravelReport = (() => {
     const note = document.getElementById('mttTravelReportNote');
     if (note) {
       note.textContent = focusDate
+        ? ('Focus arrival date: ' + focusDate)
+        : 'Upload data and run Compare to set the focus arrival date.';
     }
     destroyChart('luzonMonth');
     destroyChart('visminMonth');
@@ -650,6 +927,10 @@ const MttTravelReport = (() => {
       html = renderGroupedRouteTable('LUZON', focusDate, dates);
     } else if (activeView === 'visminRoutes') {
       html = renderGroupedRouteTable('VISMIN', focusDate, dates);
+    } else if (activeView === 'luzonContrib') {
+      html = renderLuzonContributors(focusDate);
+    } else if (activeView === 'visminContrib') {
+      html = renderVisminContributors(focusDate);
     } else {
       // full: everything stacked (complete report)
       html = renderOverallView(focusDate, dates);
@@ -657,6 +938,8 @@ const MttTravelReport = (() => {
       html += renderTruckerView(focusDate, dates);
       html += renderGroupedRouteTable('LUZON', focusDate, dates);
       html += renderGroupedRouteTable('VISMIN', focusDate, dates);
+      html += renderLuzonContributors(focusDate);
+      html += renderVisminContributors(focusDate);
     }
 
     host.innerHTML = html;
@@ -1042,6 +1325,102 @@ const MttTravelReport = (() => {
     return packs;
   }
 
+
+  function appendContributorSheet(ws, pack) {
+    const thin = {
+      top: { style: 'thin', color: { argb: 'FFBDBDBD' } },
+      left: { style: 'thin', color: { argb: 'FFBDBDBD' } },
+      bottom: { style: 'thin', color: { argb: 'FFBDBDBD' } },
+      right: { style: 'thin', color: { argb: 'FFBDBDBD' } }
+    };
+    function fill(argb) {
+      return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+    }
+    function font(opts) {
+      return Object.assign({ name: 'Calibri', size: 10 }, opts || {});
+    }
+    function achFill(rate) {
+      if (rate == null) return fill('FFFFFFFF');
+      const p = rate * 100;
+      if (p >= 95) return fill('FFA9D08E');
+      if (p >= 85) return fill('FFC6EFCE');
+      if (p >= 70) return fill('FFFFE699');
+      return fill('FFFFC7CE');
+    }
+
+    let r = 1;
+    ws.mergeCells(r, 1, r, 9);
+    const title = ws.getCell(r, 1);
+    title.value = 'ACHIEVEMENT RATE · ' + pack.scopeLabel.toUpperCase() + ' · ' + pack.weekLabel;
+    title.font = font({ bold: true, size: 13, color: { argb: 'FFFFFFFF' } });
+    title.fill = fill('FFC00000');
+    title.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(r).height = 24;
+    r++;
+
+    const headers = [
+      'REGION', 'route', 'Trucker Name', 'NO', 'YES', 'Grand Total',
+      'Prev (' + pack.prevWeekLabel + ')', 'Travel Time (' + pack.weekLabel + ')', 'Rate Diff'
+    ];
+    headers.forEach(function (h, i) {
+      const cell = ws.getCell(r, i + 1);
+      cell.value = h;
+      cell.font = font({ bold: true, size: 9 });
+      cell.fill = fill(i < 3 ? 'FFD9D9D9' : (i >= 6 ? 'FFFFE699' : 'FFA9D08E'));
+      cell.border = thin;
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    });
+    r++;
+
+    pack.rows.forEach(function (row) {
+      const vals = [
+        row.region, row.route, row.trucker,
+        row.no, row.yes, row.total,
+        row.prevRate, row.rate,
+        (row.rate != null && row.prevRate != null) ? (row.rate - row.prevRate) : null
+      ];
+      vals.forEach(function (v, i) {
+        const cell = ws.getCell(r, i + 1);
+        if (i >= 6 && i <= 8) {
+          if (v == null) {
+            cell.value = '—';
+            cell.font = font({ color: { argb: 'FF9E9E9E' } });
+            cell.fill = fill('FFFFFFFF');
+          } else if (i === 8) {
+            const arrow = v >= 0 ? '↑ ' : '↓ ';
+            cell.value = arrow + Math.abs(v * 100).toFixed(2) + 'pp';
+            cell.fill = v >= 0 ? fill('FFC6EFCE') : fill('FFFFC7CE');
+            cell.font = font({ bold: true, color: { argb: v >= 0 ? 'FF006100' : 'FF9C0006' } });
+          } else {
+            cell.value = v;
+            cell.numFmt = '0.00%';
+            cell.fill = achFill(v);
+            cell.font = font({ bold: true });
+          }
+        } else {
+          cell.value = v;
+          if (row.level === 'region') {
+            cell.fill = fill('FFD9D9D9');
+            cell.font = font({ bold: true });
+          } else if (row.level === 'route') {
+            cell.fill = fill('FFF2F2F2');
+            cell.font = font({ bold: true });
+          } else {
+            cell.fill = fill('FFFFFFFF');
+            cell.font = font();
+          }
+        }
+        cell.border = thin;
+        cell.alignment = { horizontal: i < 3 ? 'left' : 'center', vertical: 'middle' };
+      });
+      r++;
+    });
+
+    [14, 14, 22, 8, 8, 12, 12, 14, 12].forEach(function (w, i) {
+      ws.getColumn(i + 1).width = w;
+    });
+  }
+
   async function exportExcel() {
     const focus = getFocusDate();
     const dates = allDates();
@@ -1075,6 +1454,15 @@ const MttTravelReport = (() => {
           row = appendTravelTable(ws, row, pack);
           row += 1;
         });
+      });
+
+      // Luzon / VisMin Contributors (weekly) — separate sheets
+      ['LUZON', 'VISMIN'].forEach(function (scope) {
+        const pack = collectContributorExport(scope, focus);
+        if (!pack.rows.length) return;
+        const sheetName = (scope === 'LUZON' ? 'Luzon Contributors' : 'VisMin Contributors').slice(0, 31);
+        const ws = wb.addWorksheet(sheetName, { views: [{ showGridLines: false }] });
+        appendContributorSheet(ws, pack);
       });
 
       const buf = await wb.xlsx.writeBuffer();
