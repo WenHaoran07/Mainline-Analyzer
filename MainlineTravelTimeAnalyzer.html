@@ -201,21 +201,27 @@
                 <h2><span class="icon">📊</span> Overall <span class="tag" style="background:#FFEBEE;color:#E60012;">Target 96%</span></h2>
                 <span class="graph-focus-chip">Focus</span>
               </div>
-              <div class="chart-wrap history-chart-wrap"><canvas id="chartOverallTrend"></canvas></div>
+              <div class="chart-wrap history-chart-wrap">
+                <canvas id="chartOverallTrend"></canvas>
+              </div>
             </div>
             <div class="card graph-card" data-graph-focus="luzon" role="button" tabindex="0">
               <div class="graph-card-head">
                 <h2><span class="icon">🛣️</span> Luzon Route <span class="tag tag-luzon">Target 97%</span></h2>
                 <span class="graph-focus-chip">Focus</span>
               </div>
-              <div class="chart-wrap history-chart-wrap"><canvas id="chartLuzonTrend"></canvas></div>
+              <div class="chart-wrap history-chart-wrap">
+                <canvas id="chartLuzonTrend"></canvas>
+              </div>
             </div>
             <div class="card graph-card" data-graph-focus="vismin" role="button" tabindex="0">
               <div class="graph-card-head">
                 <h2><span class="icon">⛴️</span> VisMin Route <span class="tag tag-vismin">Target 85%</span></h2>
                 <span class="graph-focus-chip">Focus</span>
               </div>
-              <div class="chart-wrap history-chart-wrap"><canvas id="chartVisminTrend"></canvas></div>
+              <div class="chart-wrap history-chart-wrap">
+                <canvas id="chartVisminTrend"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -228,11 +234,21 @@
                 <h2 id="graphFocusTitle">Focus</h2>
                 <p class="section-note" id="graphFocusSub"></p>
               </div>
-              <button type="button" class="graph-focus-close" id="graphFocusClose" title="Close (Esc)">✕</button>
+              <div class="graph-focus-actions">
+                <button type="button" class="graph-play-btn" id="graphFocusPlay" title="Play plane animation">▶ Play</button>
+                <button type="button" class="graph-focus-close" id="graphFocusClose" title="Close (Esc)">✕</button>
+              </div>
             </div>
             <div class="graph-focus-scroll-outer">
-              <div class="chart-wrap graph-focus-chart" id="graphFocusScroll">
+              <div class="chart-wrap graph-focus-chart graph-plane-host" id="graphFocusScroll">
                 <canvas id="chartFocusTrend"></canvas>
+                <div class="graph-plane" id="plane-focus" aria-hidden="true">
+                  <img class="graph-plane-img" src="Plane.gif" alt="" draggable="false">
+                </div>
+                <div class="graph-crash-fx hidden" id="crash-focus" aria-hidden="true">
+                  <img class="graph-crash-img" src="Explosion4.gif" alt="">
+             
+                </div>
               </div>
             </div>
           </div>
