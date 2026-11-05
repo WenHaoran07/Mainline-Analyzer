@@ -3233,3 +3233,25 @@ body.mr-expand-open { overflow: hidden; }
   40% { transform: scale(1.08); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+.rm-viewtab {
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #FAFAFA;
+  color: #757575;
+  border: 1px solid #E0E0E0;
+}
+.rm-viewtab.active {
+  background: #1565C0;
+  color: #fff;
+  border-color: #1565C0;
+}
+.rm-th-route { min-width: 110px; }
+.rm-route-name { font-weight: 600; color: #37474F; }
+.rm-region-row td { border-top: 2px solid #FFCDD2; }
+.rm-muted { color: #9E9E9E; }
+.rm-trend-txt { font-size: 0.72rem; font-weight: 700; margin-left: 4px; color: #616161; }
+.rm-table th { white-space: normal; line-height: 1.25; max-width: 110px; vertical-align: bottom; }
