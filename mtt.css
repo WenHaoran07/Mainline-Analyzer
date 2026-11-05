@@ -3064,3 +3064,172 @@ body.mr-expand-open { overflow: hidden; }
   font-size: 0.72rem;
   font-weight: 700;
 }
+
+/* Graphs — plane animation */
+.graph-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.graph-play-btn {
+  margin-left: auto;
+  border: 1px solid #FFCDD2;
+  background: linear-gradient(135deg, #FFF5F5, #fff);
+  color: #C62828;
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.graph-play-btn:hover:not(:disabled) {
+  background: #E60012;
+  color: #fff;
+  border-color: transparent;
+}
+.graph-play-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.graph-plane-host {
+  position: relative;
+  overflow: hidden;
+}
+.graph-plane {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+  will-change: transform;
+  transition: none;
+}
+.graph-plane.is-flying {
+  opacity: 1;
+}
+.graph-plane.is-crash {
+  opacity: 1;
+  filter: grayscale(0.3) drop-shadow(0 3px 4px rgba(183,28,28,0.45));
+}
+.graph-crash-msg {
+  position: absolute;
+  z-index: 6;
+  background: #B71C1C;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(183,28,28,0.35);
+  animation: crashPop .35s ease;
+}
+@keyframes crashPop {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(50); opacity: 1; }
+}
+
+.graph-focus-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.graph-focus-actions .graph-play-btn {
+  margin-left: 0;
+  background: #fff;
+  border-color: #FFCDD2;
+}
+
+/* Plane / explosion GIFs in focus mode */
+.graph-plane {
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.graph-plane-img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  /* Plane.gif faces left — flip so it flies left → right along the chart */
+  transform: scaleX(-1);
+  pointer-events: none;
+  user-select: none;
+}
+.graph-plane.is-crash .graph-plane-img {
+  filter: brightness(0.9) saturate(.15);
+}
+/* Full-screen explosion overlay */
+/* Full-screen explosion overlay with smooth fade */
+.graph-crash-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 1;
+  transition: opacity 0.6s ease; /* Smooth fade back out */
+}
+
+.graph-crash-fx.is-fading {
+  opacity: 0;
+}
+
+.graph-crash-img {
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  filter: contrast(1.15) brightness(1.05);
+}
+
+.graph-crash-label {
+  position: absolute;
+  bottom: 12%;
+  background: #B71C1C;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+  padding: 8px 20px;
+  border-radius: 999px;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+}
+
+
+/* Rate value popup as plane passes each dot */
+.graph-plane-value {
+  position: absolute;
+  z-index: 7;
+  background: rgba(33, 33, 33, 0.92);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.graph-plane-value.pop-flash {
+  animation: valuePop .45s ease;
+}
+@keyframes valuePop {
+  0% { transform: scale(0.7); opacity: 0; }
+  40% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
