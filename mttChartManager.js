@@ -490,7 +490,7 @@ function hideCrash(callback) {
 
       const holdStart = performance.now();
       // Adjust GIF_DURATION_MS to match the exact duration of Explosion3.gif
-      const GIF_DURATION_MS = 3000;
+      const GIF_DURATION_MS = 2700;
 
       function hold(ts) {
         const ht = ts - holdStart;
