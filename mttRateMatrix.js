@@ -1,21 +1,21 @@
 /* ==========================================================================
    MODULE: MTT RATE MATRIX
-   Scope matrix: OVERALL / LUZON / VISMIN
-   Route matrix: Luzon & VisMin · Region → Route · all weeks/months + trend
-   Week labels include date range (e.g. WK 44 RATE · Oct 25–31)
-   Truck Owner = SLU · Week = Excel WEEKNUM Sun–Sat (MttUtils)
+   Layout 1 (Summary Board): clean photo-style OVERALL / LUZON / VISMIN bands
+   Layout 2 (Original + Graphs): detailed sheets + trend charts (Overall/Luzon/VisMin)
+   Rates = avg of daily on-time % · Trend = last vs previous consecutive period
+   TWO DROPS & BACKLOAD listed last · blanks kept for abnormality checks
    ========================================================================== */
 const MttRateMatrix = (() => {
   const TARGET = { ALL: 0.96, LUZON: 0.97, VISMIN: 0.85 };
-  const REGION_LABEL = 'SLU';
   const SCOPES = [
-    { id: 'ALL', title: 'OVERALL', head: 'MAINLINE TRAVEL TIME', target: TARGET.ALL },
-    { id: 'LUZON', title: 'LUZON ROUTE', head: 'LUZON ROUTE', target: TARGET.LUZON },
-    { id: 'VISMIN', title: 'VISMIN ROUTE', head: 'VISMIN ROUTE', target: TARGET.VISMIN }
+    { id: 'ALL', head: 'MAINLINE TRAVEL TIME', target: TARGET.ALL },
+    { id: 'LUZON', head: 'LUZON ROUTE', target: TARGET.LUZON },
+    { id: 'VISMIN', head: 'VISMIN ROUTE', target: TARGET.VISMIN }
   ];
+  const SPECIAL_REGIONS = ['TWO DROPS', 'BACKLOAD'];
 
   let mode = 'weekly';
-  let matrixView = 'scope'; // 'scope' | 'route'
+  let matrixView = 'scope';
 
   const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const MONTH_UP = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -54,8 +54,22 @@ const MttRateMatrix = (() => {
     const mi = parseInt(key.slice(5, 7), 10) - 1;
     return (MONTH_UP[mi] || key.slice(5)) + ' ' + key.slice(0, 4);
   }
-  function periodLabel(key, rows) {
-    return labelFor(key, mode, rows);
+  function shortLabel(key, forMode, rows) {
+    const m = forMode || mode;
+    if (m === 'weekly') {
+      const mm = String(key).match(/W(\d+)/i);
+      const wk = mm ? ('WK ' + parseInt(mm[1], 10)) : String(key);
+      const range = weekDateRange(key, rows || getRows(m));
+      if (range) {
+        const parts = range.split('–');
+        const start = parts[0] || '';
+        const sm = start.match(/^([A-Za-z]+)\s+(\d+)/);
+        const mon = sm ? sm[1] : '';
+        return { top: wk + ' RATE · ' + mon, bottom: range };
+      }
+      return { top: wk + ' RATE', bottom: '' };
+    }
+    return { top: labelFor(key, m, rows), bottom: '' };
   }
 
   function getRows(forMode) {
@@ -74,6 +88,23 @@ const MttRateMatrix = (() => {
     const total = list.length;
     return { total: total, yes: yes, no: total - yes, rate: total ? yes / total : null };
   }
+
+  function periodRate(list) {
+    if (!list || !list.length) return null;
+    const byDay = {};
+    list.forEach(function (r) {
+      const dk = r.dateKey || '_';
+      if (!byDay[dk]) byDay[dk] = [];
+      byDay[dk].push(r);
+    });
+    let sum = 0, n = 0;
+    Object.keys(byDay).forEach(function (dk) {
+      const s = stats(byDay[dk]);
+      if (s.rate != null) { sum += s.rate; n++; }
+    });
+    return n ? sum / n : null;
+  }
+
   function filterScope(list, scope) {
     if (scope === 'LUZON') return list.filter(r => r.routeType === 'LUZON');
     if (scope === 'VISMIN') return list.filter(r => r.routeType === 'VISMIN');
@@ -83,12 +114,12 @@ const MttRateMatrix = (() => {
     return [...new Set(rows.map(r => r.period).filter(Boolean))].sort();
   }
   function fmtPct(v) {
-    if (v == null || isNaN(v)) return '—';
+    if (v == null || isNaN(v)) return '';
     return (v * 100).toFixed(2) + '%';
   }
   function rateColor(rate, target) {
     if (rate == null || isNaN(rate)) {
-      return { bg: 'ECEFF1', fg: '78909C', cssBg: '#ECEFF1', cssFg: '#78909C' };
+      return { bg: 'FFFFFF', fg: '9E9E9E', cssBg: '#FFFFFF', cssFg: '#9E9E9E' };
     }
     const pct = rate * 100;
     const t = (target || 0.96) * 100;
@@ -98,40 +129,48 @@ const MttRateMatrix = (() => {
     if (pct >= t - 10) return { bg: 'FFCC80', fg: 'E65100', cssBg: '#FFCC80', cssFg: '#E65100' };
     return { bg: 'EF9A9A', fg: 'B71C1C', cssBg: '#EF9A9A', cssFg: '#B71C1C' };
   }
-  function sparklineSvg(rates) {
-    const vals = rates.filter(v => v != null && !isNaN(v));
-    if (vals.length < 2) return '<span class="rm-spark-empty">—</span>';
-    const w = 72, h = 22, pad = 2;
-    const min = Math.min.apply(null, vals);
-    const max = Math.max.apply(null, vals);
-    const span = max - min || 0.01;
-    const pts = vals.map(function (v, i) {
-      const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
-      const y = h - pad - ((v - min) / span) * (h - pad * 2);
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    const stroke = vals[vals.length - 1] >= vals[0] ? '#2E7D32' : '#E60012';
-    return '<svg class="rm-spark" width="' + w + '" height="' + h +
-      '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' +
-      '<polyline fill="none" stroke="' + stroke + '" stroke-width="1.6" points="' + pts + '"/>' +
-      '</svg>';
-  }
-  function trendText(series) {
-    const nums = series.filter(v => v != null && !isNaN(v));
-    if (nums.length < 2) return '-';
-    const d = nums[nums.length - 1] - nums[0];
+
+  function trendInfo(series) {
+    if (!series || series.length < 2) return { text: '', cls: '', dir: 0 };
+    const a = series[series.length - 2];
+    const b = series[series.length - 1];
+    if (a == null || isNaN(a) || b == null || isNaN(b)) return { text: '', cls: '', dir: 0 };
+    const d = b - a;
     const pp = (d * 100).toFixed(2);
-    if (d > 0.0005) return 'UP +' + pp + 'pp';
-    if (d < -0.0005) return 'DOWN ' + pp + 'pp';
-    return 'FLAT 0.00pp';
+    if (d > 0.0005) return { text: 'UP +' + pp + 'pp', cls: 'rm-up', dir: 1 };
+    if (d < -0.0005) return { text: 'DOWN ' + pp + 'pp', cls: 'rm-down', dir: -1 };
+    return { text: 'FLAT 0.00pp', cls: 'rm-flat', dir: 0 };
+  }
+
+  function normalizeRegionName(raw) {
+    const u = String(raw || '').trim().toUpperCase();
+    if (!u || u === '(BLANK)' || u === 'BLANK' || u === 'N/A' || u === '-') return '(blank)';
+    if (u === 'TWO DROPS' || u === 'TWODROPS' || u === 'TWO-DROPS') return 'TWO DROPS';
+    if (u === 'BACKLOAD' || u === 'BACK LOAD') return 'BACKLOAD';
+    return String(raw || '').trim() || '(blank)';
+  }
+  function regionSortKey(name) {
+    const u = String(name || '').toUpperCase();
+    if (u === 'TWO DROPS') return 'zzzz1';
+    if (u === 'BACKLOAD') return 'zzzz2';
+    if (u === '(BLANK)') return 'zzzz9';
+    return u;
+  }
+  function sortRegions(names) {
+    return names.slice().sort(function (a, b) {
+      return regionSortKey(a).localeCompare(regionSortKey(b));
+    });
+  }
+  function isSpecialRegion(name) {
+    return SPECIAL_REGIONS.indexOf(String(name || '').toUpperCase()) >= 0;
   }
 
   function buildMatrix(allRows, scopeId) {
     const scoped = filterScope(allRows, scopeId);
     const periods = periodKeys(scoped);
     const rates = {};
-    periods.forEach(pk => {
-      rates[pk] = stats(scoped.filter(r => r.period === pk)).rate;
+    periods.forEach(function (pk) {
+      rates[pk] = periodRate(scoped.filter(function (r) { return r.period === pk; }));
     });
     return { periods: periods, rates: rates };
   }
@@ -140,15 +179,15 @@ const MttRateMatrix = (() => {
     const scoped = filterScope(allRows, scopeId);
     const periods = periodKeys(scoped);
     const byRegion = new Map();
-    scoped.forEach(r => {
-      const reg = (r.region || '(blank)').trim() || '(blank)';
+    scoped.forEach(function (r) {
+      const reg = normalizeRegionName(r.region);
       const route = (r.route || '(blank)').trim() || '(blank)';
       if (!byRegion.has(reg)) byRegion.set(reg, new Map());
       const byRoute = byRegion.get(reg);
       if (!byRoute.has(route)) byRoute.set(route, []);
       byRoute.get(route).push(r);
     });
-    const regions = [...byRegion.keys()].sort(function (a, b) { return a.localeCompare(b); });
+    const regions = sortRegions([...byRegion.keys()]);
     const blocks = regions.map(function (reg) {
       const byRoute = byRegion.get(reg);
       const routes = [...byRoute.keys()].sort(function (a, b) { return a.localeCompare(b); });
@@ -156,18 +195,19 @@ const MttRateMatrix = (() => {
       byRoute.forEach(function (list) { list.forEach(function (x) { regAll.push(x); }); });
       const regionRates = {};
       periods.forEach(function (pk) {
-        regionRates[pk] = stats(regAll.filter(function (r) { return r.period === pk; })).rate;
+        regionRates[pk] = periodRate(regAll.filter(function (r) { return r.period === pk; }));
       });
       const routeRows = routes.map(function (route) {
         const list = byRoute.get(route);
         const rates = {};
         periods.forEach(function (pk) {
-          rates[pk] = stats(list.filter(function (r) { return r.period === pk; })).rate;
+          rates[pk] = periodRate(list.filter(function (r) { return r.period === pk; }));
         });
         return { route: route, rates: rates, series: periods.map(function (pk) { return rates[pk]; }) };
       });
       return {
         region: reg,
+        special: isSpecialRegion(reg),
         regionRates: regionRates,
         regionSeries: periods.map(function (pk) { return regionRates[pk]; }),
         routes: routeRows
@@ -176,135 +216,325 @@ const MttRateMatrix = (() => {
     return { periods: periods, blocks: blocks };
   }
 
-  function renderBlock(scope, matrix, allRows) {
+  function renderScopeBlock(scope, matrix, allRows) {
     const periods = matrix.periods;
     const rates = matrix.rates;
-    let h = '<div class="rm-block">';
-    h += '<div class="rm-block-head"><div class="rm-block-title">' + scope.head + '</div>';
-    h += '<div class="rm-block-sub">' +
-      (scope.id === 'ALL' ? (scope.title + ' · ') : '') +
-      '<span class="rm-target">Target ' + Math.round(scope.target * 100) + '%</span></div></div>';
     if (!periods.length) {
-      h += '<p class="section-note">No data for this scope.</p></div>';
-      return h;
+      return '<div class="rm-board"><div class="rm-board-title">' + scope.head +
+        '</div><div class="rm-board-empty">—</div></div>';
     }
-    const trendLabelTxt = mode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
-    h += '<div class="rm-table-wrap"><table class="rm-table"><thead><tr>';
-    h += '<th class="rm-th-region">REGION</th>';
-    periods.forEach(function (pk) {
-      h += '<th>' + periodLabel(pk, allRows) + '</th>';
-    });
-    h += '<th class="rm-th-trend">' + trendLabelTxt + '</th></tr></thead><tbody><tr>';
-    h += '<td class="rm-region">' + REGION_LABEL + '</td>';
+    const trendLabel = mode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
     const series = periods.map(function (pk) { return rates[pk]; });
+    const ti = trendInfo(series);
+
+    let h = '<div class="rm-board">';
+    h += '<div class="rm-board-title">' + scope.head + '</div>';
+    h += '<table class="rm-board-table"><thead><tr>';
+    periods.forEach(function (pk) {
+      const lab = shortLabel(pk, mode, allRows);
+      h += '<th><div class="rm-wk-top">' + lab.top + '</div>';
+      if (lab.bottom) h += '<div class="rm-wk-bot">' + lab.bottom + '</div>';
+      h += '</th>';
+    });
+    h += '<th class="rm-th-trend">' + trendLabel + '</th></tr></thead><tbody><tr>';
     periods.forEach(function (pk) {
       const rate = rates[pk];
       const c = rateColor(rate, scope.target);
-      h += '<td class="rm-rate" style="background:' + c.cssBg + ';color:' + c.cssFg + '">' +
+      const blank = rate == null ? ' rm-blank' : '';
+      h += '<td class="rm-rate' + blank + '" style="background:' + c.cssBg + ';color:' + c.cssFg + '">' +
         fmtPct(rate) + '</td>';
     });
-    h += '<td class="rm-trend">' + sparklineSvg(series) +
-      ' <span class="rm-trend-txt">' + trendText(series) + '</span></td>';
-    h += '</tr></tbody></table></div></div>';
+    h += '<td class="rm-trend ' + ti.cls + '">' + (ti.text || '') + '</td>';
+    h += '</tr></tbody></table></div>';
     return h;
   }
 
   function renderRouteBlock(scope, matrix, allRows) {
     const periods = matrix.periods;
     const blocks = matrix.blocks;
-    let h = '<div class="rm-block rm-route-block">';
-    h += '<div class="rm-block-head"><div class="rm-block-title">' + scope.head + ' · BY ROUTE</div>';
-    h += '<div class="rm-block-sub">Region → Route · Target ' +
-      Math.round(scope.target * 100) + '%</div></div>';
+    let h = '<div class="rm-board rm-route-board">';
+    h += '<div class="rm-board-title">' + scope.head + ' · BY ROUTE</div>';
     if (!periods.length || !blocks.length) {
-      h += '<p class="section-note">No trips for this scope.</p></div>';
+      h += '<div class="rm-board-empty">—</div></div>';
       return h;
     }
-    const trendLabelTxt = mode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
+    const trendLabel = mode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
     h += '<div class="rm-table-wrap"><table class="rm-table"><thead><tr>';
-    h += '<th class="rm-th-region">REGION</th><th class="rm-th-route">ROUTE</th>';
+    h += '<th>REGION</th><th>ROUTE</th>';
     periods.forEach(function (pk) {
-      h += '<th>' + periodLabel(pk, allRows) + '</th>';
+      h += '<th>' + labelFor(pk, mode, allRows) + '</th>';
     });
-    h += '<th class="rm-th-trend">' + trendLabelTxt + '</th></tr></thead><tbody>';
+    h += '<th class="rm-th-trend">' + trendLabel + '</th></tr></thead><tbody>';
+
+    let specialStarted = false;
     blocks.forEach(function (b) {
-      h += '<tr class="rm-region-row">';
-      h += '<td class="rm-region"><strong>' + b.region + '</strong></td>';
-      h += '<td class="rm-muted">—</td>';
+      if (b.special && !specialStarted) {
+        specialStarted = true;
+        h += '<tr class="rm-special-sep"><td colspan="' + (periods.length + 3) +
+          '">TWO DROPS / BACKLOAD</td></tr>';
+      }
+      const specialCls = b.special ? ' rm-special-region' : '';
+      h += '<tr class="rm-region-row' + specialCls + '">';
+      h += '<td class="rm-region"><strong>' + b.region + '</strong></td><td class="rm-muted">—</td>';
       periods.forEach(function (pk) {
         const rate = b.regionRates[pk];
         const c = rateColor(rate, scope.target);
-        h += '<td class="rm-rate" style="background:' + c.cssBg + ';color:' + c.cssFg + '">' +
-          fmtPct(rate) + '</td>';
+        h += '<td class="rm-rate' + (rate == null ? ' rm-blank' : '') +
+          '" style="background:' + c.cssBg + ';color:' + c.cssFg + '">' + fmtPct(rate) + '</td>';
       });
-      h += '<td class="rm-trend">' + sparklineSvg(b.regionSeries) +
-        ' <span class="rm-trend-txt">' + trendText(b.regionSeries) + '</span></td></tr>';
+      const ti = trendInfo(b.regionSeries);
+      h += '<td class="rm-trend ' + ti.cls + '">' + (ti.text || '') + '</td></tr>';
       b.routes.forEach(function (rr) {
-        h += '<tr><td class="rm-muted"></td><td class="rm-route-name">' + rr.route + '</td>';
+        h += '<tr' + (b.special ? ' class="rm-special-region"' : '') + '>';
+        h += '<td class="rm-muted"></td><td class="rm-route-name">' + rr.route + '</td>';
         periods.forEach(function (pk) {
           const rate = rr.rates[pk];
           const c = rateColor(rate, scope.target);
-          h += '<td class="rm-rate" style="background:' + c.cssBg + ';color:' + c.cssFg + '">' +
-            fmtPct(rate) + '</td>';
+          h += '<td class="rm-rate' + (rate == null ? ' rm-blank' : '') +
+            '" style="background:' + c.cssBg + ';color:' + c.cssFg + '">' + fmtPct(rate) + '</td>';
         });
-        h += '<td class="rm-trend">' + sparklineSvg(rr.series) +
-          ' <span class="rm-trend-txt">' + trendText(rr.series) + '</span></td></tr>';
+        const rti = trendInfo(rr.series);
+        h += '<td class="rm-trend ' + rti.cls + '">' + (rti.text || '') + '</td></tr>';
       });
     });
     h += '</tbody></table></div></div>';
     return h;
   }
 
+  const rmChartInstances = {};
+
+  function destroyRmCharts() {
+    Object.keys(rmChartInstances).forEach(function (k) {
+      try { rmChartInstances[k].destroy(); } catch (e) {}
+      delete rmChartInstances[k];
+    });
+  }
+
+  function paintScopeCharts(rows) {
+    if (typeof Chart === 'undefined') return;
+    destroyRmCharts();
+    SCOPES.forEach(function (scope) {
+      const canvas = document.getElementById('rmChart_' + scope.id);
+      if (!canvas) return;
+      const matrix = buildMatrix(rows, scope.id);
+      if (!matrix.periods.length) return;
+      const labels = matrix.periods.map(function (pk) {
+        return shortLabel(pk, mode, rows).top.replace(' RATE', '');
+      });
+      const data = matrix.periods.map(function (pk) {
+        const v = matrix.rates[pk];
+        return v == null ? null : +(v * 100).toFixed(2);
+      });
+      const targetPct = Math.round(scope.target * 100);
+      const nums = data.filter(function (v) { return v != null; });
+      const yMin = nums.length ? Math.max(0, Math.min.apply(null, nums.concat([targetPct])) - 8) : 70;
+      rmChartInstances[scope.id] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: scope.head,
+              data: data,
+              borderColor: '#E60012',
+              backgroundColor: 'rgba(230,0,18,0.10)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: '#E60012',
+              tension: 0.25,
+              spanGaps: false
+            },
+            {
+              label: 'Target ' + targetPct + '%',
+              data: labels.map(function () { return targetPct; }),
+              borderColor: '#2E7D32',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+            title: {
+              display: true,
+              text: scope.head,
+              color: '#C00000',
+              font: { size: 13, weight: 'bold' }
+            }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: 'On-time %', font: { size: 10 } },
+              suggestedMin: yMin,
+              suggestedMax: 100,
+              ticks: { font: { size: 10 } }
+            },
+            x: { ticks: { font: { size: 9 }, maxRotation: 45 } }
+          }
+        }
+      });
+    });
+  }
+
   function render() {
     const el = document.getElementById('rmView');
     if (!el) return;
-    const rows = getRows();
+    const rows = getRows(mode);
+    destroyRmCharts();
     if (!rows.length) {
-      el.innerHTML = '<p class="section-note">No SLU truck-owner rows found. Upload a Mainline workbook first.</p>';
+      el.innerHTML = '<p class="section-note">Upload a Mainline workbook first.</p>';
       return;
     }
-    const periods = periodKeys(rows);
-    let html = '<div class="rm-meta">';
-    html += '<strong>Truck Owner SLU</strong> · ' +
-      (matrixView === 'route' ? 'Route matrix' : 'Scope matrix') + ' · ' +
-      (mode === 'weekly' ? 'Weekly' : 'Monthly');
-    html += ' · ' + periods.length + ' period(s)';
-    if (mode === 'weekly') html += ' · headers show WK + date range';
-    html += '</div>';
-
+    let html = '';
     if (matrixView === 'route') {
       [SCOPES[1], SCOPES[2]].forEach(function (scope) {
         html += renderRouteBlock(scope, buildRouteMatrix(rows, scope.id), rows);
       });
     } else {
       SCOPES.forEach(function (scope) {
-        html += renderBlock(scope, buildMatrix(rows, scope.id), rows);
+        html += renderScopeBlock(scope, buildMatrix(rows, scope.id), rows);
       });
+      html += '<div class="rm-charts-row">';
+      SCOPES.forEach(function (scope) {
+        html += '<div class="rm-chart-card"><div class="chart-wrap rm-chart-wrap">' +
+          '<canvas id="rmChart_' + scope.id + '"></canvas></div></div>';
+      });
+      html += '</div>';
     }
     el.innerHTML = html;
+    if (matrixView !== 'route') {
+      setTimeout(function () { paintScopeCharts(rows); }, 30);
+    }
   }
 
-  function buildSheetAoA(forMode) {
+  const BORDER = {
+    top: { style: 'thin', color: { rgb: '8B0000' } },
+    bottom: { style: 'thin', color: { rgb: '8B0000' } },
+    left: { style: 'thin', color: { rgb: '8B0000' } },
+    right: { style: 'thin', color: { rgb: '8B0000' } }
+  };
+  function titleStyle() {
+    return {
+      fill: { patternType: 'solid', fgColor: { rgb: 'C00000' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 12, name: 'Calibri' },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: BORDER
+    };
+  }
+  function headStyle() {
+    return {
+      fill: { patternType: 'solid', fgColor: { rgb: 'C00000' } },
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 9, name: 'Calibri' },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: BORDER
+    };
+  }
+  function rateCellStyle(rate, target) {
+    const c = rateColor(rate, target);
+    return {
+      fill: { patternType: 'solid', fgColor: { rgb: c.bg } },
+      font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: c.fg } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      numFmt: '0.00%',
+      border: BORDER
+    };
+  }
+  function trendCellStyle(ti) {
+    let fg = '616161', bg = 'FFFFFF';
+    if (ti.dir > 0) { fg = '1B5E20'; bg = 'E8F5E9'; }
+    if (ti.dir < 0) { fg = 'B71C1C'; bg = 'FFEBEE'; }
+    return {
+      fill: { patternType: 'solid', fgColor: { rgb: bg } },
+      font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: fg } },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: BORDER
+    };
+  }
+  function blankStyle() {
+    return {
+      fill: { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } },
+      border: BORDER,
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+  }
+
+  function applySheetStyles(ws, pack) {
+    ws['!merges'] = pack.merges || [];
+    const n = Math.max(8, (pack.periods || []).length + 2, pack.colCount || 0);
+    ws['!cols'] = Array(n).fill({ wch: 14 });
+    Object.keys(pack.styles || {}).forEach(function (key) {
+      const parts = key.split('_');
+      const r = parseInt(parts[0], 10);
+      const c = parseInt(parts[1], 10);
+      const ref = XLSX.utils.encode_cell({ r: r, c: c });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+      ws[ref].s = pack.styles[key];
+      if (ws[ref].v == null) { ws[ref].v = ''; ws[ref].t = 's'; }
+    });
+  }
+
+  function buildSummaryBoardAoA(forMode) {
     const rows = getRows(forMode);
     const aoa = [];
     const merges = [];
     const styles = {};
     function setS(r, c, s) { styles[r + '_' + c] = s; }
-    const titleStyle = {
-      fill: { patternType: 'solid', fgColor: { rgb: 'E60012' } },
-      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 13, name: 'Calibri' },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
-    const headStyle = {
-      fill: { patternType: 'solid', fgColor: { rgb: 'FFEBEE' } },
-      font: { bold: true, color: { rgb: 'B8000E' }, sz: 9, name: 'Calibri' },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-    };
-    const regionStyle = {
-      font: { bold: true, sz: 11, name: 'Calibri' },
-      alignment: { horizontal: 'center', vertical: 'center' },
-      fill: { patternType: 'solid', fgColor: { rgb: 'FAFAFA' } }
-    };
+    const allPeriods = periodKeys(rows);
+    const trendLabel = forMode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
+
+    SCOPES.forEach(function (scope, si) {
+      if (si > 0) aoa.push([]);
+
+      const scoped = filterScope(rows, scope.id);
+      const rates = {};
+      allPeriods.forEach(function (pk) {
+        rates[pk] = periodRate(scoped.filter(function (r) { return r.period === pk; }));
+      });
+      const series = allPeriods.map(function (pk) { return rates[pk]; });
+      const ti = trendInfo(series);
+      const colCount = allPeriods.length + 1;
+
+      const titleRow = aoa.length;
+      const titleCells = [scope.head];
+      for (let i = 1; i < colCount; i++) titleCells.push('');
+      aoa.push(titleCells);
+      merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: colCount - 1 } });
+      for (let c = 0; c < colCount; c++) setS(titleRow, c, titleStyle());
+
+      const headRow = aoa.length;
+      const head = allPeriods.map(function (pk) { return labelFor(pk, forMode, rows); });
+      head.push(trendLabel);
+      aoa.push(head);
+      for (let c = 0; c < head.length; c++) setS(headRow, c, headStyle());
+
+      const dataRow = aoa.length;
+      const rowVals = allPeriods.map(function (pk) {
+        return rates[pk] == null ? '' : rates[pk];
+      });
+      rowVals.push(ti.text || '');
+      aoa.push(rowVals);
+      allPeriods.forEach(function (pk, i) {
+        if (rates[pk] == null) setS(dataRow, i, blankStyle());
+        else setS(dataRow, i, rateCellStyle(rates[pk], scope.target));
+      });
+      setS(dataRow, allPeriods.length, trendCellStyle(ti));
+    });
+
+    return { aoa: aoa, merges: merges, styles: styles, periods: allPeriods, colCount: allPeriods.length + 1 };
+  }
+
+  function buildDetailSheetAoA(forMode) {
+    const rows = getRows(forMode);
+    const aoa = [];
+    const merges = [];
+    const styles = {};
+    function setS(r, c, s) { styles[r + '_' + c] = s; }
+    const trendLabel = forMode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
 
     SCOPES.forEach(function (scope, si) {
       if (si > 0) { aoa.push([]); aoa.push([]); }
@@ -312,59 +542,35 @@ const MttRateMatrix = (() => {
       const periods = periodKeys(scoped);
       const rates = {};
       periods.forEach(function (pk) {
-        rates[pk] = stats(scoped.filter(function (r) { return r.period === pk; })).rate;
+        rates[pk] = periodRate(scoped.filter(function (r) { return r.period === pk; }));
       });
       const series = periods.map(function (pk) { return rates[pk]; });
-      const colCount = Math.max(periods.length + 2, 3);
+      const ti = trendInfo(series);
+      const colCount = Math.max(periods.length + 1, 2);
 
       const titleRow = aoa.length;
       const titleCells = [scope.head];
       for (let i = 1; i < colCount; i++) titleCells.push('');
       aoa.push(titleCells);
       merges.push({ s: { r: titleRow, c: 0 }, e: { r: titleRow, c: colCount - 1 } });
-      for (let c = 0; c < colCount; c++) setS(titleRow, c, titleStyle);
-
-      const subRow = aoa.length;
-      const subText = (scope.id === 'ALL' ? (scope.title + '  ·  ') : '') +
-        'Target ' + Math.round(scope.target * 100) + '%';
-      const sub = [subText];
-      for (let i = 1; i < colCount; i++) sub.push('');
-      aoa.push(sub);
-      merges.push({ s: { r: subRow, c: 0 }, e: { r: subRow, c: colCount - 1 } });
-      for (let c = 0; c < colCount; c++) setS(subRow, c, titleStyle);
+      for (let c = 0; c < colCount; c++) setS(titleRow, c, titleStyle());
 
       const headRow = aoa.length;
-      const head = ['REGION'].concat(periods.map(function (pk) {
-        return labelFor(pk, forMode, rows);
-      }));
-      head.push(forMode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend');
+      const head = periods.map(function (pk) { return labelFor(pk, forMode, rows); });
+      head.push(trendLabel);
       while (head.length < colCount) head.push('');
       aoa.push(head);
-      for (let c = 0; c < head.length; c++) setS(headRow, c, headStyle);
+      for (let c = 0; c < head.length; c++) setS(headRow, c, headStyle());
 
       const dataRow = aoa.length;
-      const rowVals = [REGION_LABEL];
-      periods.forEach(function (pk) {
-        const rate = rates[pk];
-        rowVals.push(rate == null ? null : rate);
-      });
-      rowVals.push(trendText(series));
+      const rowVals = periods.map(function (pk) { return rates[pk] == null ? '' : rates[pk]; });
+      rowVals.push(ti.text || '');
       aoa.push(rowVals);
-      setS(dataRow, 0, regionStyle);
       periods.forEach(function (pk, i) {
-        const rate = rates[pk];
-        const c = rateColor(rate, scope.target);
-        setS(dataRow, i + 1, {
-          fill: { patternType: 'solid', fgColor: { rgb: c.bg } },
-          font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: c.fg } },
-          alignment: { horizontal: 'center', vertical: 'center' },
-          numFmt: '0.00%'
-        });
+        if (rates[pk] == null) setS(dataRow, i, blankStyle());
+        else setS(dataRow, i, rateCellStyle(rates[pk], scope.target));
       });
-      setS(dataRow, periods.length + 1, {
-        font: { bold: true, sz: 10, name: 'Calibri' },
-        alignment: { horizontal: 'center', vertical: 'center' }
-      });
+      setS(dataRow, periods.length, trendCellStyle(ti));
     });
 
     return { aoa: aoa, merges: merges, styles: styles, periods: periodKeys(rows) };
@@ -378,135 +584,416 @@ const MttRateMatrix = (() => {
     const merges = [];
     const styles = {};
     function setS(r, c, s) { styles[r + '_' + c] = s; }
-    const titleStyle = {
-      fill: { patternType: 'solid', fgColor: { rgb: 'E60012' } },
-      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 13, name: 'Calibri' },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
-    const headStyle = {
-      fill: { patternType: 'solid', fgColor: { rgb: 'FFEBEE' } },
-      font: { bold: true, color: { rgb: 'B8000E' }, sz: 9, name: 'Calibri' },
-      alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
-    };
     const colCount = Math.max(matrix.periods.length + 3, 4);
-    const titleRow = 0;
+    const trendLabel = forMode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend';
+
     const titleCells = [scope.head + ' · BY ROUTE'];
     for (let i = 1; i < colCount; i++) titleCells.push('');
     aoa.push(titleCells);
     merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } });
-    for (let c = 0; c < colCount; c++) setS(0, c, titleStyle);
-
-    const sub = ['Target ' + Math.round(scope.target * 100) + '% · Region → Route'];
-    for (let i = 1; i < colCount; i++) sub.push('');
-    aoa.push(sub);
-    merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: colCount - 1 } });
-    for (let c = 0; c < colCount; c++) setS(1, c, titleStyle);
+    for (let c = 0; c < colCount; c++) setS(0, c, titleStyle());
 
     const head = ['REGION', 'ROUTE'].concat(
       matrix.periods.map(function (pk) { return labelFor(pk, forMode, rows); })
-    ).concat([forMode === 'weekly' ? 'Weekly Trend' : 'Monthly Trend']);
+    ).concat([trendLabel]);
     aoa.push(head);
-    head.forEach(function (_, c) { setS(2, c, headStyle); });
+    head.forEach(function (_, c) { setS(1, c, headStyle()); });
 
-    let r = 3;
+    let r = 2;
+    let specialStarted = false;
     matrix.blocks.forEach(function (b) {
+      if (b.special && !specialStarted) {
+        specialStarted = true;
+        const sep = ['TWO DROPS / BACKLOAD'];
+        for (let i = 1; i < colCount; i++) sep.push('');
+        aoa.push(sep);
+        merges.push({ s: { r: r, c: 0 }, e: { r: r, c: colCount - 1 } });
+        for (let c = 0; c < colCount; c++) {
+          setS(r, c, {
+            fill: { patternType: 'solid', fgColor: { rgb: 'FFF3E0' } },
+            font: { bold: true, sz: 9, color: { rgb: 'E65100' }, name: 'Calibri' },
+            border: BORDER
+          });
+        }
+        r++;
+      }
       const regRow = [b.region, '—'].concat(
         matrix.periods.map(function (pk) {
           const v = b.regionRates[pk];
-          return v == null ? null : v;
+          return v == null ? '' : v;
         })
-      ).concat([trendText(b.regionSeries)]);
+      ).concat([trendInfo(b.regionSeries).text || '']);
       aoa.push(regRow);
       setS(r, 0, {
         font: { bold: true, sz: 10, name: 'Calibri' },
-        fill: { patternType: 'solid', fgColor: { rgb: 'F5F5F5' } }
+        fill: { patternType: 'solid', fgColor: { rgb: b.special ? 'FFF8E1' : 'F5F5F5' } },
+        border: BORDER
       });
+      setS(r, 1, { border: BORDER });
       matrix.periods.forEach(function (pk, i) {
         const v = b.regionRates[pk];
-        const col = rateColor(v, scope.target);
-        setS(r, 2 + i, {
-          fill: { patternType: 'solid', fgColor: { rgb: col.bg } },
-          font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: col.fg } },
-          alignment: { horizontal: 'center' },
-          numFmt: '0.00%'
-        });
+        setS(r, 2 + i, v == null ? blankStyle() : rateCellStyle(v, scope.target));
       });
+      setS(r, 2 + matrix.periods.length, trendCellStyle(trendInfo(b.regionSeries)));
       r++;
       b.routes.forEach(function (rr) {
         const row = ['', rr.route].concat(
           matrix.periods.map(function (pk) {
             const v = rr.rates[pk];
-            return v == null ? null : v;
+            return v == null ? '' : v;
           })
-        ).concat([trendText(rr.series)]);
+        ).concat([trendInfo(rr.series).text || '']);
         aoa.push(row);
+        setS(r, 0, { border: BORDER });
+        setS(r, 1, { border: BORDER, font: { sz: 9, name: 'Calibri' } });
         matrix.periods.forEach(function (pk, i) {
           const v = rr.rates[pk];
-          const col = rateColor(v, scope.target);
-          setS(r, 2 + i, {
-            fill: { patternType: 'solid', fgColor: { rgb: col.bg } },
-            font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: col.fg } },
-            alignment: { horizontal: 'center' },
-            numFmt: '0.00%'
-          });
+          setS(r, 2 + i, v == null ? blankStyle() : rateCellStyle(v, scope.target));
         });
+        setS(r, 2 + matrix.periods.length, trendCellStyle(trendInfo(rr.series)));
         r++;
       });
     });
     return { aoa: aoa, merges: merges, styles: styles, periods: matrix.periods };
   }
 
-  function applySheetStyles(ws, pack) {
-    ws['!merges'] = pack.merges;
-    const maxCols = Math.max(10, (pack.periods || []).length + 3);
-    ws['!cols'] = [{ wch: 12 }, { wch: 14 }].concat(
-      Array(maxCols).fill({ wch: 14 })
-    ).concat([{ wch: 16 }]);
-    Object.keys(pack.styles || {}).forEach(function (key) {
-      const parts = key.split('_');
-      const r = parseInt(parts[0], 10);
-      const c = parseInt(parts[1], 10);
-      const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
-      if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-      const st = pack.styles[key];
-      ws[cellRef].s = st;
+  function renderTrendChartPng(scope, forMode) {
+    return new Promise(function (resolve) {
+      if (typeof Chart === 'undefined') { resolve(null); return; }
+      const rows = getRows(forMode);
+      const matrix = buildMatrix(rows, scope.id);
+      const labels = matrix.periods.map(function (pk) {
+        return shortLabel(pk, forMode, rows).top.replace(' RATE', '');
+      });
+      const data = matrix.periods.map(function (pk) {
+        const v = matrix.rates[pk];
+        return v == null ? null : +(v * 100).toFixed(2);
+      });
+      const targetPct = Math.round(scope.target * 100);
+      const nums = data.filter(function (v) { return v != null; });
+      const yMin = nums.length ? Math.max(0, Math.min.apply(null, nums.concat([targetPct])) - 8) : 70;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 900;
+      canvas.height = 360;
+      canvas.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      document.body.appendChild(canvas);
+
+      const chart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: scope.head,
+              data: data,
+              borderColor: '#E60012',
+              backgroundColor: 'rgba(230,0,18,0.08)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointBackgroundColor: '#E60012',
+              tension: 0.25,
+              spanGaps: false
+            },
+            {
+              label: 'Target ' + targetPct + '%',
+              data: labels.map(function () { return targetPct; }),
+              borderColor: '#2E7D32',
+              borderWidth: 1.5,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          plugins: {
+            title: {
+              display: true,
+              text: scope.head + (forMode === 'weekly' ? ' — Weekly Trend' : ' — Monthly Trend'),
+              font: { size: 16, weight: 'bold' },
+              color: '#C00000'
+            },
+            legend: { position: 'bottom' }
+          },
+          scales: {
+            y: {
+              title: { display: true, text: 'On-time %' },
+              suggestedMin: yMin,
+              suggestedMax: 100
+            }
+          }
+        }
+      });
+
+      setTimeout(function () {
+        try {
+          const url = canvas.toDataURL('image/png');
+          chart.destroy();
+          document.body.removeChild(canvas);
+          resolve({ name: scope.head, dataUrl: url, scopeId: scope.id });
+        } catch (e) {
+          try { chart.destroy(); } catch (_) {}
+          try { document.body.removeChild(canvas); } catch (_) {}
+          resolve(null);
+        }
+      }, 100);
     });
   }
 
-  function exportExcel() {
-    const rows = getRows('weekly');
-    if (!rows.length) {
-      alert('No SLU data to export.');
-      return;
+  function downloadDataUrl(dataUrl, filename) {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function dataUrlToArrayBuffer(dataUrl) {
+    const base64 = dataUrl.split(',')[1];
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  function loadExcelJS() {
+    return new Promise(function (resolve, reject) {
+      if (window.ExcelJS) { resolve(window.ExcelJS); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = function () { resolve(window.ExcelJS); };
+      s.onerror = function () { reject(new Error('Failed to load ExcelJS')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function downloadExcelBuffer(buffer, filename) {
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  function styleExcelJsCell(cell, st) {
+    if (!st) return;
+    if (st.fill && st.fill.fgColor && st.fill.fgColor.rgb) {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF' + st.fill.fgColor.rgb }
+      };
     }
-    const wb = XLSX.utils.book_new();
-
-    const weeklyPack = buildSheetAoA('weekly');
-    const wsW = XLSX.utils.aoa_to_sheet(weeklyPack.aoa);
-    applySheetStyles(wsW, weeklyPack);
-    XLSX.utils.book_append_sheet(wb, wsW, 'Weekly');
-
-    const monthlyPack = buildSheetAoA('monthly');
-    const wsM = XLSX.utils.aoa_to_sheet(monthlyPack.aoa);
-    applySheetStyles(wsM, monthlyPack);
-    XLSX.utils.book_append_sheet(wb, wsM, 'Monthly');
-
-    ['LUZON', 'VISMIN'].forEach(function (sid) {
-      const packW = buildRouteSheetAoA('weekly', sid);
-      const wsRW = XLSX.utils.aoa_to_sheet(packW.aoa);
-      applySheetStyles(wsRW, packW);
-      XLSX.utils.book_append_sheet(wb, wsRW,
-        (sid === 'LUZON' ? 'Luzon Routes Weekly' : 'VisMin Routes Weekly').slice(0, 31));
-
-      const packM = buildRouteSheetAoA('monthly', sid);
-      const wsRM = XLSX.utils.aoa_to_sheet(packM.aoa);
-      applySheetStyles(wsRM, packM);
-      XLSX.utils.book_append_sheet(wb, wsRM,
-        (sid === 'LUZON' ? 'Luzon Routes Monthly' : 'VisMin Routes Monthly').slice(0, 31));
-    });
-
-    XLSX.writeFile(wb, 'TRAVEL_TIME_WEEKLY_MONTHLY_COMPARISON.xlsx');
+    if (st.font) {
+      cell.font = {
+        bold: !!st.font.bold,
+        size: st.font.sz || 10,
+        name: st.font.name || 'Calibri',
+        color: st.font.color && st.font.color.rgb
+          ? { argb: 'FF' + st.font.color.rgb }
+          : undefined
+      };
+    }
+    if (st.alignment) {
+      cell.alignment = {
+        horizontal: st.alignment.horizontal || 'center',
+        vertical: st.alignment.vertical || 'middle',
+        wrapText: !!st.alignment.wrapText
+      };
+    }
+    if (st.numFmt) cell.numFmt = st.numFmt;
+    if (st.border) {
+      const edge = function (side) {
+        const b = st.border[side];
+        if (!b) return undefined;
+        return {
+          style: b.style || 'thin',
+          color: { argb: 'FF' + ((b.color && b.color.rgb) || '8B0000') }
+        };
+      };
+      cell.border = {
+        top: edge('top'),
+        bottom: edge('bottom'),
+        left: edge('left'),
+        right: edge('right')
+      };
+    }
   }
+
+  function packToExcelJsSheet(wb, pack, sheetName) {
+    const ws = wb.addWorksheet(sheetName.slice(0, 31));
+    const aoa = pack.aoa || [];
+    aoa.forEach(function (row, r) {
+      row.forEach(function (val, c) {
+        const cell = ws.getCell(r + 1, c + 1);
+        if (val === '' || val == null) {
+          cell.value = null;
+        } else if (typeof val === 'number') {
+          cell.value = val;
+        } else {
+          cell.value = val;
+        }
+        const st = pack.styles && pack.styles[r + '_' + c];
+        styleExcelJsCell(cell, st);
+      });
+    });
+    (pack.merges || []).forEach(function (m) {
+      ws.mergeCells(m.s.r + 1, m.s.c + 1, m.e.r + 1, m.e.c + 1);
+    });
+    const cols = Math.max(8, (pack.periods || []).length + 2, pack.colCount || 0);
+    for (let i = 1; i <= cols; i++) ws.getColumn(i).width = 14;
+    return ws;
+  }
+
+  async function addChartsSheet(wb, forMode, title) {
+    const imgs = await Promise.all(
+      SCOPES.map(function (s) { return renderTrendChartPng(s, forMode); })
+    );
+    const ws = wb.addWorksheet(title.slice(0, 31));
+    ws.getCell('A1').value = title;
+    ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFC00000' } };
+    let rowCursor = 3;
+    for (let i = 0; i < imgs.length; i++) {
+      const img = imgs[i];
+      if (!img || !img.dataUrl) continue;
+      const imageId = wb.addImage({
+        buffer: dataUrlToArrayBuffer(img.dataUrl),
+        extension: 'png'
+      });
+      ws.addImage(imageId, {
+        tl: { col: 0, row: rowCursor - 1 },
+        ext: { width: 720, height: 288 }
+      });
+      rowCursor += 16;
+    }
+    ws.getColumn(1).width = 20;
+    return imgs;
+  }
+
+  async function exportSummaryBoard() {
+    const rows = getRows('weekly');
+    if (!rows.length) { alert('No SLU data to export.'); return; }
+    try {
+      const ExcelJS = await loadExcelJS();
+      const wb = new ExcelJS.Workbook();
+      packToExcelJsSheet(wb, buildSummaryBoardAoA('weekly'), 'Weekly');
+      packToExcelJsSheet(wb, buildSummaryBoardAoA('monthly'), 'Monthly');
+      await addChartsSheet(wb, 'weekly', 'Weekly Charts');
+      await addChartsSheet(wb, 'monthly', 'Monthly Charts');
+      const buffer = await wb.xlsx.writeBuffer();
+      downloadExcelBuffer(buffer, 'TRAVEL_TIME_SUMMARY_BOARD.xlsx');
+    } catch (err) {
+      console.error(err);
+      // Fallback: SheetJS without embedded charts
+      const wb = XLSX.utils.book_new();
+      const weeklyPack = buildSummaryBoardAoA('weekly');
+      const wsW = XLSX.utils.aoa_to_sheet(weeklyPack.aoa);
+      applySheetStyles(wsW, weeklyPack);
+      XLSX.utils.book_append_sheet(wb, wsW, 'Weekly');
+      const monthlyPack = buildSummaryBoardAoA('monthly');
+      const wsM = XLSX.utils.aoa_to_sheet(monthlyPack.aoa);
+      applySheetStyles(wsM, monthlyPack);
+      XLSX.utils.book_append_sheet(wb, wsM, 'Monthly');
+      XLSX.writeFile(wb, 'TRAVEL_TIME_SUMMARY_BOARD.xlsx');
+      alert('Excel saved. Chart embed unavailable — check network for ExcelJS CDN.');
+    }
+  }
+
+  async function exportOriginalWithGraphs() {
+    const rows = getRows('weekly');
+    if (!rows.length) { alert('No SLU data to export.'); return; }
+    try {
+      const ExcelJS = await loadExcelJS();
+      const wb = new ExcelJS.Workbook();
+      packToExcelJsSheet(wb, buildDetailSheetAoA('weekly'), 'Weekly');
+      packToExcelJsSheet(wb, buildDetailSheetAoA('monthly'), 'Monthly');
+      ['LUZON', 'VISMIN'].forEach(function (sid) {
+        const nameW = sid === 'LUZON' ? 'Luzon Routes Weekly' : 'VisMin Routes Weekly';
+        const nameM = sid === 'LUZON' ? 'Luzon Routes Monthly' : 'VisMin Routes Monthly';
+        packToExcelJsSheet(wb, buildRouteSheetAoA('weekly', sid), nameW);
+        packToExcelJsSheet(wb, buildRouteSheetAoA('monthly', sid), nameM);
+      });
+      await addChartsSheet(wb, 'weekly', 'Weekly Charts');
+      await addChartsSheet(wb, 'monthly', 'Monthly Charts');
+      const buffer = await wb.xlsx.writeBuffer();
+      downloadExcelBuffer(buffer, 'TRAVEL_TIME_DETAILED.xlsx');
+    } catch (err) {
+      console.error(err);
+      const wb = XLSX.utils.book_new();
+      const weeklyPack = buildDetailSheetAoA('weekly');
+      const wsW = XLSX.utils.aoa_to_sheet(weeklyPack.aoa);
+      applySheetStyles(wsW, weeklyPack);
+      XLSX.utils.book_append_sheet(wb, wsW, 'Weekly');
+      const monthlyPack = buildDetailSheetAoA('monthly');
+      const wsM = XLSX.utils.aoa_to_sheet(monthlyPack.aoa);
+      applySheetStyles(wsM, monthlyPack);
+      XLSX.utils.book_append_sheet(wb, wsM, 'Monthly');
+      XLSX.writeFile(wb, 'TRAVEL_TIME_DETAILED.xlsx');
+      alert('Excel saved without embedded charts. Check network for ExcelJS CDN.');
+    }
+  }
+
+  function closeExportModal() {
+    const m = document.getElementById('rmExportModal');
+    if (m) m.classList.add('hidden');
+  }
+
+  function openExportModal() {
+    let m = document.getElementById('rmExportModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'rmExportModal';
+      m.className = 'rm-export-modal';
+      m.innerHTML =
+        '<div class="rm-export-panel" role="dialog" aria-modal="true">' +
+          '<div class="rm-export-bar">' +
+            '<h3>Export</h3>' +
+            '<button type="button" class="rm-export-close" id="rmExportClose">✕</button>' +
+          '</div>' +
+          '<div class="rm-export-choices">' +
+            '<button type="button" class="rm-export-choice" data-rm-fmt="summary">' +
+              '<img class="rm-export-preview" src="layout1.png" alt="Layout 1"' +
+                ' onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">' +
+              '<span class="rm-export-fallback" style="display:none">Layout 1</span>' +
+              '<span class="rm-export-choice-title">Layout 1 · Summary Board</span>' +
+            '</button>' +
+            '<button type="button" class="rm-export-choice" data-rm-fmt="original">' +
+              '<img class="rm-export-preview" src="layout2.png" alt="Layout 2"' +
+                ' onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';">' +
+              '<span class="rm-export-fallback" style="display:none">Layout 2</span>' +
+              '<span class="rm-export-choice-title">Layout 2 · Detailed + Graphs</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(m);
+      m.addEventListener('click', function (e) {
+        if (e.target === m) closeExportModal();
+      });
+      m.querySelector('#rmExportClose').addEventListener('click', closeExportModal);
+      m.querySelectorAll('[data-rm-fmt]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const fmt = btn.getAttribute('data-rm-fmt');
+          closeExportModal();
+          if (fmt === 'summary') exportSummaryBoard();
+          else exportOriginalWithGraphs();
+        });
+      });
+    }
+    m.classList.remove('hidden');
+  }
+
+  function exportExcel() { openExportModal(); }
 
   function setMode(next) {
     mode = next === 'monthly' ? 'monthly' : 'weekly';
@@ -536,6 +1023,9 @@ const MttRateMatrix = (() => {
       tab.addEventListener('click', function () {
         if (tab.dataset.tab === 'tabRateMatrix') setTimeout(render, 40);
       });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeExportModal();
     });
   }
 
