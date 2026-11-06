@@ -50,7 +50,14 @@
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgba(245,245,245,0.50) 0%, rgba(245,245,245,0.92) 140%),
+    url('FleetTeam.jpg');
+  background-size: cover;
+  background-position: center -40%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
@@ -3255,3 +3262,270 @@ body.mr-expand-open { overflow: hidden; }
 .rm-muted { color: #9E9E9E; }
 .rm-trend-txt { font-size: 0.72rem; font-weight: 700; margin-left: 4px; color: #616161; }
 .rm-table th { white-space: normal; line-height: 1.25; max-width: 110px; vertical-align: bottom; }
+
+/* ===== Rate Matrix — trend colors, special regions, export modal ===== */
+.rm-trend-txt.rm-up,
+.rm-trend.rm-up .rm-trend-txt,
+td.rm-trend.rm-up {
+  color: #1B5E20 !important;
+  font-weight: 800;
+}
+.rm-trend-txt.rm-down,
+.rm-trend.rm-down .rm-trend-txt,
+td.rm-trend.rm-down {
+  color: #B71C1C !important;
+  font-weight: 800;
+}
+.rm-trend-txt.rm-flat {
+  color: #616161 !important;
+}
+td.rm-trend.rm-up { background: #E8F5E9 !important; }
+td.rm-trend.rm-down { background: #FFEBEE !important; }
+
+.rm-blank {
+  min-height: 1.2em;
+  border: 1px dashed #E0E0E0 !important;
+  background: #FAFAFA !important;
+  color: #BDBDBD !important;
+}
+
+.rm-special-sep td {
+  background: #FFF3E0 !important;
+  color: #E65100 !important;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-align: left !important;
+  padding: 8px 12px !important;
+  border-top: 2px solid #FFB74D !important;
+  letter-spacing: 0.03em;
+}
+tr.rm-special-region td.rm-region {
+  background: #FFF8E1 !important;
+  color: #E65100;
+}
+tr.rm-special-region:hover td { background: #FFF3E0; }
+
+.rm-export-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.rm-export-modal.hidden { display: none !important; }
+.rm-export-panel {
+  background: #fff;
+  border-radius: 14px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  padding: 0 0 18px;
+  overflow: hidden;
+}
+.rm-export-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #E60012, #B8000E);
+  color: #fff;
+}
+.rm-export-bar h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.rm-export-close {
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rm-export-close:hover { background: rgba(255, 255, 255, 0.35); }
+.rm-export-panel .section-note {
+  padding: 12px 18px 4px;
+  margin: 0;
+}
+.rm-export-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 18px 6px;
+}
+.rm-export-choice {
+  text-align: left;
+  border: 1px solid #FFCDD2;
+  background: #FFF8F8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.rm-export-choice:hover {
+  border-color: #E60012;
+  background: #FFEBEE;
+  box-shadow: 0 4px 14px rgba(230, 0, 18, 0.12);
+}
+.rm-export-choice-title {
+  display: block;
+  font-weight: 800;
+  color: #C62828;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+.rm-export-choice-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: #616161;
+  line-height: 1.4;
+}
+
+/* ===== Rate Matrix — photo-style board + export previews ===== */
+.rm-board {
+  margin-bottom: 16px;
+  border: 2px solid #8B0000;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.rm-board-title {
+  background: #C00000;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 10px 12px;
+}
+.rm-board-empty {
+  padding: 16px;
+  text-align: center;
+  color: #9E9E9E;
+}
+.rm-board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  table-layout: fixed;
+}
+.rm-board-table th {
+  background: #C00000;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 8px 6px;
+  border: 1px solid #8B0000;
+  vertical-align: bottom;
+  line-height: 1.25;
+  white-space: normal;
+}
+.rm-board-table td {
+  text-align: center;
+  padding: 10px 6px;
+  border: 1px solid #8B0000;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.rm-wk-top { font-weight: 700; }
+.rm-wk-bot { font-weight: 600; opacity: 0.95; font-size: 0.7rem; margin-top: 2px; }
+.rm-board-table .rm-th-trend {
+  background: #8B0000;
+  min-width: 110px;
+}
+.rm-board-table td.rm-trend {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.rm-board-table td.rm-trend.rm-up { background: #E8F5E9; color: #1B5E20; }
+.rm-board-table td.rm-trend.rm-down { background: #FFEBEE; color: #B71C1C; }
+.rm-board-table td.rm-trend.rm-flat { background: #FAFAFA; color: #616161; }
+.rm-board-table td.rm-blank {
+  background: #fff !important;
+  color: transparent;
+  min-height: 1.2em;
+}
+
+.rm-export-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+@media (max-width: 560px) {
+  .rm-export-choices { grid-template-columns: 1fr; }
+}
+.rm-export-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid #FFCDD2;
+  background: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.rm-export-choice:hover {
+  border-color: #E60012;
+  box-shadow: 0 6px 18px rgba(230, 0, 18, 0.15);
+}
+.rm-export-preview {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 8px;
+  border: 1px solid #EEE;
+  background: #FAFAFA;
+}
+.rm-export-fallback {
+  height: 120px;
+  align-items: center;
+  justify-content: center;
+  background: #FFEBEE;
+  color: #C62828;
+  font-weight: 800;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.rm-export-choice-title {
+  font-weight: 800;
+  color: #C62828;
+  font-size: 0.88rem;
+  text-align: center;
+}
+.rm-export-panel {
+  max-width: 640px;
+}
+
+/* Rate Matrix on-screen line charts */
+.rm-charts-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+@media (max-width: 980px) {
+  .rm-charts-row { grid-template-columns: 1fr; }
+}
+.rm-chart-card {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 10px 12px 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.rm-chart-wrap {
+  height: 220px;
+  position: relative;
+}
