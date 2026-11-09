@@ -165,6 +165,27 @@ const MttRateMatrix = (() => {
     return SPECIAL_REGIONS.indexOf(String(name || '').toUpperCase()) >= 0;
   }
 
+  /**
+   * Multi-stop / two-drop routes look like 490-540-550 (3+ numeric legs).
+   * Simple mainline legs are 490-520 / 490-540 (exactly 2 legs).
+   * Those multi-leg codes belong only under TWO DROPS, not under BSL/NCR/etc.
+   */
+  function isMultiDropRoute(route) {
+    const s = String(route || '').trim().toUpperCase();
+    if (!s || s === '(BLANK)' || s === 'BLANK') return false;
+    // Normalize separators
+    const parts = s.split(/[-–—_/\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    // 3+ segments that look like DC/route codes → two drops
+    if (parts.length >= 3) {
+      const numericish = parts.filter(function (p) { return /^\d{2,}$/.test(p); });
+      if (numericish.length >= 3) return true;
+      if (parts.length >= 3) return true;
+    }
+    // Explicit keywords
+    if (s.indexOf('TWO DROP') >= 0 || s.indexOf('2 DROP') >= 0 || s.indexOf('TWODROP') >= 0) return true;
+    return false;
+  }
+
   function buildMatrix(allRows, scopeId) {
     const scoped = filterScope(allRows, scopeId);
     const periods = periodKeys(scoped);
@@ -180,8 +201,16 @@ const MttRateMatrix = (() => {
     const periods = periodKeys(scoped);
     const byRegion = new Map();
     scoped.forEach(function (r) {
-      const reg = normalizeRegionName(r.region);
+      let reg = normalizeRegionName(r.region);
       const route = (r.route || '(blank)').trim() || '(blank)';
+      // Multi-leg routes (e.g. 490-540-550) always sit under TWO DROPS
+      if (isMultiDropRoute(route) || isSpecialRegion(reg)) {
+        if (reg === 'BACKLOAD') {
+          /* keep BACKLOAD as its own special bucket */
+        } else {
+          reg = 'TWO DROPS';
+        }
+      }
       if (!byRegion.has(reg)) byRegion.set(reg, new Map());
       const byRoute = byRegion.get(reg);
       if (!byRoute.has(route)) byRoute.set(route, []);
@@ -190,9 +219,17 @@ const MttRateMatrix = (() => {
     const regions = sortRegions([...byRegion.keys()]);
     const blocks = regions.map(function (reg) {
       const byRoute = byRegion.get(reg);
-      const routes = [...byRoute.keys()].sort(function (a, b) { return a.localeCompare(b); });
+      const special = isSpecialRegion(reg);
+      // Normal regions: only simple 2-leg routes. TWO DROPS/BACKLOAD: keep all.
+      const routes = [...byRoute.keys()].filter(function (rt) {
+        if (special) return true;
+        return !isMultiDropRoute(rt);
+      }).sort(function (a, b) { return a.localeCompare(b); });
       const regAll = [];
-      byRoute.forEach(function (list) { list.forEach(function (x) { regAll.push(x); }); });
+      byRoute.forEach(function (list, rt) {
+        if (!special && isMultiDropRoute(rt)) return;
+        list.forEach(function (x) { regAll.push(x); });
+      });
       const regionRates = {};
       periods.forEach(function (pk) {
         regionRates[pk] = periodRate(regAll.filter(function (r) { return r.period === pk; }));
