@@ -50,6 +50,9 @@ const App = (() => {
         if (typeof LrWeeklyManager !== 'undefined') {
           LrWeeklyManager.onFileReady();
         }
+        if (typeof LrRouteCompareManager !== 'undefined') {
+          LrRouteCompareManager.onFileReady();
+        }
 
         // Explicitly hide BOTH loading overlays
         if (loadingUpload) loadingUpload.classList.add('hidden');
@@ -69,6 +72,7 @@ const App = (() => {
     ReferenceManager.init();
     if (typeof DetailTableManager !== 'undefined') DetailTableManager.init();
     if (typeof LrWeeklyManager !== 'undefined') LrWeeklyManager.init();
+    if (typeof LrRouteCompareManager !== 'undefined') LrRouteCompareManager.init();
 
     FileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group);
