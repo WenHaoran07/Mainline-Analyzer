@@ -184,11 +184,307 @@
       font-weight: 600;
       cursor: pointer;
     }
+    .rc-compare-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .rc-compare-col {
+      background: #FAFAFA;
+      border: 1px solid #E0E0E0;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .rc-compare-col.latest {
+      background: #FFEBEE;
+      border-color: #FFCDD2;
+    }
+    .rc-compare-col h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #424242;
+    }
+    .rc-compare-col .rc-date-sub {
+      font-size: 0.8rem;
+      color: #757575;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .rc-compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .rc-compare-item .lab {
+      font-size: 0.7rem;
+      color: #757575;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .rc-compare-item .val {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #212121;
+    }
+    .rc-compare-item .delta {
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .rc-compare-item .delta.up { color: #2E7D32; }
+    .rc-compare-item .delta.down { color: #E60012; }
+    .rc-compare-item .delta.neutral { color: #757575; }
+    .graph-focus-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .graph-focus-overlay.hidden { display: none !important; }
+    .graph-focus-panel {
+      background: #fff; border-radius: 14px;
+      width: min(960px, 100%);
+      max-height: 90vh;
+      padding: 18px 20px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .graph-focus-bar {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .graph-focus-bar h2 { font-size: 1.05rem; margin: 0; }
+    .graph-focus-close {
+      border: 1px solid #E0E0E0; background: #FAFAFA;
+      border-radius: 8px; padding: 6px 12px;
+      font-weight: 700; cursor: pointer;
+    }
+    .graph-focus-canvas-wrap { height: min(60vh, 420px); position: relative; }
+    .rc-chart-card { cursor: zoom-in; }
+    .rc-chart-card:hover { box-shadow: 0 2px 12px rgba(230,0,18,0.12); }
+    table.rc-focus-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+    table.rc-focus-table th, table.rc-focus-table td {
+      white-space: nowrap;
+      padding: 12px 14px;
+      font-size: 0.88rem;
+      vertical-align: middle;
+    }
+    table.rc-focus-table th {
+      line-height: 1.3;
+      text-align: left;
+      background: #FFEBEE;
+      color: #B8000E;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    table.rc-focus-table td:nth-child(n+3),
+    table.rc-focus-table th:nth-child(n+3) {
+      text-align: right;
+    }
+    table.rc-focus-table th span {
+      display: block;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 0.72rem;
+      color: #757575;
+      margin-top: 2px;
+    }
+
+    .rc-single-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .rc-single-charts { grid-template-columns: 1fr; }
+    }
     .lr-week-view-tabs button.active {
       background: #E60012;
       border-color: #E60012;
       color: #fff;
     }
+
+    /* Route Comparison — metric boxes */
+    .rc-compare-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .rc-compare-col {
+      border-radius: 14px;
+      padding: 16px 18px;
+      border: 1px solid #E0E0E0;
+      background: #FAFAFA;
+    }
+    .rc-compare-col.latest {
+      background: #FFF5F5;
+      border-color: #FFCDD2;
+    }
+    .rc-compare-col h3 {
+      font-size: 0.9rem;
+      font-weight: 800;
+      margin: 0 0 2px;
+      color: #424242;
+    }
+    .rc-compare-col .rc-date-sub {
+      font-size: 0.82rem;
+      color: #757575;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .rc-metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .rc-metric-box {
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid transparent;
+      min-height: 78px;
+    }
+    .rc-metric-box .lab {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      opacity: 0.9;
+    }
+    .rc-metric-box .val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #212121;
+    }
+    .rc-metric-box .delta {
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .rc-metric-box .delta.up { color: #1B5E20; }
+    .rc-metric-box .delta.down { color: #C62828; }
+    .rc-metric-box .delta.neutral { color: #757575; }
+    .rc-box-trips { background: #E3F2FD; border-color: #90CAF9; }
+    .rc-box-trips .lab { color: #1565C0; }
+    .rc-box-avg { background: #E8F5E9; border-color: #A5D6A7; }
+    .rc-box-avg .lab { color: #2E7D32; }
+    .rc-box-qty { background: #FFF3E0; border-color: #FFCC80; }
+    .rc-box-qty .lab { color: #E65100; }
+    .rc-box-pkgs { background: #F3E5F5; border-color: #CE93D8; }
+    .rc-box-pkgs .lab { color: #6A1B9A; }
+    .rc-compare-col.latest .rc-box-trips { background: #BBDEFB; }
+    .rc-compare-col.latest .rc-box-avg { background: #C8E6C9; }
+    .rc-compare-col.latest .rc-box-qty { background: #FFE0B2; }
+    .rc-compare-col.latest .rc-box-pkgs { background: #E1BEE7; }
+
+    .rc-multi-charts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .rc-chart-block {
+      background: #FAFAFA;
+      border: 1px solid #EEEEEE;
+      border-radius: 12px;
+      padding: 12px 14px 8px;
+    }
+    .rc-chart-label {
+      font-size: 0.82rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .rc-lab-trips { color: #1565C0; }
+    .rc-lab-qty { color: #E60012; }
+    .rc-lab-avg { color: #2E7D32; }
+
+    .rc-expand-btn {
+      padding: 7px 14px;
+      border: 1px solid #E60012;
+      background: #fff;
+      color: #E60012;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rc-expand-btn:hover { background: #E60012; color: #fff; }
+
+    table.rc-focus-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    table.rc-focus-table th {
+      background: #C00000 !important;
+      color: #fff !important;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 12px 12px;
+      border-bottom: 2px solid #8B0000;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      white-space: nowrap;
+    }
+    table.rc-focus-table th span {
+      display: block;
+      font-weight: 600;
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.85);
+      margin-top: 2px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    table.rc-focus-table td {
+      padding: 11px 12px;
+      font-size: 0.86rem;
+      border-bottom: 1px solid #F0F0F0;
+      white-space: nowrap;
+      background: #fff;
+    }
+    table.rc-focus-table tbody tr:nth-child(even) td { background: #FAFAFA; }
+    table.rc-focus-table tbody tr:hover td { background: #FFEBEE; }
+    table.rc-focus-table td:nth-child(n+3),
+    table.rc-focus-table th:nth-child(n+3) { text-align: right; }
+    table.rc-focus-table td.pos { color: #2E7D32; font-weight: 700; }
+    table.rc-focus-table td.neg { color: #C62828; font-weight: 700; }
+    tr.top-booster td { background: #E8F5E9 !important; }
+    tr.top-culprit td { background: #FFEBEE !important; }
+
+    .rc-single-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #FFEBEE;
+      border: 1px solid #FFCDD2;
+      color: #B71C1C;
+      font-weight: 700;
+      font-size: 0.92rem;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    .rc-single-banner.hidden { display: none !important; }
+    .rc-chart-h { height: 300px; position: relative; }
+    .rc-multi-charts.rc-single-layout {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    @media (max-width: 900px) {
+      .rc-multi-charts.rc-single-layout { grid-template-columns: 1fr; }
+    }
+    .rc-multi-charts.rc-single-layout .rc-chart-h { height: 220px; }
   </style>
 </head>
 <body>
@@ -248,6 +544,7 @@
           <div class="lr-main-tabs">
             <button type="button" class="lr-main-tab active" id="tabLrDay">📅 Day Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrWeek">📊 Weekly Comparison</button>
+            <button type="button" class="lr-main-tab" id="tabLrRoute">🚚 Route Comparison</button>
           </div>
 
           <div id="lrDayPanel">
@@ -560,6 +857,138 @@
             </div>
           </div>
 
+
+          <!-- ROUTE COMPARISON PANEL -->
+          <div id="lrRoutePanel" class="hidden">
+            <div class="card">
+              <h2><span class="icon">🚚</span> Route Comparison</h2>
+
+              <div class="lr-week-view-tabs" style="margin-bottom:12px;">
+                <button type="button" class="active" data-rc-period="day">Per Day</button>
+                <button type="button" data-rc-period="week">Per Week</button>
+                <button type="button" data-rc-period="month">Per Month</button>
+              </div>
+
+              <div class="date-selectors">
+                <div>
+                  <label>Previous period</label>
+                  <select id="rcPeriodA"></select>
+                </div>
+                <div>
+                  <label>Latest period</label>
+                  <select id="rcPeriodB"></select>
+                </div>
+                <button type="button" id="btnRcCompare">Compare</button>
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 12px;">
+                <label for="rcSearchRoute" style="font-size:0.85rem;font-weight:600;color:#555;">Search Route</label>
+                <input type="search" id="rcSearchRoute" placeholder="e.g. 490-440" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;min-width:140px;">
+                <label for="rcFilterDc" style="font-size:0.85rem;font-weight:600;color:#555;">Departure DC</label>
+                <select id="rcFilterDc" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;min-width:160px;">
+                  <option value="ALL">All Departure DCs</option>
+                </select>
+                <label for="rcSort" style="font-size:0.85rem;font-weight:600;color:#555;">Sort by</label>
+                <select id="rcSort" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="avg-desc">Highest Avg Load first</option>
+                  <option value="avg-asc">Lowest Avg Load first</option>
+                  <option value="trips-desc">Most Trips first</option>
+                  <option value="qty-desc">Highest Total Qty first</option>
+                </select>
+                <button type="button" id="rcClearFilters" style="padding:6px 12px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;font-size:0.82rem;cursor:pointer;">Clear</button>
+                <span id="rcTableCount" style="font-size:0.82rem;color:#757575;"></span>
+              </div>
+
+              <div class="date-info" id="rcInfo">Select periods and compare</div>
+              <div id="rcMetrics"></div>
+            </div>
+
+            <div class="card">
+              <h2><span class="icon">📊</span> Route Comparison Charts</h2>
+              <p class="section-note" id="rcChartNote">Previous vs Latest — Trips · Total Loading Qty · Avg Loading Qty</p>
+              <div id="rcSingleRoutePanel" class="rc-single-banner hidden">
+                <span class="icon">🎯</span>
+                <span id="rcSingleRouteTitle">Route focus</span>
+              </div>
+              <div class="rc-multi-charts">
+                <div class="rc-chart-block">
+                  <div class="rc-chart-label rc-lab-trips">Trips</div>
+                  <div class="chart-wrap rc-chart-h"><canvas id="rcChartTrips"></canvas></div>
+                </div>
+                <div class="rc-chart-block">
+                  <div class="rc-chart-label rc-lab-qty">Total Loading Qty</div>
+                  <div class="chart-wrap rc-chart-h"><canvas id="rcChartQty"></canvas></div>
+                </div>
+                <div class="rc-chart-block">
+                  <div class="rc-chart-label rc-lab-avg">Avg Loading Qty</div>
+                  <div class="chart-wrap rc-chart-h"><canvas id="rcChartAvg"></canvas></div>
+                </div>
+              </div>
+              <canvas id="rcChartTop" class="hidden" width="1" height="1"></canvas>
+            </div>
+
+            <div class="card" id="rcBreakdownCard">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+                <div>
+                  <h2 style="margin:0;"><span class="icon">📋</span> Route Breakdown</h2>
+                  <p class="section-note" id="rcTableNote" style="margin:4px 0 0;">Trips, avg load, total qty — Previous vs Latest</p>
+                </div>
+                <button type="button" id="rcTableFocusBtn" class="rc-expand-btn" title="Expand table">⛶ Expand</button>
+              </div>
+              <div class="table-scroll" id="rcTableScroll" style="max-height:480px;overflow:auto;">
+                <table class="rc-focus-table" id="rcBreakdownTable">
+                  <thead>
+                    <tr>
+                      <th>Route</th>
+                      <th>Departure DC</th>
+                      <th id="rcThTripsA">Prev Trips</th>
+                      <th id="rcThTripsB">Latest Trips</th>
+                      <th id="rcThAvgA">Prev Avg LT</th>
+                      <th id="rcThAvgB">Latest Avg LT</th>
+                      <th>Avg LT</th>
+                      <th id="rcThQtyA">Prev Total Qty</th>
+                      <th id="rcThQtyB">Latest Total Qty</th>
+                      <th>Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rcTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Table focus overlay -->
+            <div id="rcTableFocusOverlay" class="graph-focus-overlay hidden" aria-hidden="true">
+              <div class="graph-focus-panel" role="dialog" aria-modal="true" style="width:min(1100px,100%);">
+                <div class="graph-focus-bar">
+                  <div>
+                    <h2 id="rcTableFocusTitle">Route Breakdown</h2>
+                    <p class="section-note" id="rcTableFocusSub"></p>
+                  </div>
+                  <button type="button" class="graph-focus-close" id="rcTableFocusClose">✕ Close</button>
+                </div>
+                <div class="table-scroll" style="max-height:70vh;overflow:auto;border:1px solid #E0E0E0;border-radius:8px;">
+                  <table class="rc-focus-table" id="rcFocusTable">
+                    <thead>
+                      <tr>
+                        <th>Route</th>
+                        <th>Departure DC</th>
+                        <th id="rcFThTripsA">Prev Trips</th>
+                        <th id="rcFThTripsB">Latest Trips</th>
+                        <th id="rcFThAvgA">Prev Avg LT</th>
+                        <th id="rcFThAvgB">Latest Avg LT</th>
+                        <th>Avg LT</th>
+                        <th id="rcFThQtyA">Prev Total Qty</th>
+                        <th id="rcFThQtyB">Latest Total Qty</th>
+                        <th>Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody id="rcFocusTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
@@ -576,6 +1005,7 @@
   <script src="aiReasoningManager.js"></script>
   <script src="fileProcessor.js"></script>
   <script src="lrWeeklyManager.js"></script>
+  <script src="lrRouteCompareManager.js"></script>
   <script src="app.js"></script>
 <footer class="app-watermark">
    © 2026 <strong>Vince Adesa</strong> - Loading Rate Analyzer
