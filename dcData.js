@@ -3,6 +3,7 @@
    ========================================================================== */
 
 const dcMasterData = [
+   {"DC CODE": 9071, "DC NAME": "DW-Taytay 888", "LOCATION / AREA": "RIZAL", "REGION": "SLU"},
   {"DC CODE": 320, "DC NAME": "CebuDC1", "LOCATION / AREA": "CEBU", "REGION": "WVA"},
   {"DC CODE": 321, "DC NAME": "Consolacion DC", "LOCATION / AREA": "CEBU", "REGION": "WVA"},
   {"DC CODE": 330, "DC NAME": "IloiloDC1", "LOCATION / AREA": "ILOILO", "REGION": "WVA"},
