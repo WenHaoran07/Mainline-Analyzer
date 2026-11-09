@@ -402,14 +402,14 @@ const LrWeeklyManager = (() => {
         list = [...list].sort((a, b) => Math.abs(b.avgDiff || 0) - Math.abs(a.avgDiff || 0)).slice(0, 10);
         const labels = list.map(e => e.name.length > 18 ? e.name.slice(0, 16) + '…' : e.name);
         const data = list.map(e => Math.round(e.avgDiff != null ? e.avgDiff : (e.latest.avgLt - e.prev.avgLt)));
-        if (titleC) titleC.textContent = 'Week-over-Week Avg ';
+        if (titleC) titleC.textContent = 'Week-over-Week Avg Δ';
         if (noteC) noteC.textContent = 'Avg Loading Tickets change between the two selected weeks';
         chartCompare = new Chart(elC, {
           type: 'bar',
           data: {
             labels,
             datasets: [{
-              label: 'Avg LT ',
+              label: 'Avg LT Δ',
               data,
               backgroundColor: data.map(v => v < 0 ? '#E60012' : '#2E7D32'),
               borderRadius: 6
@@ -421,7 +421,7 @@ const LrWeeklyManager = (() => {
             maintainAspectRatio: false,
             plugins: {
               legend: { display: false },
-              tooltip: { callbacks: { label: ctx => '' + (ctx.raw > 0 ? '+' : '') + Number(ctx.raw).toLocaleString() } }
+              tooltip: { callbacks: { label: ctx => ' Δ ' + (ctx.raw > 0 ? '+' : '') + Number(ctx.raw).toLocaleString() } }
             },
             scales: {
               x: { grid: { color: '#F0F0F0' }, ticks: { callback: v => Number(v).toLocaleString() } },
@@ -569,19 +569,25 @@ const LrWeeklyManager = (() => {
   function switchMainTab(tab) {
     const dayPanel = document.getElementById('lrDayPanel');
     const weekPanel = document.getElementById('lrWeeklyPanel');
+    const routePanel = document.getElementById('lrRoutePanel');
     const btnDay = document.getElementById('tabLrDay');
     const btnWeek = document.getElementById('tabLrWeek');
+    const btnRoute = document.getElementById('tabLrRoute');
     if (tab === 'week') {
       if (dayPanel) dayPanel.classList.add('hidden');
+      if (routePanel) routePanel.classList.add('hidden');
       if (weekPanel) weekPanel.classList.remove('hidden');
       if (btnDay) btnDay.classList.remove('active');
+      if (btnRoute) btnRoute.classList.remove('active');
       if (btnWeek) btnWeek.classList.add('active');
       onFileReady();
       run();
     } else {
       if (weekPanel) weekPanel.classList.add('hidden');
+      if (routePanel) routePanel.classList.add('hidden');
       if (dayPanel) dayPanel.classList.remove('hidden');
       if (btnWeek) btnWeek.classList.remove('active');
+      if (btnRoute) btnRoute.classList.remove('active');
       if (btnDay) btnDay.classList.add('active');
     }
   }
