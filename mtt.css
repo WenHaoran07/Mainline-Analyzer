@@ -3529,3 +3529,333 @@ tr.rm-special-region:hover td { background: #FFF3E0; }
   height: 220px;
   position: relative;
 }
+
+
+/* Plan Feasibility */
+tr.pf-warn-row td { background: #FFF8E1; }
+.pf-toolbar .pe-subtab.active {
+  background: #E60012;
+  color: #fff;
+  border-color: #E60012;
+}
+
+/* ===== Plan Feasibility (top tab) ===== */
+.mtt-tab-pf {
+  border-color: #B3E5FC;
+  color: #0277BD;
+  background: #E1F5FE;
+}
+.mtt-tab-pf:hover { background: #B3E5FC; border-color: #0288D1; }
+.mtt-tab-pf.active {
+  background: linear-gradient(135deg, #0288D1, #01579B);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(2, 136, 209, 0.28);
+}
+
+.pf-hero-card {
+  border: 1px solid #B3E5FC;
+  box-shadow: 0 2px 12px rgba(2, 136, 209, 0.08);
+}
+.pf-hero-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pf-hero-hint {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0277BD;
+  background: #E1F5FE;
+  border: 1px solid #81D4FA;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+.pf-search {
+  padding: 7px 10px;
+  border: 1px solid var(--jt-red-soft);
+  border-radius: 7px;
+  font-size: 0.88rem;
+  min-width: 150px;
+  background: #fff;
+}
+.pf-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 12px 0 14px;
+}
+.pf-metric {
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  border: 1px solid #E0E0E0;
+  background: #FAFAFA;
+  text-align: center;
+  min-height: 96px;
+}
+.pf-m-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #757575;
+  margin-bottom: 4px;
+}
+.pf-m-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #212121;
+  line-height: 1.15;
+}
+.pf-m-value.pf-time { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.pf-m-sub {
+  font-size: 0.72rem;
+  color: #9E9E9E;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.pf-m-routes { background: #E3F2FD; border-color: #90CAF9; }
+.pf-m-routes .pf-m-label { color: #1565C0; }
+.pf-m-ontime { background: #E8F5E9; border-color: #A5D6A7; }
+.pf-m-ontime .pf-m-label, .pf-m-ontime .pf-m-value { color: #1B5E20; }
+.pf-m-late { background: #FFEBEE; border-color: #EF9A9A; }
+.pf-m-late .pf-m-label, .pf-m-late .pf-m-value { color: #B71C1C; }
+.pf-m-plan { background: #FFF3E0; border-color: #FFCC80; }
+.pf-m-plan .pf-m-label { color: #E65100; }
+.pf-m-actual { background: #F3E5F5; border-color: #CE93D8; }
+.pf-m-actual .pf-m-label { color: #6A1B9A; }
+.pf-m-over { background: #FFEBEE; border-color: #E57373; }
+.pf-m-over .pf-m-value { color: #C62828; }
+.pf-m-under { background: #E8F5E9; border-color: #81C784; }
+.pf-m-under .pf-m-value { color: #2E7D32; }
+.pf-m-flat { background: #FAFAFA; }
+.pf-m-overtrips { background: #FFF8E1; border-color: #FFE082; }
+.pf-m-overtrips .pf-m-label { color: #F9A825; }
+.pf-m-problem { background: #FFEBEE; border-color: #EF9A9A; }
+.pf-m-problem .pf-m-value { color: #B71C1C; }
+.pf-m-okroutes { background: #E8F5E9; border-color: #A5D6A7; }
+.pf-m-okroutes .pf-m-value { color: #2E7D32; }
+
+.pf-table-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.pf-count-pill {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0277BD;
+  background: #E1F5FE;
+  border: 1px solid #81D4FA;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+.pf-table-scroll { max-height: 520px; }
+table.pf-table th {
+  background: linear-gradient(135deg, #0277BD, #01579B);
+  color: #fff;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+table.pf-table td { font-size: 0.86rem; vertical-align: middle; }
+table.pf-table .pf-time-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+table.pf-table .pf-ontime-cell {
+  color: #1B5E20;
+  font-weight: 800;
+  background: #E8F5E9;
+}
+table.pf-table .pf-late-cell {
+  color: #B71C1C;
+  font-weight: 800;
+  background: #FFEBEE;
+}
+.pf-type-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ECEFF1;
+  color: #546E7A;
+}
+.pf-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pf-badge-ok { background: #E8F5E9; color: #1B5E20; }
+.pf-badge-mid { background: #E3F2FD; color: #1565C0; }
+.pf-badge-warn { background: #FFF8E1; color: #F57F17; }
+.pf-badge-bad { background: #FFEBEE; color: #C62828; }
+.pf-problem-chip .sub b { color: #B71C1C; }
+.pf-insight-box { margin-top: 4px; }
+tr.pf-warn-row td { background: #FFF8E1; }
+
+
+/* Plan Feasibility — problem route cards */
+.pf-problem-panel {
+  margin: 12px 0 4px;
+  border: 1px solid #FFCDD2;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #FFF8F8 0%, #fff 40%);
+  padding: 14px 16px 16px;
+  box-shadow: 0 2px 10px rgba(198, 40, 40, 0.06);
+}
+.pf-problem-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pf-problem-head h3 {
+  margin: 0 0 4px;
+  font-size: 0.98rem;
+  color: #B71C1C;
+  font-weight: 800;
+}
+.pf-problem-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6D4C41;
+  max-width: 640px;
+  line-height: 1.4;
+}
+.pf-problem-count {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #C62828;
+  background: #FFEBEE;
+  border: 1px solid #EF9A9A;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pf-problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.pf-problem-card {
+  display: flex;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #FFCDD2;
+  border-radius: 12px;
+  padding: 12px 12px 12px 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.pf-problem-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(198, 40, 40, 0.1);
+}
+.pf-problem-card.pf-sev-bad {
+  border-color: #E57373;
+  background: linear-gradient(135deg, #FFF5F5, #fff);
+}
+.pf-problem-card.pf-sev-warn {
+  border-color: #FFCC80;
+  background: linear-gradient(135deg, #FFFBF0, #fff);
+}
+.pf-problem-rank {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #E60012;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pf-sev-warn .pf-problem-rank { background: #F9A825; }
+.pf-problem-main { min-width: 0; flex: 1; }
+.pf-problem-route {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #212121;
+  line-height: 1.2;
+}
+.pf-problem-meta {
+  font-size: 0.72rem;
+  color: #757575;
+  font-weight: 600;
+  margin: 2px 0 8px;
+}
+.pf-problem-times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: #FAFAFA;
+  border-radius: 10px;
+  border: 1px solid #F0F0F0;
+}
+.pf-pt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pf-pt span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #9E9E9E;
+}
+.pf-pt strong {
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  color: #212121;
+}
+.pf-pt-arrow {
+  color: #BDBDBD;
+  font-weight: 700;
+  padding-top: 12px;
+}
+.pf-pt-diff strong.neg { color: #C62828; }
+.pf-pt-diff strong.pos { color: #2E7D32; }
+.pf-problem-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pf-stat {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #546E7A;
+  background: #F5F5F5;
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.pf-stat b { font-weight: 800; }
+.pf-stat-ok { background: #E8F5E9; color: #1B5E20; }
+.pf-stat-late { background: #FFEBEE; color: #B71C1C; }
+.pf-stat-over { background: #FFF3E0; color: #E65100; }
+.pf-ok-panel {
+  margin-top: 10px;
+}
+
+.pf-main-chart { height: 320px; }
+@media (min-width: 900px) {
+  .pf-main-chart { height: 360px; }
+}
