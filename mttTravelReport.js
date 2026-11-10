@@ -115,10 +115,10 @@ const MttTravelReport = (() => {
     return false;
   }
   function effectiveRegion(r) {
-    const route = (r && r.route) || '';
     let reg = normalizeRegionName(r && r.region);
     if (reg === 'BACKLOAD') return 'BACKLOAD';
-    if (isMultiDropRoute(route) || reg === 'TWO DROPS') return 'TWO DROPS';
+    if (reg === 'TWO DROPS') return 'TWO DROPS';
+    // Multi-leg under BSL stay in BSL so region totals match Excel
     return reg;
   }
 
@@ -489,8 +489,8 @@ const MttTravelReport = (() => {
       const byRoute = new Map();
       regList.forEach(r => {
         const rt = r.route || '(blank)';
-        // Normal regions: skip multi-drop codes (they live under TWO DROPS only)
-        if (reg !== 'TWO DROPS' && reg !== 'BACKLOAD' && isMultiDropRoute(rt)) return;
+        // BSL only: 3+ leg routes still count in region total (regList) but are not listed as rows
+        if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(rt)) return;
         if (!byRoute.has(rt)) byRoute.set(rt, []);
         byRoute.get(rt).push(r);
       });
