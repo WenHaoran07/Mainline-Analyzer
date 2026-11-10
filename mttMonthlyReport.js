@@ -27,7 +27,8 @@ const MttMonthlyReport = (() => {
   };
 
   const DC_NAME_MAP = {
-    '490': 'LagunaDC1', '492': 'LagunaDC2', '430': 'BatangasDC1',
+    '490': 'LagunaDC1', '492': 'LagunaDC2', '430': 'BatangasDC1', '320':'IloiloDC1', '520':'AlbayDC1', '521':'MasbateDC', '540':'Camarines Sur DC1', '551':'Western Samar DC', '820':'Davao Del SulDC1', '821':'Cebu DC2', '850':'Agusan Del NorteDC1',
+     '880':'Misamis Oriental DC1', '9073':'DW Bacoor',
     '460': 'Cavite DC1', '9071': 'DW-Taytay 888', '907': 'DW-Taytay 888', '470': 'Lucena'
   };
 
