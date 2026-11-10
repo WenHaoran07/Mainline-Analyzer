@@ -79,6 +79,7 @@ const MttFileProcessor = (() => {
       if (lower.includes('trucker name')) colMap.truckerName = i;
       if (lower.includes('dc intended')) colMap.dcIntended = i;
       if (lower.includes('truck ownner') || lower.includes('carrier owner') || lower.includes('车辆归属')) colMap.owner = i;
+      if (lower === 'checker region' || lower.includes('checker region')) colMap.checkerRegion = i;
       if (lower === 'region' || lower === 'region intended') colMap.region = i;
       if (lower.includes('actual arrival') || lower.includes('check in')) colMap.arrival = i;
       if (lower.includes('actual departure') || lower.includes('check out')) colMap.departure = i;
@@ -175,7 +176,7 @@ const MttFileProcessor = (() => {
         routeTypeRaw: String(routeTypeRaw || '').trim(),
         trucker: String(get(colMap.truckerName) || get(colMap.truckerAbbr) || '').trim() || '(blank)',
         dcIntended: String(get(colMap.dcIntended) || '').trim() || '(blank)',
-        region: String(get(colMap.region) || '').trim() || '(blank)',
+        region: String(get(colMap.checkerRegion) || get(colMap.region) || '').trim() || '(blank)',
         owner, status,
         actualDeparture: formatDateTimeCell(get(colMap.departure)),
         actualArrival: formatDateTimeCell(
@@ -212,10 +213,10 @@ const MttFileProcessor = (() => {
 
     // Also parse Delay Reason sheet (optional — does not block travel-time analysis)
     processDelaySheet(workbook);
-    // Supervisor performance sheets (3PL Supervisor, Luzon Own, Vismin Own, Luzon 3PL, Vismin 3PL)
+    // Supervisor performance — built from DATA (Own = SELU/SWL, rest = 3PL)
     if (typeof MttSupervisor !== 'undefined' && MttSupervisor.ingestWorkbook) {
       try { supervisorPack = MttSupervisor.ingestWorkbook(workbook); }
-      catch (e) { console.warn('Supervisor sheets parse failed', e); supervisorPack = null; }
+      catch (e) { console.warn('Supervisor DATA build failed', e); supervisorPack = null; }
     } else {
       supervisorPack = null;
     }
