@@ -8,6 +8,7 @@
      5) SLU VisMin by Region + Route
    Weekly: last 3 weeks · Monthly: delay/ontime/total + JUL…current + monthly diff
    JUL & AUG scope totals fixed from official baseline where listed.
+   Weekly/Monthly rates = average of daily on-time % (same as Rate Matrix).
    ========================================================================== */
 const MttMonthlyReport = (() => {
   const TARGET = { ALL: 0.96, LUZON: 0.97, VISMIN: 0.85 };
@@ -67,11 +68,69 @@ const MttMonthlyReport = (() => {
     const total = list.length;
     return { total, yes, no: total - yes, rate: total ? yes / total : null };
   }
+  /** Same as Rate Matrix: period rate = average of each day's on-time % */
+  function periodRate(list) {
+    if (!list || !list.length) return null;
+    const byDay = {};
+    list.forEach(function (r) {
+      const dk = r.dateKey || '_';
+      if (!byDay[dk]) byDay[dk] = [];
+      byDay[dk].push(r);
+    });
+    let sum = 0, n = 0;
+    Object.keys(byDay).forEach(function (dk) {
+      const s = stats(byDay[dk]);
+      if (s.rate != null) { sum += s.rate; n++; }
+    });
+    return n ? sum / n : null;
+  }
   function filterScope(list, scope) {
     if (scope === 'LUZON') return list.filter(r => r.routeType === 'LUZON');
     if (scope === 'VISMIN') return list.filter(r => r.routeType === 'VISMIN');
     return list;
   }
+
+  function normalizeRegionName(raw) {
+    const u = String(raw || '').trim().toUpperCase();
+    if (!u || u === '(BLANK)' || u === 'BLANK' || u === 'N/A' || u === '-') return '(blank)';
+    if (u === 'TWO DROPS' || u === 'TWODROPS' || u === 'TWO-DROPS') return 'TWO DROPS';
+    if (u === 'BACKLOAD' || u === 'BACK LOAD') return 'BACKLOAD';
+    return String(raw || '').trim() || '(blank)';
+  }
+  function regionSortKey(name) {
+    const u = String(name || '').toUpperCase();
+    if (u === 'TWO DROPS') return 'zzzz1';
+    if (u === 'BACKLOAD') return 'zzzz2';
+    if (u === '(BLANK)') return 'zzzz9';
+    return u;
+  }
+  function sortRegions(names) {
+    return names.slice().sort(function (a, b) {
+      return regionSortKey(a).localeCompare(regionSortKey(b));
+    });
+  }
+  /** Multi-leg routes e.g. 490-520-551 / 490-540-530 → TWO DROPS (same as Rate Matrix) */
+  function isMultiDropRoute(route) {
+    const s = String(route || '').trim().toUpperCase();
+    if (!s || s === '(BLANK)' || s === 'BLANK') return false;
+    const parts = s.split(/[-–—_/\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (parts.length >= 3) {
+      const numericish = parts.filter(function (p) { return /^\d{2,}$/.test(p); });
+      if (numericish.length >= 3) return true;
+      return true;
+    }
+    if (s.indexOf('TWO DROP') >= 0 || s.indexOf('2 DROP') >= 0 || s.indexOf('TWODROP') >= 0) return true;
+    return false;
+  }
+  function effectiveRegion(r) {
+    const route = (r && r.route) || '';
+    let reg = normalizeRegionName(r && r.region);
+    if (reg === 'BACKLOAD') return 'BACKLOAD';
+    if (isMultiDropRoute(route) || reg === 'TWO DROPS') return 'TWO DROPS';
+    return reg;
+  }
+
+
   function resolveDc(codeOrName) {
     const raw = String(codeOrName || '').trim();
     const digits = raw.replace(/\.0+$/, '').replace(/[^0-9]/g, '') || raw;
@@ -108,8 +167,7 @@ const MttMonthlyReport = (() => {
       return FIXED_MONTH_RATES[scopeFixed][ym];
     }
     const list = rows.filter(r => monthKey(r.dateKey) === ym);
-    const s = stats(list);
-    return s.total ? s.rate : null;
+    return periodRate(list);
   }
 
   function monthColsFor(focus, rows, scopeFixed) {
@@ -130,12 +188,13 @@ const MttMonthlyReport = (() => {
 
   function buildEntityMetrics(name, code, rows, focus, weekKeys, scopeFixed, target) {
     const weekRates = weekKeys.map(wk => {
-      const s = stats(rows.filter(r => weekKey(r.dateKey) === wk));
+      const list = rows.filter(r => weekKey(r.dateKey) === wk);
+      const s = stats(list);
       const wn = wk && String(wk).match(/W(\d+)/i);
       return {
         key: wk,
         label: wn ? ('WK ' + parseInt(wn[1], 10) + ' RATE') : 'WK —',
-        rate: s.total ? s.rate : null,
+        rate: periodRate(list),
         total: s.total
       };
     });
@@ -370,7 +429,7 @@ const MttMonthlyReport = (() => {
 
     const byReg = new Map();
     scoped.forEach(r => {
-      const reg = r.region || '(blank)';
+      const reg = effectiveRegion(r);
       if (!byReg.has(reg)) byReg.set(reg, []);
       byReg.get(reg).push(r);
     });
@@ -464,7 +523,7 @@ const MttMonthlyReport = (() => {
 
     const byReg = new Map();
     data.forEach(r => {
-      const reg = r.region || '(blank)';
+      const reg = effectiveRegion(r);
       const route = r.route || '(blank)';
       const trucker = r.trucker || '(blank)';
       if (!byReg.has(reg)) byReg.set(reg, new Map());
@@ -1115,12 +1174,12 @@ const MttMonthlyReport = (() => {
       const totalName = scope === 'LUZON' ? 'LUZON ROUTE' : 'VISMIN ROUTE';
       const byReg = new Map();
       scoped.forEach(function (r) {
-        const reg = r.region || '(blank)';
+        const reg = effectiveRegion(r);
         if (!byReg.has(reg)) byReg.set(reg, []);
         byReg.get(reg).push(r);
       });
       const body = [];
-      [...byReg.keys()].sort().forEach(function (reg) {
+      sortRegions([...byReg.keys()]).forEach(function (reg) {
         const regList = byReg.get(reg);
         body.push({
           row: buildEntityMetrics(reg, '', regList, focus, weekKeys, null, target),
@@ -1130,6 +1189,7 @@ const MttMonthlyReport = (() => {
         const byRoute = new Map();
         regList.forEach(function (r) {
           const rt = r.route || '(blank)';
+          if (reg !== 'TWO DROPS' && reg !== 'BACKLOAD' && isMultiDropRoute(rt)) return;
           if (!byRoute.has(rt)) byRoute.set(rt, []);
           byRoute.get(rt).push(r);
         });
@@ -1165,7 +1225,7 @@ const MttMonthlyReport = (() => {
       const use = data.length ? data : scoped;
       const byReg = new Map();
       use.forEach(function (r) {
-        const reg = r.region || '(blank)';
+        const reg = effectiveRegion(r);
         const route = r.route || '(blank)';
         const trucker = r.trucker || '(blank)';
         if (!byReg.has(reg)) byReg.set(reg, new Map());
