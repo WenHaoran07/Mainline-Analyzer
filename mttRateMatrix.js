@@ -2,7 +2,7 @@
    MODULE: MTT RATE MATRIX
    Layout 1 (Summary Board): clean photo-style OVERALL / LUZON / VISMIN bands
    Layout 2 (Original + Graphs): detailed sheets + trend charts (Overall/Luzon/VisMin)
-   Rates = avg of daily on-time % · Trend = last vs previous consecutive period
+   Rates = YES ÷ TOTAL (Excel WM SLU formula) · Trend = last vs previous consecutive period
    TWO DROPS & BACKLOAD listed last · blanks kept for abnormality checks
    ========================================================================== */
 const MttRateMatrix = (() => {
@@ -14,8 +14,10 @@ const MttRateMatrix = (() => {
   ];
   const SPECIAL_REGIONS = ['TWO DROPS', 'BACKLOAD'];
 
-  let mode = 'weekly';
+  let mode = 'weekly'; // 'weekly' | 'monthly'
   let matrixView = 'scope';
+  let periodFrom = ''; // inclusive range start (weekKey / monthKey); '' = open
+  let periodTo = '';   // inclusive range end; '' = open
 
   const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const MONTH_UP = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
@@ -76,10 +78,130 @@ const MttRateMatrix = (() => {
     const m = forMode || mode;
     if (typeof MttFileProcessor === 'undefined') return [];
     const st = MttFileProcessor.getState();
-    const pkFn = m === 'weekly' ? weekKey : monthKey;
-    return (st.storedRows || []).map(r => Object.assign({}, r, {
-      period: r.dateKey ? pkFn(r.dateKey) : null
-    }));
+    const pkFn = m === 'monthly' ? monthKey : weekKey;
+    let rows = (st.storedRows || []).map(function (r) {
+      return Object.assign({}, r, {
+        period: r.dateKey ? pkFn(r.dateKey) : null
+      });
+    });
+    // Inclusive period range filter (e.g. WK39→WK45 or 2026-01→2026-05)
+    const keys = periodKeysInRange(availablePeriods(m), periodFrom, periodTo);
+    if (keys) {
+      const allow = new Set(keys);
+      rows = rows.filter(function (r) { return r.period && allow.has(r.period); });
+    }
+    return rows;
+  }
+
+  function availablePeriods(forMode) {
+    const m = forMode || mode;
+    if (typeof MttFileProcessor === 'undefined') return [];
+    const st = MttFileProcessor.getState();
+    const pkFn = m === 'monthly' ? monthKey : weekKey;
+    const set = new Set();
+    (st.storedRows || []).forEach(function (r) {
+      const pk = r.dateKey ? pkFn(r.dateKey) : null;
+      if (pk) set.add(pk);
+    });
+    return [...set].sort();
+  }
+
+  /** Returns null = no filter (all); else sorted list of keys in [from, to] inclusive */
+  function periodKeysInRange(allKeys, from, to) {
+    if (!allKeys || !allKeys.length) return null;
+    if (!from && !to) return null;
+    const sorted = allKeys.slice().sort();
+    let i0 = 0;
+    let i1 = sorted.length - 1;
+    if (from) {
+      const i = sorted.indexOf(from);
+      i0 = i >= 0 ? i : sorted.findIndex(function (k) { return k >= from; });
+      if (i0 < 0) i0 = sorted.length;
+    }
+    if (to) {
+      const i = sorted.indexOf(to);
+      i1 = i >= 0 ? i : (function () {
+        let last = -1;
+        for (let j = 0; j < sorted.length; j++) if (sorted[j] <= to) last = j;
+        return last;
+      })();
+    }
+    if (i0 > i1) return [];
+    return sorted.slice(i0, i1 + 1);
+  }
+
+  function optionLabel(pk, forMode, labelRows) {
+    const m = forMode || mode;
+    if (m === 'weekly') {
+      const mm = String(pk).match(/W(\d+)/i);
+      const range = weekDateRange(pk, labelRows || []);
+      return (mm ? ('WK ' + parseInt(mm[1], 10)) : pk) + (range ? (' · ' + range) : '');
+    }
+    return labelFor(pk, 'monthly', []);
+  }
+
+  function fillPeriodSelect(sel, keys, labelRows, placeholder) {
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '';
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = placeholder;
+    sel.appendChild(opt0);
+    keys.forEach(function (pk) {
+      const o = document.createElement('option');
+      o.value = pk;
+      o.textContent = optionLabel(pk, mode, labelRows);
+      sel.appendChild(o);
+    });
+    if (prev && keys.indexOf(prev) >= 0) sel.value = prev;
+    else sel.value = '';
+  }
+
+  function refreshPeriodSelect() {
+    const wrap = document.getElementById('rmPeriodPickWrap');
+    const fromSel = document.getElementById('rmPeriodFrom');
+    const toSel = document.getElementById('rmPeriodTo');
+    const lab = document.getElementById('rmPeriodPickLabel');
+    if (!wrap || !fromSel || !toSel) return;
+    wrap.style.display = '';
+    if (lab) lab.textContent = mode === 'weekly' ? 'Week range' : 'Month range';
+    const keys = availablePeriods(mode);
+    let labelRows = [];
+    if (typeof MttFileProcessor !== 'undefined') {
+      const st = MttFileProcessor.getState();
+      labelRows = (st.storedRows || []).map(function (r) {
+        return Object.assign({}, r, { period: r.dateKey ? weekKey(r.dateKey) : null });
+      });
+    }
+    const fromPh = mode === 'weekly' ? 'From (all weeks)' : 'From (all months)';
+    const toPh = mode === 'weekly' ? 'To (all weeks)' : 'To (all months)';
+    fillPeriodSelect(fromSel, keys, labelRows, fromPh);
+    fillPeriodSelect(toSel, keys, labelRows, toPh);
+    // restore range if still valid
+    if (periodFrom && keys.indexOf(periodFrom) >= 0) fromSel.value = periodFrom;
+    else { periodFrom = ''; fromSel.value = ''; }
+    if (periodTo && keys.indexOf(periodTo) >= 0) toSel.value = periodTo;
+    else { periodTo = ''; toSel.value = ''; }
+  }
+
+  function updateFilterNote() {
+    const note = document.getElementById('rmFilterNote');
+    if (!note) return;
+    const kind = mode === 'weekly' ? 'Weekly' : 'Monthly';
+    const keys = availablePeriods(mode);
+    const inRange = periodKeysInRange(keys, periodFrom, periodTo);
+    if (!inRange) {
+      note.textContent = kind + ' · ' + (mode === 'weekly' ? 'All weeks' : 'All months');
+      return;
+    }
+    if (!inRange.length) {
+      note.textContent = kind + ' · (empty range)';
+      return;
+    }
+    const a = optionLabel(inRange[0], mode, []);
+    const b = optionLabel(inRange[inRange.length - 1], mode, []);
+    note.textContent = kind + ' · ' + a + ' → ' + b;
   }
 
   function stats(list) {
@@ -89,20 +211,11 @@ const MttRateMatrix = (() => {
     return { total: total, yes: yes, no: total - yes, rate: total ? yes / total : null };
   }
 
+    /** Excel WM SLU TRAVEL TIME: RATE = YES ÷ TOTAL (COUNTIFS), not avg of daily rates */
   function periodRate(list) {
     if (!list || !list.length) return null;
-    const byDay = {};
-    list.forEach(function (r) {
-      const dk = r.dateKey || '_';
-      if (!byDay[dk]) byDay[dk] = [];
-      byDay[dk].push(r);
-    });
-    let sum = 0, n = 0;
-    Object.keys(byDay).forEach(function (dk) {
-      const s = stats(byDay[dk]);
-      if (s.rate != null) { sum += s.rate; n++; }
-    });
-    return n ? sum / n : null;
+    const s = stats(list);
+    return s.rate;
   }
 
   function filterScope(list, scope) {
@@ -1029,9 +1142,13 @@ const MttRateMatrix = (() => {
 
   function setMode(next) {
     mode = next === 'monthly' ? 'monthly' : 'weekly';
+    periodFrom = '';
+    periodTo = '';
     document.querySelectorAll('.rm-subtab[data-rm-mode]').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.rmMode === mode);
     });
+    refreshPeriodSelect();
+    updateFilterNote();
     render();
   }
   function setMatrixView(next) {
@@ -1049,11 +1166,37 @@ const MttRateMatrix = (() => {
     document.querySelectorAll('.rm-viewtab').forEach(function (btn) {
       btn.addEventListener('click', function () { setMatrixView(btn.dataset.rmView); });
     });
+    function onRangeChange() {
+      const fromSel = document.getElementById('rmPeriodFrom');
+      const toSel = document.getElementById('rmPeriodTo');
+      periodFrom = (fromSel && fromSel.value) || '';
+      periodTo = (toSel && toSel.value) || '';
+      // If from > to, swap for a sensible range
+      if (periodFrom && periodTo && periodFrom > periodTo) {
+        const tmp = periodFrom;
+        periodFrom = periodTo;
+        periodTo = tmp;
+        if (fromSel) fromSel.value = periodFrom;
+        if (toSel) toSel.value = periodTo;
+      }
+      updateFilterNote();
+      render();
+    }
+    const fromSel = document.getElementById('rmPeriodFrom');
+    const toSel = document.getElementById('rmPeriodTo');
+    if (fromSel) fromSel.addEventListener('change', onRangeChange);
+    if (toSel) toSel.addEventListener('change', onRangeChange);
     const exp = document.getElementById('btnRmExport');
     if (exp) exp.addEventListener('click', exportExcel);
     document.querySelectorAll('.tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
-        if (tab.dataset.tab === 'tabRateMatrix') setTimeout(render, 40);
+        if (tab.dataset.tab === 'tabRateMatrix') {
+          setTimeout(function () {
+            refreshPeriodSelect();
+            updateFilterNote();
+            render();
+          }, 40);
+        }
       });
     });
     document.addEventListener('keydown', function (e) {
@@ -1061,7 +1204,11 @@ const MttRateMatrix = (() => {
     });
   }
 
-  function onDataReady() { render(); }
+  function onDataReady() {
+    refreshPeriodSelect();
+    updateFilterNote();
+    render();
+  }
 
   return { init, render, onDataReady, exportExcel };
 })();
