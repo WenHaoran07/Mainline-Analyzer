@@ -203,14 +203,8 @@ const MttRateMatrix = (() => {
     scoped.forEach(function (r) {
       let reg = normalizeRegionName(r.region);
       const route = (r.route || '(blank)').trim() || '(blank)';
-      // Multi-leg routes (e.g. 490-540-550) always sit under TWO DROPS
-      if (isMultiDropRoute(route) || isSpecialRegion(reg)) {
-        if (reg === 'BACKLOAD') {
-          /* keep BACKLOAD as its own special bucket */
-        } else {
-          reg = 'TWO DROPS';
-        }
-      }
+      // Keep region from data (TWO DROPS / BACKLOAD only when region says so).
+      // Do NOT move multi-leg BSL routes out of BSL — they still count in BSL totals.
       if (!byRegion.has(reg)) byRegion.set(reg, new Map());
       const byRoute = byRegion.get(reg);
       if (!byRoute.has(route)) byRoute.set(route, []);
@@ -220,14 +214,15 @@ const MttRateMatrix = (() => {
     const blocks = regions.map(function (reg) {
       const byRoute = byRegion.get(reg);
       const special = isSpecialRegion(reg);
-      // Normal regions: only simple 2-leg routes. TWO DROPS/BACKLOAD: keep all.
+      const bsl = String(reg || '').trim().toUpperCase() === 'BSL';
+      // BSL only: 3+ leg routes still COUNT in region totals but are NOT listed as route rows.
+      // Other regions / TWO DROPS / BACKLOAD: list all routes as before.
       const routes = [...byRoute.keys()].filter(function (rt) {
-        if (special) return true;
-        return !isMultiDropRoute(rt);
+        if (bsl && isMultiDropRoute(rt)) return false;
+        return true;
       }).sort(function (a, b) { return a.localeCompare(b); });
       const regAll = [];
-      byRoute.forEach(function (list, rt) {
-        if (!special && isMultiDropRoute(rt)) return;
+      byRoute.forEach(function (list) {
         list.forEach(function (x) { regAll.push(x); });
       });
       const regionRates = {};
