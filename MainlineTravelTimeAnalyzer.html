@@ -55,6 +55,7 @@
         <button type="button" class="mtt-main-tab mtt-tab-report" id="tabMttReport">📑 Mainline Report</button>
         <button type="button" class="mtt-main-tab mtt-tab-monthly" id="tabMttMonthly">📆 Monthly Report</button>
         <button type="button" class="mtt-main-tab mtt-tab-sup" id="tabMttSup">👤 Supervisor Performance</button>
+        <button type="button" class="mtt-main-tab mtt-tab-pf" id="tabMttPlan">⏱️ Plan Feasibility</button>
       </div>
 
       <div id="mttDayPanel">
@@ -413,6 +414,7 @@
           <div id="rmView"></div>
         </div>
 
+
         <div id="tabDelayReason" class="tab-panel">
           <div class="pe-toolbar">
             <div id="peDateFilterWrap">
@@ -652,6 +654,106 @@
         </div>
       </div><!-- /#mttSupPanel -->
 
+      <div id="mttPlanPanel" class="hidden">
+        <div class="card pf-hero-card">
+          <div class="pf-hero-head">
+            <div>
+              <h2><span class="icon">⏱️</span> Plan Feasibility</h2>
+            </div>
+          </div>
+
+          <div class="pe-toolbar pf-toolbar">
+            <div class="pe-subtabs">
+              <button type="button" class="pe-subtab active" data-pf-period="all">All dates</button>
+              <button type="button" class="pe-subtab" data-pf-period="week">Weekly</button>
+              <button type="button" class="pe-subtab" data-pf-period="month">Monthly</button>
+            </div>
+            <div id="pfWeekWrap" class="hidden">
+              <label class="pe-label">Week</label>
+              <select id="pfWeek"></select>
+            </div>
+            <div id="pfMonthWrap" class="hidden">
+              <label class="pe-label">Month</label>
+              <select id="pfMonth"></select>
+            </div>
+            <div>
+              <label class="pe-label">Scope</label>
+              <select id="pfScope">
+                <option value="ALL">Overall</option>
+                <option value="LUZON">Luzon Route</option>
+                <option value="VISMIN">VisMin Route</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">On time filter</label>
+              <select id="pfOnTime">
+                <option value="ALL">All trips</option>
+                <option value="NO">Not on time only</option>
+                <option value="YES">On time only</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Search route / region</label>
+              <input type="search" id="pfSearchRoute" class="pf-search" placeholder="e.g. 490-540" autocomplete="off">
+            </div>
+            <div>
+              <label class="pe-label">Sort by</label>
+              <select id="pfSort">
+                <option value="overrun-desc">Most over plan first</option>
+                <option value="pct-desc">Highest % slower than plan</option>
+                <option value="late-desc">Highest late rate</option>
+                <option value="trips-desc">Most trips</option>
+                <option value="overrun-asc">Most under plan first</option>
+                <option value="route-asc">Route A–Z</option>
+              </select>
+            </div>
+            <button type="button" id="btnPfRun" class="wm-run-btn">Apply</button>
+            <button type="button" id="pfClear" class="wm-mini-btn">Clear</button>
+          </div>
+
+          <div class="date-info" id="pfInfo">Upload a Mainline workbook to analyze plan feasibility.</div>
+          <div class="pf-metric-grid" id="pfMetrics"></div>
+          <div id="pfInsight"></div>
+          <div id="pfTopProblems"></div>
+        </div>
+
+        <div class="card" id="pfChartCard">
+          <h2 style="margin:0 0 8px;"><span class="icon">📉</span> <span id="pfChartTitle">Avg time vs plan</span></h2>
+          <div class="chart-wrap pf-main-chart"><canvas id="pfChartOverrun"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="pf-table-head">
+            <div>
+              <h2 style="margin:0;"><span class="icon">📋</span> Route plan vs actual</h2>
+            </div>
+            <span id="pfTableCount" class="pf-count-pill">0 routes</span>
+          </div>
+          <div class="table-scroll pf-table-scroll">
+            <table class="pf-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Route</th>
+                  <th>Region</th>
+                  <th>Type</th>
+                  <th>Trips</th>
+                  <th>On Time</th>
+                  <th>Not On Time</th>
+                  <th>Avg Plan TT</th>
+                  <th>Avg Actual TT</th>
+                  <th>Avg Diff</th>
+                  <th title="Share of trips where actual travel time &gt; plan travel time">Slower than plan</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="pfTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /#mttPlanPanel -->
+
+
     </div>
   </div>
 
@@ -669,6 +771,7 @@
   <script src="mttProblemReport.js"></script>
   <script src="mttWeeklyMonthly.js"></script>
   <script src="mttRateMatrix.js"></script>
+  <script src="mttPlanFeasibility.js"></script>
   <script src="mttAllData.js"></script>
   <script src="mttSupervisor.js"></script>
   <script src="mttTravelReport.js"></script>
