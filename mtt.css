@@ -3859,3 +3859,111 @@ tr.pf-warn-row td { background: #FFF8E1; }
 @media (min-width: 900px) {
   .pf-main-chart { height: 360px; }
 }
+
+
+/* Rate Matrix — filter groups + roomy single-scope view */
+.rm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  align-items: flex-end;
+}
+.rm-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rm-filter-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--jt-red-dark, #B8000E);
+}
+.rm-scopetab {
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #FAFAFA;
+  color: #757575;
+  border: 1px solid #E0E0E0;
+}
+.rm-scopetab.active {
+  background: #2E7D32;
+  color: #fff;
+  border-color: #2E7D32;
+}
+.rm-view-roomy {
+  min-height: 280px;
+}
+.rm-view-single .rm-board {
+  margin-bottom: 20px;
+}
+.rm-view-single .rm-board-table td {
+  padding: 14px 10px;
+  font-size: 1rem;
+}
+.rm-view-single .rm-board-table th {
+  padding: 10px 8px;
+  font-size: 0.78rem;
+}
+.rm-charts-single {
+  grid-template-columns: 1fr !important;
+}
+.rm-chart-wrap-lg {
+  height: 320px !important;
+}
+.rm-board-table {
+  table-layout: auto;
+}
+.rm-board-table th,
+.rm-board-table td {
+  min-width: 88px;
+}
+.rm-route-board .rm-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.rm-route-board .rm-table th,
+.rm-route-board .rm-table td {
+  white-space: nowrap;
+  min-width: 92px;
+}
+#rmFilterNote {
+  margin: 4px 0 12px;
+  font-weight: 600;
+  color: #616161;
+}
+
+
+/* Rate Matrix — period week/month picker */
+.rm-period-select {
+  min-width: 160px;
+  padding: 6px 10px;
+  border: 1px solid #cfd8dc;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #333;
+}
+.rm-filter-group #rmPeriodPickWrap,
+#rmPeriodPickWrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap; /* Prevents stacking */
+}
+
+#rmPeriodPickWrap select {
+  width: auto; /* Overrides any 100% width rule */
+  min-width: 140px; /* Adjust as needed */
+}
+
+.rm-range-sep {
+  color: #78909c;
+  font-weight: 600;
+  padding: 0 2px;
+}
