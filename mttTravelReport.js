@@ -4,6 +4,7 @@
      OVERALL sheet → Mainline / Luzon / VisMin blocks + monthly achieve charts
      SLU TRAVEL TIME → By DC, By Trucker, Luzon by Region+Route, VisMin by Region+Route
    Data: SLU rows only (FileProcessor).
+   Weekly/Monthly rates = average of daily on-time % (same as Rate Matrix).
    ========================================================================== */
 const MttTravelReport = (() => {
   const TARGET = { ALL: 0.96, LUZON: 0.97, VISMIN: 0.85 };
@@ -59,11 +60,69 @@ const MttTravelReport = (() => {
     const total = list.length;
     return { total, yes, no: total - yes, rate: total ? yes / total : null };
   }
+  /** Same as Rate Matrix: period rate = average of each day's on-time % */
+  function periodRate(list) {
+    if (!list || !list.length) return null;
+    const byDay = {};
+    list.forEach(function (r) {
+      const dk = r.dateKey || '_';
+      if (!byDay[dk]) byDay[dk] = [];
+      byDay[dk].push(r);
+    });
+    let sum = 0, n = 0;
+    Object.keys(byDay).forEach(function (dk) {
+      const s = stats(byDay[dk]);
+      if (s.rate != null) { sum += s.rate; n++; }
+    });
+    return n ? sum / n : null;
+  }
   function filterScope(list, scope) {
     if (scope === 'LUZON') return list.filter(r => r.routeType === 'LUZON');
     if (scope === 'VISMIN') return list.filter(r => r.routeType === 'VISMIN');
     return list;
   }
+
+  function normalizeRegionName(raw) {
+    const u = String(raw || '').trim().toUpperCase();
+    if (!u || u === '(BLANK)' || u === 'BLANK' || u === 'N/A' || u === '-') return '(blank)';
+    if (u === 'TWO DROPS' || u === 'TWODROPS' || u === 'TWO-DROPS') return 'TWO DROPS';
+    if (u === 'BACKLOAD' || u === 'BACK LOAD') return 'BACKLOAD';
+    return String(raw || '').trim() || '(blank)';
+  }
+  function regionSortKey(name) {
+    const u = String(name || '').toUpperCase();
+    if (u === 'TWO DROPS') return 'zzzz1';
+    if (u === 'BACKLOAD') return 'zzzz2';
+    if (u === '(BLANK)') return 'zzzz9';
+    return u;
+  }
+  function sortRegions(names) {
+    return names.slice().sort(function (a, b) {
+      return regionSortKey(a).localeCompare(regionSortKey(b));
+    });
+  }
+  /** Multi-leg routes e.g. 490-520-551 / 490-540-530 → TWO DROPS (same as Rate Matrix) */
+  function isMultiDropRoute(route) {
+    const s = String(route || '').trim().toUpperCase();
+    if (!s || s === '(BLANK)' || s === 'BLANK') return false;
+    const parts = s.split(/[-–—_/\s]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (parts.length >= 3) {
+      const numericish = parts.filter(function (p) { return /^\d{2,}$/.test(p); });
+      if (numericish.length >= 3) return true;
+      return true;
+    }
+    if (s.indexOf('TWO DROP') >= 0 || s.indexOf('2 DROP') >= 0 || s.indexOf('TWODROP') >= 0) return true;
+    return false;
+  }
+  function effectiveRegion(r) {
+    const route = (r && r.route) || '';
+    let reg = normalizeRegionName(r && r.region);
+    if (reg === 'BACKLOAD') return 'BACKLOAD';
+    if (isMultiDropRoute(route) || reg === 'TWO DROPS') return 'TWO DROPS';
+    return reg;
+  }
+
+
   function last7Dates(focus, dates) {
     const sorted = (dates || []).slice().sort();
     if (!focus || !sorted.length) return [];
@@ -122,13 +181,18 @@ const MttTravelReport = (() => {
       wkPrevKey = weekKey(pk);
     }
     const wkCurrKey = weekKey(focus);
-    const wkCurrSt = stats(rows.filter(r => weekKey(r.dateKey) === wkCurrKey));
-    const wkPrevSt = wkPrevKey ? stats(rows.filter(r => weekKey(r.dateKey) === wkPrevKey)) : { rate: null };
-    const weeklyDiff = (wkCurrSt.rate != null && wkPrevSt.rate != null) ? wkCurrSt.rate - wkPrevSt.rate : null;
+    const wkCurrList = rows.filter(r => weekKey(r.dateKey) === wkCurrKey);
+    const wkPrevList = wkPrevKey ? rows.filter(r => weekKey(r.dateKey) === wkPrevKey) : [];
+    const wkCurrSt = stats(wkCurrList);
+    const wkPrevSt = stats(wkPrevList);
+    const wkCurrRate = periodRate(wkCurrList);
+    const wkPrevRate = periodRate(wkPrevList);
+    const weeklyDiff = (wkCurrRate != null && wkPrevRate != null) ? wkCurrRate - wkPrevRate : null;
 
     const mk = monthKey(focus);
     const monthRows = rows.filter(r => monthKey(r.dateKey) === mk);
     const monthSt = stats(monthRows);
+    const monthRateAvg = periodRate(monthRows);
 
     let wkPrevLabel = 'WK —', wkCurrLabel = 'WK —';
     if (wn != null) wkCurrLabel = 'WK ' + wn;
@@ -146,10 +210,10 @@ const MttTravelReport = (() => {
       target: scopeTarget, rate: st.rate,
       hist7, histRates,
       dailyDiff, mood: mood(dailyDiff), arrow: arrow(dailyDiff),
-      wkPrev: wkPrevSt.rate, wkCurr: wkCurrSt.rate, weeklyDiff,
+      wkPrev: wkPrevRate, wkCurr: wkCurrRate, weeklyDiff,
       wkPrevLabel, wkCurrLabel,
       monthLate: monthSt.no, monthOnTime: monthSt.yes,
-      monthTotal: monthSt.total, monthRate: monthSt.rate
+      monthTotal: monthSt.total, monthRate: monthRateAvg
     };
   }
 
@@ -399,9 +463,9 @@ const MttTravelReport = (() => {
   function buildScopeBlock(title, scope, target, focus, dates) {
     const rows = filterScope(allRows(), scope);
     const slu = buildEntityRow('SLU', '', rows, focus, dates, target);
-    const regionNames = [...new Set(rows.map(r => r.region || '(blank)'))].sort();
+    const regionNames = sortRegions([...new Set(rows.map(r => effectiveRegion(r)))]);
     const regionRows = regionNames.map(reg =>
-      buildEntityRow(reg, '', rows.filter(r => (r.region || '(blank)') === reg), focus, dates, target)
+      buildEntityRow(reg, '', rows.filter(r => effectiveRegion(r) === reg), focus, dates, target)
     ).filter(r => r.monthTotal > 0 || r.total > 0 || (r.histRates || []).some(h => h.total > 0));
     return { title, target, slu, regionRows, hist7: last7Dates(focus, dates) };
   }
@@ -409,15 +473,15 @@ const MttTravelReport = (() => {
   function buildRouteRegionPack(scope, target, focus, dates) {
     const rows = filterScope(allRows(), scope);
     const hist7 = last7Dates(focus, dates);
-    // Group by region, then routes under each
+    // Group by effective region (multi-leg routes → TWO DROPS), then routes
     const byReg = new Map();
     rows.forEach(r => {
-      const reg = r.region || '(blank)';
+      const reg = effectiveRegion(r);
       if (!byReg.has(reg)) byReg.set(reg, []);
       byReg.get(reg).push(r);
     });
     const items = [];
-    [...byReg.keys()].sort().forEach(reg => {
+    sortRegions([...byReg.keys()]).forEach(reg => {
       const regList = byReg.get(reg);
       const regRow = buildEntityRow(reg, '', regList, focus, dates, target);
       items.push({ left: [reg, ''], row: regRow, bold: false, isGroup: true });
@@ -425,12 +489,13 @@ const MttTravelReport = (() => {
       const byRoute = new Map();
       regList.forEach(r => {
         const rt = r.route || '(blank)';
+        // Normal regions: skip multi-drop codes (they live under TWO DROPS only)
+        if (reg !== 'TWO DROPS' && reg !== 'BACKLOAD' && isMultiDropRoute(rt)) return;
         if (!byRoute.has(rt)) byRoute.set(rt, []);
         byRoute.get(rt).push(r);
       });
       [...byRoute.keys()].sort().forEach(rt => {
         const routeRow = buildEntityRow(rt, '', byRoute.get(rt), focus, dates, target);
-        // only keep routes with some activity
         if (routeRow.total > 0 || routeRow.monthTotal > 0 || (routeRow.histRates || []).some(h => h.total > 0)) {
           items.push({ left: ['', rt], row: routeRow, bold: false, isGroup: false });
         }
@@ -670,7 +735,7 @@ const MttTravelReport = (() => {
     function groupTree(list) {
       const byReg = new Map();
       list.forEach(r => {
-        const reg = r.region || '(blank)';
+        const reg = effectiveRegion(r);
         const route = r.route || '(blank)';
         const trucker = r.trucker || '(blank)';
         if (!byReg.has(reg)) byReg.set(reg, new Map());
@@ -707,7 +772,9 @@ const MttTravelReport = (() => {
     function rateCells(currList, prevList) {
       const st = stats(currList);
       const prevSt = stats(prevList);
-      const diff = (st.rate != null && prevSt.rate != null) ? st.rate - prevSt.rate : null;
+      const rate = periodRate(currList);
+      const prevRate = periodRate(prevList);
+      const diff = (rate != null && prevRate != null) ? rate - prevRate : null;
       let diffHtml = '<td class="tr-muted">—</td>';
       if (diff != null) {
         const cls = diff >= 0 ? 'mr-ok' : 'mr-bad';
@@ -716,10 +783,10 @@ const MttTravelReport = (() => {
       }
       return {
         st: st,
-        prevRate: prevSt.rate,
+        prevRate: prevRate,
         diffHtml: diffHtml,
-        rateHtml: '<td class="' + achieveColor(st.rate) + '">' + pct(st.rate) + '</td>',
-        prevHtml: '<td class="' + achieveColor(prevSt.rate) + '">' + pct(prevSt.rate) + '</td>'
+        rateHtml: '<td class="' + achieveColor(rate) + '">' + pct(rate) + '</td>',
+        prevHtml: '<td class="' + achieveColor(prevRate) + '">' + pct(prevRate) + '</td>'
       };
     }
 
