@@ -8,7 +8,7 @@
      5) SLU VisMin by Region + Route
    Weekly: last 3 weeks · Monthly: delay/ontime/total + JUL…current + monthly diff
    JUL & AUG scope totals fixed from official baseline where listed.
-   Weekly/Monthly rates = average of daily on-time % (same as Rate Matrix).
+   Weekly/Monthly rates = YES ÷ TOTAL (Excel WM SLU TRAVEL TIME formula).
    ========================================================================== */
 const MttMonthlyReport = (() => {
   const TARGET = { ALL: 0.96, LUZON: 0.97, VISMIN: 0.85 };
@@ -68,21 +68,11 @@ const MttMonthlyReport = (() => {
     const total = list.length;
     return { total, yes, no: total - yes, rate: total ? yes / total : null };
   }
-  /** Same as Rate Matrix: period rate = average of each day's on-time % */
+    /** Excel WM SLU TRAVEL TIME: RATE = YES ÷ TOTAL (COUNTIFS), not avg of daily rates */
   function periodRate(list) {
     if (!list || !list.length) return null;
-    const byDay = {};
-    list.forEach(function (r) {
-      const dk = r.dateKey || '_';
-      if (!byDay[dk]) byDay[dk] = [];
-      byDay[dk].push(r);
-    });
-    let sum = 0, n = 0;
-    Object.keys(byDay).forEach(function (dk) {
-      const s = stats(byDay[dk]);
-      if (s.rate != null) { sum += s.rate; n++; }
-    });
-    return n ? sum / n : null;
+    const s = stats(list);
+    return s.rate;
   }
   function filterScope(list, scope) {
     if (scope === 'LUZON') return list.filter(r => r.routeType === 'LUZON');
