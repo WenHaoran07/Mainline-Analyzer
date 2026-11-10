@@ -123,10 +123,10 @@ const MttMonthlyReport = (() => {
     return false;
   }
   function effectiveRegion(r) {
-    const route = (r && r.route) || '';
     let reg = normalizeRegionName(r && r.region);
     if (reg === 'BACKLOAD') return 'BACKLOAD';
-    if (isMultiDropRoute(route) || reg === 'TWO DROPS') return 'TWO DROPS';
+    if (reg === 'TWO DROPS') return 'TWO DROPS';
+    // Multi-leg under BSL stay in BSL so region totals match Excel
     return reg;
   }
 
@@ -445,6 +445,8 @@ const MttMonthlyReport = (() => {
       const byRoute = new Map();
       regList.forEach(r => {
         const rt = r.route || '(blank)';
+        // BSL only: hide 3+ leg route rows; still counted in region group totals above
+        if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(rt)) return;
         if (!byRoute.has(rt)) byRoute.set(rt, []);
         byRoute.get(rt).push(r);
       });
@@ -1189,7 +1191,7 @@ const MttMonthlyReport = (() => {
         const byRoute = new Map();
         regList.forEach(function (r) {
           const rt = r.route || '(blank)';
-          if (reg !== 'TWO DROPS' && reg !== 'BACKLOAD' && isMultiDropRoute(rt)) return;
+          if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(rt)) return;
           if (!byRoute.has(rt)) byRoute.set(rt, []);
           byRoute.get(rt).push(r);
         });
