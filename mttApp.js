@@ -46,6 +46,9 @@ const MttApp = (() => {
         if (typeof MttRateMatrix !== 'undefined') {
           MttRateMatrix.onDataReady();
         }
+        if (typeof MttPlanFeasibility !== 'undefined') {
+          MttPlanFeasibility.onDataReady();
+        }
         if (typeof MttAllData !== 'undefined') {
           MttAllData.onDataReady();
         }
@@ -86,6 +89,7 @@ const MttApp = (() => {
     if (typeof MttProblemReport !== 'undefined') MttProblemReport.init();
     if (typeof MttWeeklyMonthly !== 'undefined') MttWeeklyMonthly.init();
     if (typeof MttRateMatrix !== 'undefined') MttRateMatrix.init();
+    if (typeof MttPlanFeasibility !== 'undefined') MttPlanFeasibility.init();
     if (typeof MttAllData !== 'undefined') MttAllData.init();
     if (typeof MttSupervisor !== 'undefined') MttSupervisor.init();
     if (typeof MttTravelReport !== 'undefined') MttTravelReport.init();
@@ -108,21 +112,25 @@ const MttApp = (() => {
       const report = document.getElementById('mttTravelReportPanel');
       const monthly = document.getElementById('mttMonthlyReportPanel');
       const sup = document.getElementById('mttSupPanel');
+      const plan = document.getElementById('mttPlanPanel');
       const btnDay = document.getElementById('tabMttDay');
       const btnAll = document.getElementById('tabMttAllData');
       const btnReport = document.getElementById('tabMttReport');
       const btnMonthly = document.getElementById('tabMttMonthly');
       const btnSup = document.getElementById('tabMttSup');
+      const btnPlan = document.getElementById('tabMttPlan');
       if (day) day.classList.add('hidden');
       if (all) all.classList.add('hidden');
       if (report) report.classList.add('hidden');
       if (monthly) monthly.classList.add('hidden');
       if (sup) sup.classList.add('hidden');
+      if (plan) plan.classList.add('hidden');
       if (btnDay) btnDay.classList.remove('active');
       if (btnAll) btnAll.classList.remove('active');
       if (btnReport) btnReport.classList.remove('active');
       if (btnMonthly) btnMonthly.classList.remove('active');
       if (btnSup) btnSup.classList.remove('active');
+      if (btnPlan) btnPlan.classList.remove('active');
       if (which === 'all') {
         if (all) all.classList.remove('hidden');
         if (btnAll) btnAll.classList.add('active');
@@ -139,6 +147,10 @@ const MttApp = (() => {
         if (sup) sup.classList.remove('hidden');
         if (btnSup) btnSup.classList.add('active');
         if (typeof MttSupervisor !== 'undefined') MttSupervisor.render();
+      } else if (which === 'plan') {
+        if (plan) plan.classList.remove('hidden');
+        if (btnPlan) btnPlan.classList.add('active');
+        if (typeof MttPlanFeasibility !== 'undefined') MttPlanFeasibility.run();
       } else {
         if (day) day.classList.remove('hidden');
         if (btnDay) btnDay.classList.add('active');
@@ -149,11 +161,13 @@ const MttApp = (() => {
     const btnReport = document.getElementById('tabMttReport');
     const btnMonthly = document.getElementById('tabMttMonthly');
     const btnSup = document.getElementById('tabMttSup');
+    const btnPlan = document.getElementById('tabMttPlan');
     if (btnDay) btnDay.addEventListener('click', () => switchMainTab('day'));
     if (btnAll) btnAll.addEventListener('click', () => switchMainTab('all'));
     if (btnReport) btnReport.addEventListener('click', () => switchMainTab('report'));
     if (btnMonthly) btnMonthly.addEventListener('click', () => switchMainTab('monthly'));
     if (btnSup) btnSup.addEventListener('click', () => switchMainTab('sup'));
+    if (btnPlan) btnPlan.addEventListener('click', () => switchMainTab('plan'));
   }
 
   return { init, runCompare };
