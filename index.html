@@ -500,12 +500,31 @@
     }
     #loginGate.hidden { display: none; }
     .login-card {
+      position: relative;
+      overflow: visible;
       background: #fff;
       width: 100%;
       max-width: 380px;
       border-radius: 16px;
       padding: 32px 28px 28px;
       box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+    }
+    .login-peek {
+      position: absolute;
+      z-index: 2;
+      pointer-events: none;
+      user-select: none;
+    }
+.login-peek-luffy {
+  left: -77px;
+  top: 42%;
+  transform: translateY(-50%) rotate(-24deg);
+  width: 110px;
+  height: auto;
+  filter: drop-shadow(2px 4px 8px rgba(0,0,0,0.25));
+}
+    @media (max-width: 520px) {
+      .login-peek-luffy { left: -28px; width: 78px; }
     }
     .login-card .login-logo {
       width: 52px; height: 52px;
@@ -578,6 +597,120 @@
       visibility: hidden;
     }
 
+
+    /* ===== Floating Branch Hub Button in Lower Left ===== */
+    .btn-branch-hub {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 999;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #1565C0, #0D47A1);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(13, 71, 161, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s;
+      white-space: nowrap;
+    }
+    .btn-branch-hub:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      box-shadow: 0 6px 20px rgba(13, 71, 161, 0.45);
+    }
+    .btn-branch-hub:active { transform: scale(0.97); }
+    .btn-branch-hub .bh-ico { font-size: 1rem; line-height: 1; }
+
+    /* Luffy runs across the live Main Hub (hub stays visible underneath) */
+    #hubTransition {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: none;
+      background: transparent;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #hubTransition.show { display: block; }
+    #hubTransition .hub-tx-track {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #hubTransition .hub-tx-mover {
+      position: absolute;
+      top: 68%;
+      left: 0;
+      height: min(62vh, 520px);
+      width: auto;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      will-change: transform;
+      transform: translate(-120%, -40%);
+      filter: drop-shadow(0 10px 14px rgba(0,0,0,0.28));
+    }
+    #hubTransition.show .hub-tx-mover {
+      animation: luffyRunAcross 8.7s linear forwards;
+    }
+    @keyframes luffyRunAcross {
+      0%   { transform: translate(-120%, -40%); }
+      100% { transform: translate(100vw, -40%); }
+    }
+    #hubTransition .hub-tx-mover img {
+      height: 100%;
+      width: auto;
+      max-width: none;
+      object-fit: contain;
+      display: block;
+      user-select: none;
+      pointer-events: none;
+      /* soften plain white GIF background a bit against the hub */
+      mix-blend-mode: multiply;
+    }
+    #hubTransition .hub-tx-ui {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    #hubTransition .hub-tx-label {
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      opacity: 0.95;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.65);
+      background: rgba(230, 0, 18, 0.88);
+      padding: 8px 16px;
+      border-radius: 999px;
+    }
+    #hubTransition .hub-tx-skip {
+      pointer-events: auto;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.45);
+      color: #fff;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #hubTransition .hub-tx-skip:hover { background: rgba(0,0,0,0.75); }
+
   </style>
 </head>
 <body class="locked">
@@ -585,6 +718,7 @@
   <!-- Password gate (SHA-256 hash — password is not stored in plain text) -->
   <div id="loginGate">
     <div class="login-card">
+      <img src="SideZorro.png" alt="" class="login-peek login-peek-luffy">
       <div> <img src="JNTLogo.png" alt="J&T Express Logo" class="Password"
   style="width:120px;height:auto;object-fit:contain;display:block;margin:0 auto 16px;border-radius:10px;">
              </div>
@@ -605,11 +739,19 @@
       <div class="logo logo-fallback" style="display:none;">J&T</div>
       <h1>Mainline Performance Analyzers</h1>
     </div>
-    <button type="button" class="header-qr" id="headerQrBtn" title="Scan QR code">
-      <img src="MainQR.png" alt="QR code">
-      <span>Scan</span>
-    </button>
+    <div class="header-actions">
+      <button type="button" class="header-qr" id="headerQrBtn" title="Scan QR code">
+        <img src="MainQR.png" alt="QR code">
+        <span>Scan</span>
+      </button>
+    </div>
   </header>
+
+  <!-- Floating Branch Hub Button in Lower Left -->
+  <button type="button" class="btn-branch-hub" id="btnBranchHub" title="Open Branch Hub">
+    <span class="bh-ico">🔗</span>
+    <span>Branch Hub</span>
+  </button>
 
   <div id="qrLightbox" role="dialog" aria-label="Enlarged QR code">
     <div class="qr-box" onclick="event.stopPropagation()">
@@ -723,12 +865,6 @@
 
   <script>
   (function () {
-    // SHA-256 hash of the password (NOT the plain password).
-    // Default password: slu2026
-    // To change: open browser console on any page and run:
-    //   crypto.subtle.digest("SHA-256", new TextEncoder().encode("YOUR_NEW_PASSWORD"))
-    //     .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("")))
-    // Then paste the result below.
     const PASS_HASH = "e28a35e454e8c0757935d4364278ef018a60ec7b9d88a28a00b011f213b9aed9";
     const STORAGE_KEY = "slu_hub_unlocked";
 
@@ -767,7 +903,6 @@
       }
     }
 
-    // Already unlocked this browser session?
     try {
       if (sessionStorage.getItem(STORAGE_KEY) === "1") {
         unlock();
@@ -869,7 +1004,6 @@
 
   <script>
   (function () {
-    // Your local qr-code.png — click header QR to enlarge
     var btn = document.getElementById('headerQrBtn');
     var box = document.getElementById('qrLightbox');
     if (btn && box) {
@@ -884,6 +1018,91 @@
         if (e.key === 'Escape') box.classList.remove('open');
       });
     }
+  })();
+  </script>
+
+
+  <!-- Branch Hub transition: Luffy runs across Main Hub (7.5s) -->
+  <div id="hubTransition" aria-hidden="true">
+    <div class="hub-tx-track">
+      <div class="hub-tx-mover" id="hubTxMover">
+        <img id="hubTxGif" src="Luffy.gif" alt="Transition">
+      </div>
+    </div>
+    <div class="hub-tx-ui">
+      <div class="hub-tx-label" id="hubTxLabel">Luffy is heading to Branch Hub…</div>
+      <button type="button" class="hub-tx-skip" id="hubTxSkip">Skip</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var BRANCH_HUB_URL = 'https://branchhub-seven.vercel.app/';
+    var GIF_SRC = 'Luffy.gif';
+    var DURATION_MS = 7500;
+    var OPEN_IN_SAME_TAB = true;
+
+    var btn = document.getElementById('btnBranchHub');
+    var overlay = document.getElementById('hubTransition');
+    var mover = document.getElementById('hubTxMover');
+    var img = document.getElementById('hubTxGif');
+    var label = document.getElementById('hubTxLabel');
+    var skip = document.getElementById('hubTxSkip');
+    if (!btn || !overlay || !img) return;
+
+    var timer = null;
+    var going = false;
+
+    function goNow() {
+      if (going) return;
+      going = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      var url = BRANCH_HUB_URL + (BRANCH_HUB_URL.indexOf('?') >= 0 ? '&' : '?') + 'from=mainhub&tx=1';
+      if (OPEN_IN_SAME_TAB) {
+        window.location.href = url;
+      } else {
+        window.open(url, '_blank');
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+        if (mover) mover.style.animation = 'none';
+        going = false;
+      }
+    }
+
+    function playTransition() {
+      going = false;
+      if (timer) { clearTimeout(timer); timer = null; }
+
+      img.src = GIF_SRC + '?t=' + Date.now();
+
+      if (mover) {
+        mover.style.animation = 'none';
+        void mover.offsetWidth;
+        mover.style.animation = '';
+      }
+
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+      if (label) label.textContent = 'Luffy is heading to Branch Hub…';
+
+      timer = setTimeout(goNow, DURATION_MS);
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (document.body.classList.contains('locked')) return;
+      playTransition();
+    });
+
+    if (skip) skip.addEventListener('click', function () { goNow(); });
+
+    document.addEventListener('keydown', function (e) {
+      if (!overlay.classList.contains('show')) return;
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        e.preventDefault();
+        goNow();
+      }
+    });
   })();
   </script>
 
