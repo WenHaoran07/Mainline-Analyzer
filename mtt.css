@@ -1305,10 +1305,11 @@ tr.late-row td { background: #FFF5F5; }
 
 /* ===== Main tabs: Day Comparison / All Data (like Loading Rate) ===== */
 .mtt-main-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.92);
 }
 .mtt-main-tab {
   padding: 10px 18px;
