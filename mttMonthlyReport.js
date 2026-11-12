@@ -27,8 +27,7 @@ const MttMonthlyReport = (() => {
   };
 
   const DC_NAME_MAP = {
-    '490': 'LagunaDC1', '492': 'LagunaDC2', '430': 'BatangasDC1', '330':'IloiloDC1', '520':'AlbayDC1', '521':'MasbateDC', '540':'Camarines Sur DC1', '551':'Western Samar DC', '820':'Davao Del SulDC1', '821':'Cebu DC2', '850':'Agusan Del NorteDC1',
-     '880':'Misamis Oriental DC1', '9073':'DW Bacoor',
+    '490': 'LagunaDC1', '492': 'LagunaDC2', '430': 'BatangasDC1',
     '460': 'Cavite DC1', '9071': 'DW-Taytay 888', '907': 'DW-Taytay 888', '470': 'Lucena'
   };
 
@@ -564,6 +563,8 @@ const MttMonthlyReport = (() => {
       h += '</tr>';
 
       [...byRoute.keys()].sort().forEach(route => {
+        // BSL only: 3+ leg routes still count in region totals but are not listed as route rows
+        if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(route)) return;
         const byT = byRoute.get(route);
         const routeList = [];
         byT.forEach(list => list.forEach(x => routeList.push(x)));
@@ -1315,6 +1316,7 @@ const MttMonthlyReport = (() => {
       });
       writeStatRow([reg, '', ''], stats(regList), 'region');
       [...byRoute.keys()].sort().forEach(function (route) {
+        if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(route)) return;
         const byT = byRoute.get(route);
         const routeList = [];
         byT.forEach(function (list) { list.forEach(function (x) { routeList.push(x); }); });
