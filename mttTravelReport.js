@@ -812,6 +812,8 @@ const MttTravelReport = (() => {
       h += '</tr>';
 
       [...byRoute.keys()].sort().forEach(route => {
+        // BSL only: 3+ leg routes still count in region totals but are not listed as route rows
+        if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(route)) return;
         const byT = byRoute.get(route);
         const rc = rateCells(pickGroup(currTree, reg, route), pickGroup(prevTree, reg, route));
         h += '<tr class="mr-ach-route">';
@@ -927,6 +929,7 @@ const MttTravelReport = (() => {
         no: st.no, yes: st.yes, total: st.total, rate: st.rate, prevRate: pst.rate
       });
       [...byRoute.keys()].sort().forEach(route => {
+        if (String(reg).toUpperCase() === 'BSL' && isMultiDropRoute(route)) return;
         const byT = byRoute.get(route);
         const rst = stats(gather(currTree, reg, route));
         const rpst = stats(gather(prevTree, reg, route));
