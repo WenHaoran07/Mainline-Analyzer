@@ -680,14 +680,18 @@ const LrRouteCompareManager = (() => {
     const dayPanel = document.getElementById('lrDayPanel');
     const weekPanel = document.getElementById('lrWeeklyPanel');
     const routePanel = document.getElementById('lrRoutePanel');
+    const dragPanel = document.getElementById('lrTopDragPanel');
     const btnDay = document.getElementById('tabLrDay');
     const btnWeek = document.getElementById('tabLrWeek');
     const btnRoute = document.getElementById('tabLrRoute');
+    const btnDrag = document.getElementById('tabLrTopDrag');
     if (dayPanel) dayPanel.classList.add('hidden');
     if (weekPanel) weekPanel.classList.add('hidden');
+    if (dragPanel) dragPanel.classList.add('hidden');
     if (routePanel) routePanel.classList.remove('hidden');
     if (btnDay) btnDay.classList.remove('active');
     if (btnWeek) btnWeek.classList.remove('active');
+    if (btnDrag) btnDrag.classList.remove('active');
     if (btnRoute) btnRoute.classList.add('active');
     onFileReady();
     run();
