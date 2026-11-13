@@ -83,6 +83,8 @@ const MttFileProcessor = (() => {
       if (lower === 'region' || lower === 'region intended') colMap.region = i;
       if (lower.includes('actual arrival') || lower.includes('check in')) colMap.arrival = i;
       if (lower.includes('actual departure') || lower.includes('check out')) colMap.departure = i;
+      if (lower.includes('scheduled departure') || lower === 'schedule departure time' ||
+          lower.includes('planned departure')) colMap.scheduledDeparture = i;
       if (lower === 'date') colMap.date = i;
       if (lower.includes('task status')) colMap.status = i;
       if (lower.includes('number plate') || lower === 'plate' || lower.includes('plate number')) colMap.plate = i;
@@ -181,7 +183,8 @@ const MttFileProcessor = (() => {
         actualDeparture: formatDateTimeCell(get(colMap.departure)),
         actualArrival: formatDateTimeCell(
           colMap.arrival != null ? get(colMap.arrival) : arrivalVal
-        )
+        ),
+        scheduledDeparture: formatDateTimeCell(get(colMap.scheduledDeparture))
       };
     }).filter(r => r.dateKey);
 
