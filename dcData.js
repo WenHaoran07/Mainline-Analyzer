@@ -3,7 +3,10 @@
    ========================================================================== */
 
 const dcMasterData = [
-   {"DC CODE": 9071, "DC NAME": "DW-Taytay 888", "LOCATION / AREA": "RIZAL", "REGION": "SLU"},
+  {"DC CODE": 821, "DC NAME": "Cebu DC2", "LOCATION / AREA": "RIZAL", "REGION": "SLU"},
+  {"DC CODE": 321, "DC NAME": "Davao Del Sur DC2", "LOCATION / AREA": "DAVAO", "REGION": "WVA"},
+  {"DC CODE": 9073, "DC NAME": "DW-Bacoor", "LOCATION / AREA": "CAVITE", "REGION": "SLU"},
+  {"DC CODE": 9071, "DC NAME": "DW-Taytay 888", "LOCATION / AREA": "RIZAL", "REGION": "SLU"},
   {"DC CODE": 320, "DC NAME": "CebuDC1", "LOCATION / AREA": "CEBU", "REGION": "WVA"},
   {"DC CODE": 321, "DC NAME": "Consolacion DC", "LOCATION / AREA": "CEBU", "REGION": "WVA"},
   {"DC CODE": 330, "DC NAME": "IloiloDC1", "LOCATION / AREA": "ILOILO", "REGION": "WVA"},
