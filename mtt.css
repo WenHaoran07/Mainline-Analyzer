@@ -1309,7 +1309,8 @@ tr.late-row td { background: #FFF5F5; }
   top: 0;
   z-index: 20;
   backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0);
+  border-radius: 15px;
 }
 .mtt-main-tab {
   padding: 10px 18px;
