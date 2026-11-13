@@ -2,6 +2,7 @@
    MODULE: UI RENDERER & DOM BUILDER
    ========================================================================== */
 const UIManager = (() => {
+
   function diffHtml(val) {
     if (Math.abs(val) < 0.5) return `<span class="diff neutral">${val >= 0 ? '+' : ''}${Math.round(val)}</span>`;
     const cls = val > 0 ? 'up' : 'down';
@@ -86,7 +87,9 @@ const UIManager = (() => {
       byDate[d].trips += 1;
       byDate[d].lt += parseFloat(r[colMap.lt]) || 0;
     });
-    const dates = Object.keys(byDate).sort();
+    let dates = Object.keys(byDate).sort();
+    // Last 14 days only
+    if (dates.length > 14) dates = dates.slice(-14);
     if (!dates.length) return;
 
     const labels = dates.map(formatYmdDisplay);
@@ -238,63 +241,53 @@ const UIManager = (() => {
       elDiff.className = 'total-lt-diff ' + (totalDiff > 0 ? 'up' : (totalDiff < 0 ? 'down' : 'neutral'));
     }
 
-    // Culprit Box
+    // Culprit / booster boxes (basis: average loading qty only)
     const culpritEl = document.getElementById('culpritBox');
+    if (culpritEl) culpritEl.innerHTML = '';
     if (data.topCulprit && data.avgDiff < -30) {
-      const avgD = (data.topCulprit.lAvg || 0) - (data.topCulprit.pAvg || 0);
+      const c = data.topCulprit;
+      const avgD = (c.lAvg || 0) - (c.pAvg || 0);
       culpritEl.innerHTML = `
         <div class="culprit-box">
-          <div class="alert-icon">⚠</div>
+          <div class="alert-icon">!</div>
           <div>
-            <div class="culprit-title">Top contributor to the drop: ${data.topCulprit.route}</div>
+            <div class="culprit-title">Top route pulling the average down: ${c.route}</div>
             <div class="culprit-detail">
-              Impact: <strong>${data.topCulprit.contrib.toFixed(0)}</strong> points ·
-              Trips: ${data.topCulprit.pTrips} → ${data.topCulprit.lTrips} ·
-              Avg LT: ${data.topCulprit.pAvg ? Math.round(data.topCulprit.pAvg).toLocaleString() : '—'} → ${data.topCulprit.lAvg ? Math.round(data.topCulprit.lAvg).toLocaleString() : '—'}
-              ${data.topCulprit.pAvg && data.topCulprit.lAvg ? `(${avgD > 0 ? '+' : ''}${Math.round(avgD)})` : ''} ·
-              Packages : ${data.topCulprit.pkgsDiff > 0 ? '+' : ''}${Math.round(data.topCulprit.pkgsDiff)}
+              Avg loading qty: ${c.pAvg ? Math.round(c.pAvg).toLocaleString() : '—'} to ${c.lAvg ? Math.round(c.lAvg).toLocaleString() : '—'}
+              (${avgD > 0 ? '+' : ''}${Math.round(avgD)})
+              · Trips: ${c.pTrips} to ${c.lTrips}
             </div>
           </div>
         </div>`;
-    } else {
-      culpritEl.innerHTML = '';
     }
-
-    // Positive booster box (when average went up)
     if (data.topBooster && data.avgDiff > 30) {
-      const avgD = (data.topBooster.lAvg || 0) - (data.topBooster.pAvg || 0);
+      const b = data.topBooster;
+      const avgD = (b.lAvg || 0) - (b.pAvg || 0);
       const boosterHtml = `
         <div class="booster-box">
-          <div class="boost-icon">▲</div>
+          <div class="boost-icon">+</div>
           <div>
-            <div class="booster-title">Top contributor to the increase: ${data.topBooster.route}</div>
+            <div class="booster-title">Top route lifting the average: ${b.route}</div>
             <div class="booster-detail">
-              Impact: <strong>+${data.topBooster.contrib.toFixed(0)}</strong> points ·
-              Trips: ${data.topBooster.pTrips} → ${data.topBooster.lTrips} ·
-              Avg LT: ${data.topBooster.pAvg ? Math.round(data.topBooster.pAvg).toLocaleString() : '—'} → ${data.topBooster.lAvg ? Math.round(data.topBooster.lAvg).toLocaleString() : '—'}
-              ${data.topBooster.pAvg && data.topBooster.lAvg ? `(${avgD > 0 ? '+' : ''}${Math.round(avgD)})` : ''} ·
-              Packages: ${data.topBooster.pkgsDiff > 0 ? '+' : ''}${Math.round(data.topBooster.pkgsDiff)}
+              Avg loading qty: ${b.pAvg ? Math.round(b.pAvg).toLocaleString() : '—'} to ${b.lAvg ? Math.round(b.lAvg).toLocaleString() : '—'}
+              (${avgD > 0 ? '+' : ''}${Math.round(avgD)})
+              · Trips: ${b.pTrips} to ${b.lTrips}
             </div>
           </div>
         </div>`;
       culpritEl.innerHTML = (culpritEl.innerHTML || '') + boosterHtml;
     }
 
-    // Summary Text
+    // Summary
     let summary = '';
     if (data.avgDiff < -50) {
-      summary = `Average Loading Qty dropped by <strong>${Math.abs(Math.round(data.avgDiff))}</strong> points. `;
-      if (data.latestPkgs >= data.prevPkgs - 50) {
-        summary += `Packages stayed similar, so the drop is mainly from a weaker trip mix (high-load routes ran lower or less).`;
-      } else {
-        summary += `Packages also decreased, which contributed to the lower average.`;
-      }
-      if (data.topCulprit) summary += ` Biggest drag: <strong>${data.topCulprit.route}</strong>.`;
+      summary = `Average loading qty dropped by <strong>${Math.abs(Math.round(data.avgDiff))}</strong>.`;
+      if (data.topCulprit) summary += ` Main drag: <strong>${data.topCulprit.route}</strong>.`;
     } else if (data.avgDiff > 50) {
-      summary = `Average Loading Qty improved by <strong>${Math.round(data.avgDiff)}</strong> points.`;
-      if (data.topBooster) summary += ` Biggest lift: <strong>${data.topBooster.route}</strong> (+${Math.round(data.topBooster.contrib)}).`;
+      summary = `Average loading qty improved by <strong>${Math.round(data.avgDiff)}</strong>.`;
+      if (data.topBooster) summary += ` Main lift: <strong>${data.topBooster.route}</strong>.`;
     } else {
-      summary = `Average Loading Qty is roughly stable (change of ${Math.round(data.avgDiff)}).`;
+      summary = `Average loading qty is about steady (${Math.round(data.avgDiff) > 0 ? '+' : ''}${Math.round(data.avgDiff)}).`;
     }
     document.getElementById('summaryText').innerHTML = summary;
 
@@ -310,10 +303,8 @@ const UIManager = (() => {
         <td>${r.pAvg ? Math.round(r.pAvg).toLocaleString() : '—'}</td>
         <td>${r.lAvg ? Math.round(r.lAvg).toLocaleString() : '—'}</td>
         <td class="${avgDiffClass}">${avgDiffStr}</td>
-        <td class="${r.pkgsDiff < 0 ? 'neg' : 'pos'}">${r.pkgsDiff > 0 ? '+' : ''}${Math.round(r.pkgsDiff)}</td>
-        <td class="neg">${Math.round(r.contrib)}</td>
       </tr>`;
-    }).join('') || '<tr><td colspan="8">No significant negative routes found.</td></tr>';
+    }).join('') || '<tr><td colspan="6">No routes with a clear average drop.</td></tr>';
 
     // Branches Table
     document.getElementById('branchBody').innerHTML = data.branchStats.slice(0, 15).map((b, i) => `
@@ -323,8 +314,6 @@ const UIManager = (() => {
         <td>${b.lTrips}</td>
         <td>${b.pAvg ? Math.round(b.pAvg).toLocaleString() : '—'}</td>
         <td>${b.lAvg ? Math.round(b.lAvg).toLocaleString() : '—'}</td>
-        <td>${Math.round(b.pPkgs).toLocaleString()}</td>
-        <td>${Math.round(b.lPkgs).toLocaleString()}</td>
         <td class="${b.contrib < 0 ? 'neg' : 'pos'}">${b.contrib > 0 ? '+' : ''}${Math.round(b.contrib)}</td>
       </tr>
     `).join('');
@@ -344,10 +333,8 @@ const UIManager = (() => {
           <td>${r.pAvg ? Math.round(r.pAvg).toLocaleString() : '—'}</td>
           <td>${r.lAvg ? Math.round(r.lAvg).toLocaleString() : '—'}</td>
           <td class="${avgDiffClass}">${avgDiffStr}</td>
-          <td class="${r.pkgsDiff < 0 ? 'neg' : 'pos'}">${r.pkgsDiff > 0 ? '+' : ''}${Math.round(r.pkgsDiff)}</td>
-          <td class="pos">+${Math.round(r.contrib)}</td>
         </tr>`;
-      }).join('') || '<tr><td colspan="8">No significant positive routes found.</td></tr>';
+      }).join('') || '<tr><td colspan="6">No routes with a clear average increase.</td></tr>';
     }
 
     // Positive branches (top lifts)
@@ -361,11 +348,9 @@ const UIManager = (() => {
           <td>${b.lTrips}</td>
           <td>${b.pAvg ? Math.round(b.pAvg).toLocaleString() : '—'}</td>
           <td>${b.lAvg ? Math.round(b.lAvg).toLocaleString() : '—'}</td>
-          <td>${Math.round(b.pPkgs).toLocaleString()}</td>
-          <td>${Math.round(b.lPkgs).toLocaleString()}</td>
           <td class="pos">+${Math.round(b.contrib)}</td>
         </tr>
-      `).join('') || '<tr><td colspan="8">No significant positive branches found.</td></tr>';
+      `).join('') || '<tr><td colspan="6">No branches with a clear average increase.</td></tr>';
     }
 
     // More Trips Table
