@@ -2,7 +2,7 @@
    MODULE: MAINLINE LOADING TICKETS DAILY TREND MANAGER
    ========================================================================== */
 const DailyTrendManager = (() => {
-  // Fixed 9 Departure DCs
+  // Fixed 10 Departure DCs
   const FIXED_DC_LIST = [
     { name: 'BatangasDC1', code: '430', aliases: ['batangasdc1', 'batangas dc1', 'batangas'] },
     { name: 'Cavite DC1', code: '460', aliases: ['cavite dc1', 'cavitedc1', 'cavite'] },
@@ -12,7 +12,8 @@ const DailyTrendManager = (() => {
     { name: 'LUCENA NEW DC', code: '470', aliases: ['lucena new dc', 'lucenanewdc', 'lucena dc'] },
     { name: 'Mindoro CalapanDC2', code: '431', aliases: ['mindoro calapandc2', 'mindoro calapan dc2', 'calapan dc2', 'calapandc2'] },
     { name: 'Mindoro MamburaoDC1', code: '432', aliases: ['mindoro mamburaodc1', 'mindoro mamburao dc1', 'mamburao dc1', 'mamburaodc1'] },
-    { name: 'PalawanDC1', code: '480', aliases: ['palawandc1', 'palawan dc1', 'palawan dc', 'palawan'] }
+    { name: 'PalawanDC1', code: '480', aliases: ['palawandc1', 'palawan dc1', 'palawan dc', 'palawan'] },
+    { name: 'DW-Taytay 888', code: '9071', aliases: ['dw-taytay 888', 'dw taytay 888', 'taytay 888', 'dwtaytay888', 'taytay888', 'dw-taytay888', '9071'] }
   ];
 
   function matchesAlias(branchText, aliases) {
