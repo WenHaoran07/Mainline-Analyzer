@@ -56,6 +56,7 @@
         <button type="button" class="mtt-main-tab mtt-tab-monthly" id="tabMttMonthly">📆 Monthly Report</button>
         <button type="button" class="mtt-main-tab mtt-tab-sup" id="tabMttSup">👤 Supervisor Performance</button>
         <button type="button" class="mtt-main-tab mtt-tab-pf" id="tabMttPlan">⏱️ Plan Feasibility</button>
+        <button type="button" class="mtt-main-tab mtt-tab-pa" id="tabMttPlanAbn">📉 Plan TT Abnormalities</button>
       </div>
 
       <div id="mttDayPanel">
@@ -769,6 +770,118 @@
         </div>
       </div><!-- /#mttPlanPanel -->
 
+      <div id="mttPlanAbnPanel" class="hidden">
+        <div class="card pf-hero-card pa-hero-card">
+          <div class="pf-hero-head">
+            <div>
+              <h2><span class="icon">📉</span> Plan Travel Time Abnormalities</h2>
+              <p class="section-note">Flags routes where plan TT suddenly changes vs the route’s usual (median) plan — e.g. 1:07 → 1:00 on some dates.</p>
+            </div>
+          </div>
+
+          <div class="pe-toolbar pf-toolbar">
+            <div class="pe-subtabs">
+              <button type="button" class="pe-subtab active" data-pa-period="all">All dates</button>
+              <button type="button" class="pe-subtab" data-pa-period="day">Day</button>
+              <button type="button" class="pe-subtab" data-pa-period="week">Weekly</button>
+              <button type="button" class="pe-subtab" data-pa-period="month">Monthly</button>
+            </div>
+            <div id="paDayWrap" class="hidden">
+              <label class="pe-label">Day</label>
+              <select id="paDay"></select>
+            </div>
+            <div id="paWeekWrap" class="hidden">
+              <label class="pe-label">Week</label>
+              <select id="paWeek"></select>
+            </div>
+            <div id="paMonthWrap" class="hidden">
+              <label class="pe-label">Month</label>
+              <select id="paMonth"></select>
+            </div>
+            <div>
+              <label class="pe-label">Scope</label>
+              <select id="paScope">
+                <option value="ALL">Overall</option>
+                <option value="LUZON">Luzon Route</option>
+                <option value="VISMIN">VisMin Route</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Trip type</label>
+              <select id="paLegType">
+                <option value="ALL">All routes</option>
+                <option value="DIRECT">Direct (2-leg)</option>
+                <option value="MULTIDROP">Two drops / Backload (3+ leg)</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Region</label>
+              <select id="paRegion">
+                <option value="ALL">All regions</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Search route / region</label>
+              <input type="search" id="paSearchRoute" class="pf-search" placeholder="e.g. 490-540" autocomplete="off">
+            </div>
+            <div>
+              <label class="pe-label">Chart route</label>
+              <select id="paRouteSelect">
+                <option value="">— Select route —</option>
+              </select>
+            </div>
+            <button type="button" id="btnPaRun" class="wm-run-btn">Apply</button>
+            <button type="button" id="paClear" class="wm-mini-btn">Clear</button>
+          </div>
+
+          <div class="date-info" id="paInfo">Upload a Mainline workbook to scan plan TT abnormalities.</div>
+          <div class="pf-metric-grid" id="paMetrics"></div>
+        </div>
+
+        <div class="card hidden" id="paChartCard">
+          <h2 style="margin:0 0 8px;"><span class="icon">📈</span> <span id="paChartTitle">Plan TT over time</span></h2>
+          <p class="section-note">Blue line = daily plan · Green dashed = usual (median) · Red points = abnormal days</p>
+          <div class="chart-wrap pf-main-chart"><canvas id="paChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="pf-table-head">
+            <div>
+              <h2 style="margin:0;"><span class="icon">📋</span> Routes with plan changes</h2>
+              <p class="section-note">Click a row or Chart to open the timeline for that route</p>
+            </div>
+            <span id="paTableCount" class="pf-count-pill">0 routes</span>
+          </div>
+          <div class="table-scroll pf-table-scroll">
+            <table class="pf-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Route</th>
+                  <th>Region</th>
+                  <th>Type</th>
+                  <th>Sched. depart</th>
+                  <th>Usual plan</th>
+                  <th>Min plan</th>
+                  <th>Max plan</th>
+                  <th>Days</th>
+                  <th>Abnormal days</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="paTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 8px;"><span class="icon">🔎</span> Abnormal dates detail</h2>
+          <div id="paDetail">
+            <p class="section-note">Select a route to list the dates where plan TT jumped or dropped.</p>
+          </div>
+        </div>
+      </div><!-- /#mttPlanAbnPanel -->
+
 
     </div>
   </div>
@@ -788,6 +901,7 @@
   <script src="mttWeeklyMonthly.js"></script>
   <script src="mttRateMatrix.js"></script>
   <script src="mttPlanFeasibility.js"></script>
+  <script src="mttPlanAbnormality.js"></script>
   <script src="mttAllData.js"></script>
   <script src="mttSupervisor.js"></script>
   <script src="mttTravelReport.js"></script>
