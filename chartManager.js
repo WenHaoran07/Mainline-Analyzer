@@ -22,7 +22,7 @@ const ChartManager = (() => {
         data: {
           labels: routeLabels,
           datasets: [{
-            label: 'Impact on Avg',
+            label: 'Avg change',
             data: routeData,
             backgroundColor: routeData.map((_, i) => i === 0 ? '#E60012' : reds[Math.min(i, reds.length - 1)]),
             borderRadius: 6,
@@ -35,7 +35,7 @@ const ChartManager = (() => {
           maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ' Impact: ' + ctx.raw } }
+            tooltip: { callbacks: { label: ctx => ' Avg change: ' + ctx.raw } }
           },
           scales: {
             x: { grid: { color: '#F0F0F0' }, ticks: { font: { size: 11 } } },
@@ -56,7 +56,7 @@ const ChartManager = (() => {
         data: {
           labels: posLabels.length ? posLabels : ['No positive routes'],
           datasets: [{
-            label: 'Positive Impact',
+            label: 'Avg change',
             data: posData.length ? posData : [0],
             backgroundColor: posData.map((_, i) => i === 0 ? '#1B5E20' : greens[Math.min(i, greens.length - 1)]),
             borderRadius: 6,
@@ -69,7 +69,7 @@ const ChartManager = (() => {
           maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ' Impact: +' + ctx.raw } }
+            tooltip: { callbacks: { label: ctx => ' Avg change: +' + ctx.raw } }
           },
           scales: {
             x: { grid: { color: '#F0F0F0' }, ticks: { font: { size: 11 } } },
@@ -91,7 +91,7 @@ const ChartManager = (() => {
         data: {
           labels: brLabels,
           datasets: [{
-            label: 'Impact',
+            label: 'Avg change',
             data: brData,
             backgroundColor: brData.map(v => v < 0 ? '#E60012' : '#2E7D32'),
             borderRadius: 6,
@@ -104,7 +104,7 @@ const ChartManager = (() => {
           maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ' Impact: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw } }
+            tooltip: { callbacks: { label: ctx => ' Avg change: ' + (ctx.raw > 0 ? '+' : '') + ctx.raw } }
           },
           scales: {
             x: { grid: { color: '#F0F0F0' }, ticks: { font: { size: 11 } } },
@@ -129,10 +129,10 @@ const ChartManager = (() => {
           datasets: [{
             label: 'Total Loading Tickets',
             data: [prevVal, latestVal],
-            backgroundColor: ['#90A4AE', latestVal >= prevVal ? '#2E7D32' : '#E60012'],
+            backgroundColor: ['#90A4AE', '#E60012'],
             borderRadius: 8,
             borderSkipped: false,
-            maxBarThickness: 64
+            maxBarThickness: 72
           }]
         },
         options: {
@@ -149,7 +149,7 @@ const ChartManager = (() => {
           scales: {
             x: {
               grid: { display: false },
-              ticks: { font: { size: 11, weight: '600' } }
+              ticks: { font: { size: 12, weight: '600' } }
             },
             y: {
               beginAtZero: true,
@@ -164,6 +164,7 @@ const ChartManager = (() => {
       });
     }
   }
+
 
   return { renderCharts };
 })();
