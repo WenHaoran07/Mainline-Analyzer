@@ -121,20 +121,31 @@ const DataAnalyzer = (() => {
       const lSum = l.reduce((s, r) => s + getLT(r), 0);
       const pPkgs = p.reduce((s, r) => s + getPkgs(r), 0);
       const lPkgs = l.reduce((s, r) => s + getPkgs(r), 0);
-      const contrib = (lSum / (latestTrips || 1)) - (pSum / (prevTrips || 1));
+      const pAvg = p.length ? pSum / p.length : 0;
+      const lAvg = l.length ? lSum / l.length : 0;
+      // Basis: route average loading qty change only (not packages)
+      const avgChange = lAvg - pAvg;
       routeStats.push({
         route, pTrips: p.length, lTrips: l.length,
-        pAvg: p.length ? pSum / p.length : 0,
-        lAvg: l.length ? lSum / l.length : 0,
-        pkgsDiff: lPkgs - pPkgs, contrib
+        pAvg, lAvg,
+        pkgsDiff: lPkgs - pPkgs,
+        avgChange,
+        // Impact column uses avg loading qty change
+        contrib: avgChange
       });
     });
 
-    const topNeg = routeStats.filter(r => r.contrib < -15).sort((a, b) => a.contrib - b.contrib).slice(0, 12);
+    // Top drag / lift ranked by average loading qty change only
+    const topNeg = routeStats
+      .filter(r => r.avgChange < -15 && (r.pTrips > 0 || r.lTrips > 0))
+      .sort((a, b) => a.avgChange - b.avgChange)
+      .slice(0, 12);
     const topCulprit = topNeg.length ? topNeg[0] : null;
 
-    // Positive contributors (routes that lifted the average)
-    const topPos = routeStats.filter(r => r.contrib > 15).sort((a, b) => b.contrib - a.contrib).slice(0, 12);
+    const topPos = routeStats
+      .filter(r => r.avgChange > 15 && (r.pTrips > 0 || r.lTrips > 0))
+      .sort((a, b) => b.avgChange - a.avgChange)
+      .slice(0, 12);
     const topBooster = topPos.length ? topPos[0] : null;
 
     const prevBranches = groupBy(prev, r => r[colMap.branch]);
@@ -151,7 +162,8 @@ const DataAnalyzer = (() => {
       const lPkgs = l.reduce((s, r) => s + getPkgs(r), 0);
       const pAvg = p.length ? pSum / p.length : 0;
       const lAvg = l.length ? lSum / l.length : 0;
-      const contrib = (lSum / (latestTrips || 1)) - (pSum / (prevTrips || 1));
+      // Basis: average loading qty change only
+      const contrib = lAvg - pAvg;
       branchStats.push({ branch: b, pTrips: p.length, lTrips: l.length, pPkgs, lPkgs, pAvg, lAvg, contrib });
     });
     branchStats.sort((a, b) => a.contrib - b.contrib);
