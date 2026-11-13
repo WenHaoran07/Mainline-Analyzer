@@ -485,6 +485,72 @@
       .rc-multi-charts.rc-single-layout { grid-template-columns: 1fr; }
     }
     .rc-multi-charts.rc-single-layout .rc-chart-h { height: 220px; }
+
+    .td-dc-header td {
+      background: #37474F !important;
+      color: #fff !important;
+      font-size: 0.85rem;
+      padding: 10px 12px !important;
+      border-bottom: 2px solid #263238 !important;
+    }
+    .td-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .td-badge-luzon {
+      background: #E3F2FD;
+      color: #1565C0;
+    }
+    .td-badge-vismin {
+      background: #FFF3E0;
+      color: #E65100;
+    }
+
+    .td-focus-overlay-full {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: stretch; justify-content: stretch;
+      padding: 12px;
+    }
+    .td-focus-overlay-full.hidden { display: none !important; }
+    .td-focus-panel-full {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      padding: 14px 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .td-focus-panel-full .table-scroll {
+      flex: 1;
+      max-height: none !important;
+      overflow: auto;
+      border: 1px solid #E0E0E0;
+      border-radius: 8px;
+    }
+    .td-rank {
+      font-weight: 800;
+      color: #B8000E;
+      text-align: center !important;
+      width: 48px;
+    }
+    th.td-rank { color: #fff !important; }
+    .td-hide { display: none !important; }
+    @media (max-width: 900px) {
+      #lrTopDragPanel .card > div[style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -545,6 +611,7 @@
             <button type="button" class="lr-main-tab active" id="tabLrDay">📅 Day Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrWeek">📊 Weekly Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrRoute">🚚 Route Comparison</button>
+            <button type="button" class="lr-main-tab" id="tabLrTopDrag">📉 Top Dragging Routes</button>
           </div>
 
           <div id="lrDayPanel">
@@ -585,7 +652,7 @@
           <!-- Daily Trips & Loading Qty (chart) -->
           <div class="card">
             <h2><span class="icon">📅</span> Daily Trips &amp; Loading Qty</h2>
-            <p class="section-note">Trips and total Loading Tickets each day (SLU overall)</p>
+            <p class="section-note">Last 14 days — trips and total loading qty (SLU)</p>
             <div class="chart-wrap" style="height:300px;"><canvas id="chartDailyTripsLt"></canvas></div>
           </div>
 
@@ -593,19 +660,19 @@
           <div class="charts-row">
             <div class="card">
               <h2><span class="icon">📉</span> Top Routes Dragging Average Down</h2>
-              <p class="section-note">Impact on overall SLU average</p>
+              <p class="section-note">Routes with lower average loading qty</p>
               <div class="chart-wrap"><canvas id="chartRoutes"></canvas></div>
             </div>
             <div class="card">
               <h2><span class="icon">📈</span> Top Routes Lifting Average Up</h2>
-              <p class="section-note">Positive impact on overall SLU average</p>
+              <p class="section-note">Routes with higher average loading qty</p>
               <div class="chart-wrap"><canvas id="chartRoutesPos"></canvas></div>
             </div>
           </div>
           <div class="charts-row">
             <div class="card">
-              <h2><span class="icon">🏢</span> Shipping Branch Impact</h2>
-              <p class="section-note">How each branch affected the average </p>
+              <h2><span class="icon">🏢</span> Shipping Branch Avg Change</h2>
+              <p class="section-note">Branches by average loading qty change</p>
               <div class="chart-wrap"><canvas id="chartBranches"></canvas></div>
             </div>
             <div class="card chart-side-gif-card">
@@ -631,11 +698,9 @@
                     <th>Route</th>
                     <th>Prev Trips</th>
                     <th>Latest Trips</th>
-                    <th>Prev Avg Loading Ticket</th>
-                    <th>Latest Avg Loading Ticket</th>
-                    <th>Avg Loading Ticket</th>
-                    <th>Packages</th>
-                    <th>Impact</th>
+                    <th>Prev Avg Loading Qty</th>
+                    <th>Latest Avg Loading Qty</th>
+                    <th>Avg change</th>
                   </tr>
                 </thead>
                 <tbody id="routesBody"></tbody>
@@ -654,11 +719,9 @@
                     <th>Route</th>
                     <th>Prev Trips</th>
                     <th>Latest Trips</th>
-                    <th>Prev Avg Loading Ticket</th>
-                    <th>Latest Avg Loading Ticket</th>
-                    <th>Avg Loading Ticket</th>
-                    <th>Packages</th>
-                    <th>Impact</th>
+                    <th>Prev Avg Loading Qty</th>
+                    <th>Latest Avg Loading Qty</th>
+                    <th>Avg change</th>
                   </tr>
                 </thead>
                 <tbody id="routesPosBody"></tbody>
@@ -668,7 +731,7 @@
 
           <!-- Branches table -->
           <div class="card">
-            <h2><span class="icon">📍</span> Shipping Branch Impact</h2>
+            <h2><span class="icon">📍</span> Shipping Branch Avg Change</h2>
             <div class="table-scroll">
               <table>
                 <thead>
@@ -676,11 +739,9 @@
                     <th>Shipping Branch</th>
                     <th>Prev Trips</th>
                     <th>Latest Trips</th>
-                    <th>Prev Avg Loading Ticket</th>
-                    <th>Latest Avg Loading Ticket</th>
-                    <th>Prev Packages</th>
-                    <th>Latest Packages</th>
-                    <th>Impact</th>
+                    <th>Prev Avg Loading Qty</th>
+                    <th>Latest Avg Loading Qty</th>
+                    <th>Avg change</th>
                   </tr>
                 </thead>
                 <tbody id="branchBody"></tbody>
@@ -691,7 +752,7 @@
           <!-- Positive branches table -->
           <div class="card">
             <h2><span class="icon">🟢</span> Shipping Branches That Lifted the Average</h2>
-            <p class="section-note">Branches with positive impact on overall SLU average</p>
+            <p class="section-note">Branches with higher average loading qty</p>
             <div class="table-scroll">
               <table>
                 <thead>
@@ -699,11 +760,9 @@
                     <th>Shipping Branch</th>
                     <th>Prev Trips</th>
                     <th>Latest Trips</th>
-                    <th>Prev Avg Loading Ticket</th>
-                    <th>Latest Avg Loading Ticket</th>
-                    <th>Prev Packages</th>
-                    <th>Latest Packages</th>
-                    <th>Impact</th>
+                    <th>Prev Avg Loading Qty</th>
+                    <th>Latest Avg Loading Qty</th>
+                    <th>Avg change</th>
                   </tr>
                 </thead>
                 <tbody id="branchPosBody"></tbody>
@@ -989,6 +1048,155 @@
             </div>
           </div>
 
+
+          <!-- TOP DRAGGING ROUTES PANEL -->
+          <div id="lrTopDragPanel" class="hidden">
+            <div class="card">
+              <h2><span class="icon">📉</span> Top Routes Dragging Loading Down</h2>
+
+              <div class="lr-week-view-tabs" style="margin-bottom:12px;">
+                <button type="button" class="active" data-td-period="day">Per Day</button>
+                <button type="button" data-td-period="week">Per Week</button>
+                <button type="button" data-td-period="month">Per Month</button>
+              </div>
+
+              <div class="date-selectors">
+                <div>
+                  <label>Previous period</label>
+                  <select id="tdPeriodA"></select>
+                </div>
+                <div>
+                  <label>Latest period</label>
+                  <select id="tdPeriodB"></select>
+                </div>
+                <button type="button" id="btnTdCompare">Compare</button>
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 12px;">
+                <label for="tdRouteType" style="font-size:0.85rem;font-weight:600;color:#555;">Route type</label>
+                <select id="tdRouteType" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="ALL">Both (Luzon + VisMin)</option>
+                  <option value="LUZON">Luzon only</option>
+                  <option value="VISMIN">VisMin only</option>
+                </select>
+                <label for="tdMetricMode" style="font-size:0.85rem;font-weight:600;color:#555;">Show</label>
+                <select id="tdMetricMode" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="both">Avg + Total Qty</option>
+                  <option value="avg">Avg Loading Qty only</option>
+                  <option value="qty">Total Loading Qty only</option>
+                </select>
+                <label for="tdGroupMode" style="font-size:0.85rem;font-weight:600;color:#555;">View</label>
+                <select id="tdGroupMode" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="by-dc">Group by Departure DC</option>
+                  <option value="by-rank">Sort by Top Rank</option>
+                </select>
+                <label for="tdTopN" style="font-size:0.85rem;font-weight:600;color:#555;">Top N</label>
+                <select id="tdTopN" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="5">Top 5</option>
+                  <option value="10">Top 10</option>
+                  <option value="15">Top 15</option>
+                  <option value="20" selected>Top 20</option>
+                </select>
+                <label for="tdSearchRoute" style="font-size:0.85rem;font-weight:600;color:#555;">Search Route</label>
+                <input type="search" id="tdSearchRoute" placeholder="e.g. 490-440" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;min-width:140px;">
+                <button type="button" id="tdClearFilters" style="padding:6px 12px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;font-size:0.82rem;cursor:pointer;">Clear</button>
+                <span id="tdTableCount" style="font-size:0.82rem;color:#757575;"></span>
+              </div>
+              <div id="tdMetrics"></div>
+            </div>
+
+            
+            <div class="card">
+              <h2><span class="icon">📊</span> Drag Impact Chart</h2>
+              <p class="section-note" id="tdChartNote">Previous vs Latest — average loading qty and trips</p>
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:0 0 12px;">
+                <label for="tdChartN" style="font-size:0.85rem;font-weight:600;color:#555;">Show</label>
+                <select id="tdChartN" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="5">Top 5</option>
+                  <option value="10" selected>Top 10</option>
+                  <option value="1">Individual route</option>
+                </select>
+                <label for="tdChartRoute" id="tdChartRouteLabel" style="font-size:0.85rem;font-weight:600;color:#555;display:none;">Route</label>
+                <select id="tdChartRoute" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;display:none;min-width:160px;"></select>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <p class="section-note" style="font-weight:700;color:#2E7D32;margin-bottom:6px;">Avg Loading Qty</p>
+                  <div class="chart-wrap" style="height:300px;"><canvas id="tdChartAvg"></canvas></div>
+                </div>
+                <div>
+                  <p class="section-note" style="font-weight:700;color:#1565C0;margin-bottom:6px;">Trips</p>
+                  <div class="chart-wrap" style="height:300px;"><canvas id="tdChartTrips"></canvas></div>
+                </div>
+              </div>
+              <canvas id="tdChart" class="hidden" width="1" height="1"></canvas>
+            </div>
+
+            <div class="card" id="tdBreakdownCard">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+                <div>
+                  <h2 style="margin:0;"><span class="icon">📋</span> Dragging Routes by Departure DC</h2>
+                  <p class="section-note" id="tdTableNote" style="margin:4px 0 0;">Grouped by Departure DC · Luzon / VisMin tagged</p>
+                </div>
+                <button type="button" id="tdTableFocusBtn" class="rc-expand-btn" title="Expand table">⛶ Expand</button>
+              </div>
+              <div class="table-scroll" style="max-height:520px;overflow:auto;">
+                <table class="rc-focus-table" id="tdBreakdownTable">
+                  <thead>
+                    <tr>
+                      <th class="td-rank">#</th>
+                      <th>Route</th>
+                      <th>Departure DC</th>
+                      <th>Type</th>
+                      <th id="tdThTripsA">Prev Trips</th>
+                      <th id="tdThTripsB">Latest Trips</th>
+                      <th id="tdThAvgA" class="td-col-avg">Prev Avg LT</th>
+                      <th id="tdThAvgB" class="td-col-avg">Latest Avg LT</th>
+                      <th class="td-col-avg">Avg LT</th>
+                      <th id="tdThQtyA" class="td-col-qty">Prev Total Qty</th>
+                      <th id="tdThQtyB" class="td-col-qty">Latest Total Qty</th>
+                      <th class="td-col-qty">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tdTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="tdTableFocusOverlay" class="td-focus-overlay-full hidden" aria-hidden="true">
+              <div class="td-focus-panel-full" role="dialog" aria-modal="true">
+                <div class="graph-focus-bar">
+                  <div>
+                    <h2 id="tdTableFocusTitle">Top Dragging Routes — Full View</h2>
+                    <p class="section-note" id="tdTableFocusSub"></p>
+                  </div>
+                  <button type="button" class="graph-focus-close" id="tdTableFocusClose">✕ Close</button>
+                </div>
+                <div class="table-scroll">
+                  <table class="rc-focus-table" id="tdFocusTable">
+                    <thead>
+                      <tr>
+                        <th class="td-rank">#</th>
+                        <th>Route</th>
+                        <th>Departure DC</th>
+                        <th>Type</th>
+                        <th>Prev Trips</th>
+                        <th>Latest Trips</th>
+                        <th class="td-col-avg">Prev Avg LT</th>
+                        <th class="td-col-avg">Latest Avg LT</th>
+                        <th class="td-col-avg">Avg LT</th>
+                        <th class="td-col-qty">Prev Total Qty</th>
+                        <th class="td-col-qty">Latest Total Qty</th>
+                        <th class="td-col-qty">Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tdFocusTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
@@ -1006,6 +1214,7 @@
   <script src="fileProcessor.js"></script>
   <script src="lrWeeklyManager.js"></script>
   <script src="lrRouteCompareManager.js"></script>
+  <script src="lrTopDragManager.js"></script>
   <script src="app.js"></script>
 <footer class="app-watermark">
    © 2026 <strong>Vince Adesa</strong> - Loading Rate Analyzer
