@@ -7,6 +7,7 @@ const LrTopDragManager = (() => {
   let periodMode = 'day';   // day | week | month
   let metricMode = 'both';   // avg | qty | both
   let routeType = 'ALL';     // ALL | LUZON | VISMIN
+  let legType = 'ALL';       // ALL | DIRECT | MULTI
   let topN = 20;
   let searchRoute = '';
   let groupMode = 'by-dc'; // by-dc | by-rank
@@ -87,7 +88,7 @@ const LrTopDragManager = (() => {
   }
 
   function routeGroupOf(routeCode) {
-    const parts = String(routeCode || '').split('-');
+    const parts = String(routeCode || '').split('-').filter(Boolean);
     if (parts.length < 2) return 'LUZON';
     const destCode = parseInt(parts[parts.length - 1], 10);
     if (isNaN(destCode)) return 'LUZON';
@@ -98,6 +99,13 @@ const LrTopDragManager = (() => {
       (destCode >= 800 && destCode <= 899);
     return isVisMin ? 'VISMIN' : 'LUZON';
   }
+
+  // Direct = 2 codes (e.g. 490-440). 3+ leg = 3 or more codes (e.g. 490-520-521)
+  function legCount(routeCode) {
+    return String(routeCode || '').split('-').map(s => s.trim()).filter(Boolean).length;
+  }
+  function isDirectRoute(routeCode) { return legCount(routeCode) === 2; }
+  function isMultiLegRoute(routeCode) { return legCount(routeCode) >= 3; }
 
   function normalizeRows(slu, colMap) {
     return (slu || []).map(r => {
@@ -172,6 +180,8 @@ const LrTopDragManager = (() => {
     let list = rows;
     if (routeType === 'LUZON') list = list.filter(r => r.routeGroup === 'LUZON');
     if (routeType === 'VISMIN') list = list.filter(r => r.routeGroup === 'VISMIN');
+    if (legType === 'DIRECT') list = list.filter(r => isDirectRoute(r.route));
+    if (legType === 'MULTI') list = list.filter(r => isMultiLegRoute(r.route));
 
     const listA = list.filter(r => r.period === periodA);
     const listB = list.filter(r => r.period === periodB);
@@ -406,7 +416,7 @@ const LrTopDragManager = (() => {
 
     if (count) {
       const gLabel = groupMode === 'by-rank' ? 'by rank' : 'by Departure DC';
-      count.textContent = `${rows.length} route(s) · ${gLabel} · ${metricMode.toUpperCase()} · ${routeType}`;
+      count.textContent = `${rows.length} route(s) · ${gLabel} · ${metricMode.toUpperCase()} · ${routeType} · ${legType}`;
     }
     applyMetricCols();
   }
@@ -688,6 +698,14 @@ const LrTopDragManager = (() => {
       });
     }
 
+    const legSel = document.getElementById('tdLegType');
+    if (legSel) {
+      legSel.addEventListener('change', () => {
+        legType = legSel.value || 'ALL';
+        run();
+      });
+    }
+
     const metricSel = document.getElementById('tdMetricMode');
     if (metricSel) {
       metricSel.addEventListener('change', () => {
@@ -725,11 +743,13 @@ const LrTopDragManager = (() => {
       clear.addEventListener('click', () => {
         searchRoute = '';
         routeType = 'ALL';
+        legType = 'ALL';
         metricMode = 'both';
         groupMode = 'by-dc';
         topN = 20;
         if (search) search.value = '';
         if (typeSel) typeSel.value = 'ALL';
+        if (legSel) legSel.value = 'ALL';
         if (metricSel) metricSel.value = 'both';
         if (groupSel) groupSel.value = 'by-dc';
         if (topSel) topSel.value = '20';
