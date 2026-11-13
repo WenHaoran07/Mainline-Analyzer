@@ -1,7 +1,7 @@
 /* Logo 
  Styling */
 .logo-gif {
-  width: 152px;
+  width: 132px;
   height: 132px;
   object-fit: contain;
   border-radius: 10px;
@@ -38,7 +38,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgba(245,245,245,0.50) 0%, rgba(245,245,245,0.92) 140%),
+    url('FleetTeam.jpg');
+  background-size: cover;
+  background-position: center -40%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
