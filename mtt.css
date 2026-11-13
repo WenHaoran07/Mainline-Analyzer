@@ -3968,3 +3968,44 @@ tr.pf-warn-row td { background: #FFF8E1; }
   font-weight: 600;
   padding: 0 2px;
 }
+
+
+/* ===== Plan TT Abnormalities (top tab) ===== */
+.mtt-tab-pa {
+  border-color: #FFE0B2;
+  color: #E65100;
+  background: #FFF3E0;
+}
+.mtt-tab-pa:hover { background: #FFE0B2; border-color: #FB8C00; }
+.mtt-tab-pa.active {
+  background: linear-gradient(135deg, #FB8C00, #E65100);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(230, 81, 0, 0.28);
+}
+.pa-hero-card {
+  border-color: #FFE0B2;
+  box-shadow: 0 2px 12px rgba(230, 81, 0, 0.08);
+}
+tr.pa-row-selected td {
+  background: #FFF3E0 !important;
+  outline: 1px solid #FFB74D;
+}
+.pa-dir-hint {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #757575;
+}
+.pa-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
+}
+.pa-baseline {
+  font-size: 0.84rem;
+  color: #546E7A;
+}
+.pa-detail-scroll { max-height: 320px; }
