@@ -333,7 +333,7 @@ const LrTopDragManager = (() => {
       : '<span class="td-badge td-badge-luzon">Luzon</span>';
     const avgCls = r.avgDiff < 0 ? 'neg' : (r.avgDiff > 0 ? 'pos' : '');
     const qtyCls = r.qtyDiff < 0 ? 'neg' : (r.qtyDiff > 0 ? 'pos' : '');
-    return `<tr>
+    return `<tr class="td-route-row" data-route="${escapeHtml(r.route)}" style="cursor:pointer;" title="Click for trip details">
       <td class="td-rank">${rank}</td>
       <td><strong>${escapeHtml(r.route)}</strong> ${rgBadge}</td>
       <td>${escapeHtml(r.branch)}</td>
@@ -413,6 +413,17 @@ const LrTopDragManager = (() => {
     lastRowsHtml = html;
     const fb = document.getElementById('tdFocusTableBody');
     if (fb) fb.innerHTML = html;
+
+    body.querySelectorAll('.td-route-row').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const route = tr.getAttribute('data-route');
+        const selA = document.getElementById('tdPeriodA');
+        const selB = document.getElementById('tdPeriodB');
+        if (typeof LrRouteDetail !== 'undefined') {
+          LrRouteDetail.open(route, selA ? selA.value : null, selB ? selB.value : null, 'Dragging route detail');
+        }
+      });
+    });
 
     if (count) {
       const gLabel = groupMode === 'by-rank' ? 'by rank' : 'by Departure DC';
@@ -644,17 +655,21 @@ const LrTopDragManager = (() => {
     const weekPanel = document.getElementById('lrWeeklyPanel');
     const routePanel = document.getElementById('lrRoutePanel');
     const dragPanel = document.getElementById('lrTopDragPanel');
+    const missPanel = document.getElementById('lrMissTargetPanel');
     const btnDay = document.getElementById('tabLrDay');
     const btnWeek = document.getElementById('tabLrWeek');
     const btnRoute = document.getElementById('tabLrRoute');
     const btnDrag = document.getElementById('tabLrTopDrag');
+    const btnMiss = document.getElementById('tabLrMissTarget');
     if (dayPanel) dayPanel.classList.add('hidden');
     if (weekPanel) weekPanel.classList.add('hidden');
     if (routePanel) routePanel.classList.add('hidden');
+    if (missPanel) missPanel.classList.add('hidden');
     if (dragPanel) dragPanel.classList.remove('hidden');
     if (btnDay) btnDay.classList.remove('active');
     if (btnWeek) btnWeek.classList.remove('active');
     if (btnRoute) btnRoute.classList.remove('active');
+    if (btnMiss) btnMiss.classList.remove('active');
     if (btnDrag) btnDrag.classList.add('active');
     onFileReady();
     run();
