@@ -52,6 +52,9 @@ const MttApp = (() => {
         if (typeof MttPlanAbnormality !== 'undefined') {
           MttPlanAbnormality.onDataReady();
         }
+        if (typeof MttRouteExplorer !== 'undefined') {
+          MttRouteExplorer.onDataReady();
+        }
         if (typeof MttAllData !== 'undefined') {
           MttAllData.onDataReady();
         }
@@ -94,6 +97,7 @@ const MttApp = (() => {
     if (typeof MttRateMatrix !== 'undefined') MttRateMatrix.init();
     if (typeof MttPlanFeasibility !== 'undefined') MttPlanFeasibility.init();
     if (typeof MttPlanAbnormality !== 'undefined') MttPlanAbnormality.init();
+    if (typeof MttRouteExplorer !== 'undefined') MttRouteExplorer.init();
     if (typeof MttAllData !== 'undefined') MttAllData.init();
     if (typeof MttSupervisor !== 'undefined') MttSupervisor.init();
     if (typeof MttTravelReport !== 'undefined') MttTravelReport.init();
@@ -118,6 +122,7 @@ const MttApp = (() => {
       const sup = document.getElementById('mttSupPanel');
       const plan = document.getElementById('mttPlanPanel');
       const planAbn = document.getElementById('mttPlanAbnPanel');
+      const routeEx = document.getElementById('mttRouteExPanel');
       const btnDay = document.getElementById('tabMttDay');
       const btnAll = document.getElementById('tabMttAllData');
       const btnReport = document.getElementById('tabMttReport');
@@ -125,6 +130,7 @@ const MttApp = (() => {
       const btnSup = document.getElementById('tabMttSup');
       const btnPlan = document.getElementById('tabMttPlan');
       const btnPlanAbn = document.getElementById('tabMttPlanAbn');
+      const btnRouteEx = document.getElementById('tabMttRouteEx');
       if (day) day.classList.add('hidden');
       if (all) all.classList.add('hidden');
       if (report) report.classList.add('hidden');
@@ -132,6 +138,7 @@ const MttApp = (() => {
       if (sup) sup.classList.add('hidden');
       if (plan) plan.classList.add('hidden');
       if (planAbn) planAbn.classList.add('hidden');
+      if (routeEx) routeEx.classList.add('hidden');
       if (btnDay) btnDay.classList.remove('active');
       if (btnAll) btnAll.classList.remove('active');
       if (btnReport) btnReport.classList.remove('active');
@@ -139,6 +146,7 @@ const MttApp = (() => {
       if (btnSup) btnSup.classList.remove('active');
       if (btnPlan) btnPlan.classList.remove('active');
       if (btnPlanAbn) btnPlanAbn.classList.remove('active');
+      if (btnRouteEx) btnRouteEx.classList.remove('active');
       if (which === 'all') {
         if (all) all.classList.remove('hidden');
         if (btnAll) btnAll.classList.add('active');
@@ -163,6 +171,10 @@ const MttApp = (() => {
         if (planAbn) planAbn.classList.remove('hidden');
         if (btnPlanAbn) btnPlanAbn.classList.add('active');
         if (typeof MttPlanAbnormality !== 'undefined') MttPlanAbnormality.run();
+      } else if (which === 'routeEx') {
+        if (routeEx) routeEx.classList.remove('hidden');
+        if (btnRouteEx) btnRouteEx.classList.add('active');
+        if (typeof MttRouteExplorer !== 'undefined') MttRouteExplorer.run();
       } else {
         if (day) day.classList.remove('hidden');
         if (btnDay) btnDay.classList.add('active');
@@ -182,6 +194,8 @@ const MttApp = (() => {
     if (btnSup) btnSup.addEventListener('click', () => switchMainTab('sup'));
     if (btnPlan) btnPlan.addEventListener('click', () => switchMainTab('plan'));
     if (btnPlanAbn) btnPlanAbn.addEventListener('click', () => switchMainTab('planAbn'));
+    const btnRouteEx = document.getElementById('tabMttRouteEx');
+    if (btnRouteEx) btnRouteEx.addEventListener('click', () => switchMainTab('routeEx'));
   }
 
   return { init, runCompare };
