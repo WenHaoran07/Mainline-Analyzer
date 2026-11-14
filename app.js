@@ -71,8 +71,29 @@ const App = (() => {
     }, 6000);
   }
 
+  function initSidebarToggle() {
+    const layout = document.getElementById('appLayout') || document.querySelector('.app-layout');
+    const hideBtn = document.getElementById('btnToggleSidebar');
+    const showBtn = document.getElementById('btnShowSidebar');
+    if (!layout) return;
+
+    function setCollapsed(collapsed) {
+      layout.classList.toggle('sidebar-collapsed', collapsed);
+      if (showBtn) showBtn.classList.toggle('hidden', !collapsed);
+      try { localStorage.setItem('lrSidebarCollapsed', collapsed ? '1' : '0'); } catch (e) {}
+    }
+
+    if (hideBtn) hideBtn.addEventListener('click', () => setCollapsed(true));
+    if (showBtn) showBtn.addEventListener('click', () => setCollapsed(false));
+
+    try {
+      if (localStorage.getItem('lrSidebarCollapsed') === '1') setCollapsed(true);
+    } catch (e) {}
+  }
+
   function init() {
-    ReferenceManager.init();
+    initSidebarToggle();
+    if (typeof ReferenceManager !== 'undefined') ReferenceManager.init();
     if (typeof DetailTableManager !== 'undefined') DetailTableManager.init();
     if (typeof LrWeeklyManager !== 'undefined') LrWeeklyManager.init();
     if (typeof LrRouteCompareManager !== 'undefined') LrRouteCompareManager.init();
