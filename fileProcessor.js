@@ -6,6 +6,7 @@ const FileProcessor = (() => {
   let storedSlu = null;
   let storedColMap = null;
   let storedDates = [];
+  let storedRouteSummary = [];
 
   function handleFile(file, onComplete) {
     const loading = document.getElementById('loading');
@@ -35,6 +36,122 @@ const FileProcessor = (() => {
       }
     };
     reader.readAsArrayBuffer(file);
+  }
+
+
+  function parseRouteSummarySheet(workbook) {
+    try {
+      const names = workbook.SheetNames || [];
+      const name = names.find(n => /per\s*route\s*summary/i.test(String(n)))
+        || names.find(n => /route\s*summary/i.test(String(n)))
+        || names.find(n => /summary/i.test(String(n)) && /route/i.test(String(n)));
+      if (!name) {
+        console.warn('[LR] PER ROUTE SUMMARY sheet not found. Sheets:', names);
+        return [];
+      }
+      const sheet = workbook.Sheets[name];
+      // Build dense matrix (preserve empty cells)
+      const ref = sheet['!ref'] || 'A1';
+      const range = XLSX.utils.decode_range(ref);
+      const matrix = [];
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        const row = [];
+        for (let C = range.s.c; C <= Math.min(range.e.c, 40); C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = sheet[addr];
+          row.push(cell ? (cell.v != null ? cell.v : null) : null);
+        }
+        matrix.push(row);
+      }
+
+      const routeRe = /^\d{3,4}-\d{3,4}(?:\/\d{3,4})?(?:-\d{3,4})?$/;
+      const out = [];
+      let section = 'UNKNOWN';
+      let group = '';
+      let targetCol = -1;
+      let achCol = -1;
+      let monthCols = [];
+
+      function num(v) {
+        if (v == null || v === '' || v === '-') return null;
+        if (typeof v === 'number' && isFinite(v)) return v;
+        const n = parseFloat(String(v).replace(/,/g, '').replace(/%/g, ''));
+        return isNaN(n) ? null : n;
+      }
+
+      for (let r = 0; r < matrix.length; r++) {
+        const row = matrix[r] || [];
+
+        for (let c = 0; c < Math.min(row.length, 5); c++) {
+          const t = row[c] != null ? String(row[c]).trim() : '';
+          if (/VISMIN/i.test(t) && /Average|Loading/i.test(t)) { section = 'VISMIN'; group = ''; }
+          if (/LUZON/i.test(t) && /Average|Loading/i.test(t)) { section = 'LUZON'; group = ''; }
+          if (/^(WVA|BSL|CDO|DVO)$/i.test(t)) group = t.toUpperCase();
+          if (/\d{3,4}-Luzon/i.test(t)) group = t;
+        }
+
+        // Header detection
+        let sawRoute = false;
+        let tc = -1, ac = -1, mc = [];
+        for (let c = 0; c < row.length; c++) {
+          const t = row[c] != null ? String(row[c]).trim().toLowerCase() : '';
+          if (t === 'route') sawRoute = true;
+          if (t === 'target') tc = c;
+          if (t.indexOf('achiv') >= 0 || t.indexOf('achiev') >= 0) ac = c;
+          if (/^(january|february|march|april|may|june|july|august|september|october|november|december)$/i.test(t)) mc.push(c);
+        }
+        if (sawRoute && (tc >= 0 || ac >= 0)) {
+          targetCol = tc;
+          achCol = ac;
+          monthCols = mc;
+          continue;
+        }
+
+        // Route cell
+        let route = null;
+        for (let c = 0; c < row.length; c++) {
+          const t = row[c] != null ? String(row[c]).trim() : '';
+          if (routeRe.test(t)) { route = t; break; }
+        }
+        if (!route) continue;
+
+        const target = targetCol >= 0 ? num(row[targetCol]) : null;
+        let achievement = achCol >= 0 ? num(row[achCol]) : null;
+        if (achievement != null && achievement > 1.5) achievement = achievement / 100;
+
+        const monthNums = monthCols.map(c => num(row[c])).filter(v => v != null && v >= 50);
+        const latestMonth = monthNums.length ? monthNums[monthNums.length - 1] : null;
+        const prevMonth = monthNums.length >= 2 ? monthNums[monthNums.length - 2] : null;
+
+        const dailyVals = [];
+        const startDaily = Math.max(achCol >= 0 ? achCol + 1 : 0, targetCol >= 0 ? targetCol + 2 : 0);
+        for (let c = startDaily; c < row.length; c++) {
+          const v = num(row[c]);
+          if (v != null && v >= 50 && v < 100000) dailyVals.push(v);
+        }
+        const dailyDrop = dailyVals.length >= 2
+          ? dailyVals[dailyVals.length - 1] - dailyVals[dailyVals.length - 2]
+          : null;
+
+        let ach = achievement;
+        if (ach == null && target && latestMonth != null && target > 0) ach = latestMonth / target;
+
+        const underTarget = (ach != null && ach < 1) || (target != null && latestMonth != null && latestMonth < target - 0.5);
+
+        out.push({
+          route, section, group, target,
+          achievement: ach,
+          latestMonth, prevMonth,
+          monthDiff: (latestMonth != null && prevMonth != null) ? latestMonth - prevMonth : null,
+          dailyVals, dailyDrop, underTarget
+        });
+      }
+      console.log('[LR] PER ROUTE SUMMARY parsed:', out.length, 'routes, under target:', out.filter(r => r.underTarget).length);
+      return out;
+    } catch (err) {
+      console.error('[LR] parseRouteSummarySheet failed:', err);
+      return [];
+    }
   }
 
   function parseWorkbook(workbook, onComplete) {
@@ -88,6 +205,7 @@ const FileProcessor = (() => {
     storedSlu = slu;
     storedColMap = colMap;
     storedDates = dates;
+    storedRouteSummary = parseRouteSummarySheet(workbook);
 
     const selPrev = document.getElementById('selectPrev');
     const selLatest = document.getElementById('selectLatest');
@@ -117,7 +235,7 @@ const FileProcessor = (() => {
   }
 
   function getState() {
-    return { storedAllRows, storedSlu, storedColMap, storedDates };
+    return { storedAllRows, storedSlu, storedColMap, storedDates, storedRouteSummary };
   }
 
   return { init, getState };
