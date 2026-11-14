@@ -56,6 +56,9 @@ const App = (() => {
         if (typeof LrTopDragManager !== 'undefined') {
           LrTopDragManager.onFileReady();
         }
+        if (typeof LrMissTargetManager !== 'undefined') {
+          LrMissTargetManager.onFileReady();
+        }
 
         // Explicitly hide BOTH loading overlays
         if (loadingUpload) loadingUpload.classList.add('hidden');
@@ -98,6 +101,8 @@ const App = (() => {
     if (typeof LrWeeklyManager !== 'undefined') LrWeeklyManager.init();
     if (typeof LrRouteCompareManager !== 'undefined') LrRouteCompareManager.init();
     if (typeof LrTopDragManager !== 'undefined') LrTopDragManager.init();
+    if (typeof LrMissTargetManager !== 'undefined') LrMissTargetManager.init();
+    if (typeof LrRouteDetail !== 'undefined') LrRouteDetail.init();
 
     FileProcessor.init((d1, d2, group) => {
       runCompare(d1, d2, group);
