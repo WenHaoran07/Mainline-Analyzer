@@ -614,6 +614,7 @@
             <button type="button" class="lr-main-tab" id="tabLrWeek">📊 Weekly Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrRoute">🚚 Route Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrTopDrag">📉 Top Dragging Routes</button>
+            <button type="button" class="lr-main-tab" id="tabLrMissTarget">🎯 Under Target Routes</button>
           </div>
 
           <div id="lrDayPanel">
@@ -1144,7 +1145,7 @@
               <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
                 <div>
                   <h2 style="margin:0;"><span class="icon">📋</span> Dragging Routes by Departure DC</h2>
-                  <p class="section-note" id="tdTableNote" style="margin:4px 0 0;">Grouped by Departure DC · Luzon / VisMin tagged</p>
+                  <p class="section-note" id="tdTableNote" style="margin:4px 0 0;">Grouped by Departure DC · Click a route row for trip details (plate, Task ID, carrier, LT)</p>
                 </div>
                 <button type="button" id="tdTableFocusBtn" class="rc-expand-btn" title="Expand table">⛶ Expand</button>
               </div>
@@ -1203,6 +1204,55 @@
                 </div>
               </div>
             </div>
+          </div><!-- /#lrTopDragPanel -->
+
+          <!-- UNDER TARGET ROUTES PANEL -->
+          <div id="lrMissTargetPanel" class="hidden">
+            <div class="card">
+              <h2><span class="icon">🎯</span> Routes Below Target</h2>
+              <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:8px 0 12px;">
+                <label for="mtSection" style="font-size:0.85rem;font-weight:600;color:#555;">Section</label>
+                <select id="mtSection" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="ALL">All (VisMin + Luzon)</option>
+                  <option value="VISMIN">VisMin</option>
+                  <option value="LUZON">Luzon</option>
+                </select>
+                <label for="mtSort" style="font-size:0.85rem;font-weight:600;color:#555;">Sort by</label>
+                <select id="mtSort" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;">
+                  <option value="ach-asc">Lowest achievement rate</option>
+                  <option value="drop-asc">Biggest daily drop</option>
+                  <option value="month-drop">Biggest month drop</option>
+                </select>
+                <label for="mtSearchRoute" style="font-size:0.85rem;font-weight:600;color:#555;">Search Route</label>
+                <input type="search" id="mtSearchRoute" placeholder="e.g. 490-840" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-size:0.85rem;min-width:140px;">
+                <button type="button" id="mtClearFilters" style="padding:6px 12px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;font-size:0.82rem;cursor:pointer;">Clear</button>
+                <span id="mtTableCount" style="font-size:0.82rem;color:#757575;"></span>
+              </div>
+            </div>
+            <div class="card">
+              <h2><span class="icon">📋</span> Under-Target Route List</h2>
+              <div class="table-scroll" style="max-height:560px;overflow:auto;">
+                <table class="rc-focus-table">
+                  <thead>
+                    <tr>
+                      <th class="td-rank">#</th>
+                      <th>Route</th>
+                      <th>Group</th>
+                      <th>Section</th>
+                      <th>Prev Month Avg</th>
+                      <th>Latest Month Avg</th>
+                      <th>Target</th>
+                      <th>Achievement</th>
+                      <th>Month change</th>
+                      <th>Daily change</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mtTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           </div>
 
         </div>
@@ -1223,7 +1273,39 @@
   <script src="lrWeeklyManager.js"></script>
   <script src="lrRouteCompareManager.js"></script>
   <script src="lrTopDragManager.js"></script>
+  <script src="lrMissTargetManager.js"></script>
   <script src="app.js"></script>
+<!-- Shared route trip detail overlay -->
+<div id="lrRouteDetailOverlay" class="td-focus-overlay-full hidden" aria-hidden="true">
+  <div class="td-focus-panel-full" role="dialog" aria-modal="true">
+    <div class="graph-focus-bar">
+      <div>
+        <h2 id="lrRouteDetailTitle">Route detail</h2>
+        <p class="section-note" id="lrRouteDetailSub"></p>
+      </div>
+      <button type="button" class="graph-focus-close" id="lrRouteDetailClose">✕ Close</button>
+    </div>
+    <div id="lrRouteDetailSummary"></div>
+    <div class="table-scroll" style="flex:1;max-height:none;overflow:auto;border:1px solid #E0E0E0;border-radius:8px;">
+      <table class="rc-focus-table">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Date</th>
+            <th>Task ID</th>
+            <th>Plate No.</th>
+            <th>Route Owner</th>
+            <th>Vehicle Carrier</th>
+            <th>Actual Size</th>
+            <th>Departure DC</th>
+            <th>Loading Tickets</th>
+          </tr>
+        </thead>
+        <tbody id="lrRouteDetailBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 <footer class="app-watermark">
    © 2026 <strong>Vince Adesa</strong> - Loading Rate Analyzer
 </footer>
