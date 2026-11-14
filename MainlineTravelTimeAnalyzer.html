@@ -21,7 +21,7 @@
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
-        <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
+        <a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
       </div>
     </div>
   </div>
@@ -57,6 +57,7 @@
         <button type="button" class="mtt-main-tab mtt-tab-sup" id="tabMttSup">👤 Supervisor Performance</button>
         <button type="button" class="mtt-main-tab mtt-tab-pf" id="tabMttPlan">⏱️ Plan Feasibility</button>
         <button type="button" class="mtt-main-tab mtt-tab-pa" id="tabMttPlanAbn">📉 Plan TT Abnormalities</button>
+        <button type="button" class="mtt-main-tab mtt-tab-rx" id="tabMttRouteEx">🔍 Explorer</button>
       </div>
 
       <div id="mttDayPanel">
@@ -882,6 +883,309 @@
         </div>
       </div><!-- /#mttPlanAbnPanel -->
 
+      <div id="mttRouteExPanel" class="hidden">
+        <div class="card rx-hero-card">
+          <div class="rx-top">
+            <div>
+              <h2><span class="icon">🔍</span> Explorer</h2>
+            </div>
+          </div>
+
+          <div class="rx-search-bar">
+            <div class="rx-search-main">
+              <label class="pe-label">SEARCH BAR</label>
+              <div class="rx-search-row">
+                <input type="search" id="rxSearch" class="rx-search-input" placeholder="route · region · trucker · DC · plate · task · Luzon · VisMin" autocomplete="off">
+                <button type="button" id="btnRxSearch" class="wm-run-btn">Search</button>
+                <button type="button" id="rxClear" class="wm-mini-btn">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pe-toolbar pf-toolbar rx-toolbar">
+            <div>
+              <label class="pe-label">Scope</label>
+              <select id="rxScope">
+                <option value="ALL">Overall</option>
+                <option value="LUZON">Luzon Route</option>
+                <option value="VISMIN">VisMin Route</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Group by</label>
+              <select id="rxGroupBy">
+                <option value="AUTO">Auto (smart)</option>
+                <option value="REGION">Region</option>
+                <option value="ROUTE">Route</option>
+                <option value="TRUCKER">Trucker</option>
+                <option value="DC">DC Intended</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Region</label>
+              <select id="rxRegion"><option value="ALL">All regions</option></select>
+            </div>
+            <div>
+              <label class="pe-label">Route</label>
+              <select id="rxRoute"><option value="ALL">All routes</option></select>
+            </div>
+            <div>
+              <label class="pe-label">Trip type</label>
+              <select id="rxLegType">
+                <option value="ALL">All</option>
+                <option value="DIRECT">Direct (2-leg)</option>
+                <option value="MULTIDROP">Two drops / Backload</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Trucker</label>
+              <select id="rxTrucker"><option value="ALL">All truckers</option></select>
+            </div>
+            <div class="pe-subtabs">
+              <button type="button" class="pe-subtab active" data-rx-period="day">Day</button>
+              <button type="button" class="pe-subtab" data-rx-period="week">Week</button>
+              <button type="button" class="pe-subtab" data-rx-period="month">Month</button>
+              <button type="button" class="pe-subtab" data-rx-period="overall">Overall</button>
+            </div>
+            <div>
+              <label class="pe-label">Date mode</label>
+              <select id="rxDateMode">
+                <option value="compare">Compare </option>
+                <option value="range">Range </option>
+                <option value="single">Single period</option>
+              </select>
+            </div>
+
+            <!-- Day controls -->
+            <div id="rxDayWrap">
+              <label class="pe-label" id="rxDateALabel">Focus day</label>
+              <select id="rxDateA"></select>
+            </div>
+            <div id="rxDayWrap2">
+              <label class="pe-label" id="rxDateBLabel">Compare day</label>
+              <select id="rxDateB"></select>
+            </div>
+
+            <!-- Week controls -->
+            <div id="rxWeekWrap" class="hidden">
+              <label class="pe-label" id="rxWeekALabel">Week</label>
+              <select id="rxWeek"></select>
+            </div>
+            <div id="rxWeekWrap2" class="hidden">
+              <label class="pe-label" id="rxWeekBLabel">Compare week</label>
+              <select id="rxWeekB"></select>
+            </div>
+
+            <!-- Month controls -->
+            <div id="rxMonthWrap" class="hidden">
+              <label class="pe-label" id="rxMonthALabel">Month</label>
+              <select id="rxMonth"></select>
+            </div>
+            <div id="rxMonthWrap2" class="hidden">
+              <label class="pe-label" id="rxMonthBLabel">Compare month</label>
+              <select id="rxMonthB"></select>
+            </div>
+          </div>
+
+          <div class="date-info" id="rxInfo">Upload a workbook, then search any field across the data.</div>
+          <div id="rxMatchList"></div>
+        </div>
+
+        <!-- Luzon / VisMin multi-region report — separate detailed sections -->
+        <div id="rxScopeReport" class="hidden">
+          <div class="card rx-scope-hero">
+            <div class="rx-scope-report-head">
+              <div>
+                <h2 style="margin:0;"><span class="icon">📊</span> <span id="rxScopeReportTitle">Region report</span></h2>
+                <p class="section-note" id="rxScopeReportNote" style="margin:6px 0 0;">Detailed region performance</p>
+              </div>
+              <span id="rxScopeReportBadge" class="pf-count-pill"></span>
+            </div>
+            <div class="rx-metric-grid" id="rxScopeOverallMetrics"></div>
+          </div>
+
+          <div class="card rx-scope-section">
+            <div class="rx-scope-sec-head">
+              <div>
+                <h2 style="margin:0;"><span class="icon">📅</span> Daily summary</h2>
+                <p class="section-note" id="rxScopeDailyLabel">Focus day totals by region</p>
+              </div>
+              <span class="rx-period-chip" id="rxScopeDailyChip">—</span>
+            </div>
+            <div class="chart-wrap rx-scope-chart"><canvas id="rxScopeChartDaily"></canvas></div>
+            <div class="table-scroll pf-table-scroll rx-scope-scroll">
+              <table class="pf-table rx-scope-table">
+                <thead>
+                  <tr>
+                    <th>Region</th><th>Total</th><th>On time</th><th>Late</th>
+                    <th>Target</th><th>Rate</th><th>vs prev day</th>
+                  </tr>
+                </thead>
+                <tbody id="rxScopeDailyBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card rx-scope-section">
+            <div class="rx-scope-sec-head">
+              <div>
+                <h2 style="margin:0;"><span class="icon">📈</span> 7-day rate history</h2>
+                <p class="section-note" id="rxScopeHistLabel">Achievement rate for each of the last 7 days</p>
+              </div>
+              <span class="rx-period-chip" id="rxScopeHistChip">—</span>
+            </div>
+            <div class="chart-wrap rx-scope-chart"><canvas id="rxScopeChartHist"></canvas></div>
+            <div class="table-scroll pf-table-scroll rx-scope-scroll">
+              <table class="pf-table rx-scope-table">
+                <thead id="rxScopeHistHead"></thead>
+                <tbody id="rxScopeHistBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card rx-scope-section">
+            <div class="rx-scope-sec-head">
+              <div>
+                <h2 style="margin:0;"><span class="icon">📆</span> Weekly rate</h2>
+                <p class="section-note" id="rxScopeWeekLabel">Current week vs previous week by region</p>
+              </div>
+              <span class="rx-period-chip" id="rxScopeWeekChip">—</span>
+            </div>
+            <div class="chart-wrap rx-scope-chart"><canvas id="rxScopeChartWeek"></canvas></div>
+            <div class="table-scroll pf-table-scroll rx-scope-scroll">
+              <table class="pf-table rx-scope-table">
+                <thead id="rxScopeWeekHead">
+                  <tr>
+                    <th>Region</th><th>Prev week</th><th>Current week</th>
+                    <th>Trips (curr)</th><th>On time</th><th>Late</th><th>Weekly diff</th>
+                  </tr>
+                </thead>
+                <tbody id="rxScopeWeekBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card rx-scope-section">
+            <div class="rx-scope-sec-head">
+              <div>
+                <h2 style="margin:0;"><span class="icon">🗓</span> Monthly rate</h2>
+                <p class="section-note" id="rxScopeMonthLabel">Month-to-date by region</p>
+              </div>
+              <span class="rx-period-chip" id="rxScopeMonthChip">—</span>
+            </div>
+            <div class="chart-wrap rx-scope-chart"><canvas id="rxScopeChartMonth"></canvas></div>
+            <div class="table-scroll pf-table-scroll rx-scope-scroll">
+              <table class="pf-table rx-scope-table">
+                <thead>
+                  <tr>
+                    <th>Region</th><th>Month delay</th><th>Month on time</th>
+                    <th>Month total</th><th>Month rate</th><th>Target</th>
+                  </tr>
+                </thead>
+                <tbody id="rxScopeMonthBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="rxDetailWrap" class="hidden">
+          <div class="card rx-detail-card">
+            <div id="rxHero"></div>
+            <div id="rxCompareStrip" class="rx-compare-strip"></div>
+          </div>
+
+          <!-- Day block -->
+          <div id="rxBlockDay" class="rx-period-block">
+            <div class="card">
+              <h2 style="margin:0 0 6px;"><span class="icon">📅</span> Daily rates</h2>
+              <div class="chart-wrap rx-chart"><canvas id="rxChartHist"></canvas></div>
+              <div class="table-scroll rx-mini-scroll">
+                <table class="pf-table">
+                  <thead><tr><th>Date</th><th>Trips</th><th>On time</th><th>Late</th><th>Rate</th></tr></thead>
+                  <tbody id="rxHistBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Week block -->
+          <div id="rxBlockWeek" class="rx-period-block">
+            <div class="card">
+              <h2 style="margin:0 0 6px;"><span class="icon">📆</span> Weekly rates</h2>
+              <div class="chart-wrap rx-chart"><canvas id="rxChartWeek"></canvas></div>
+              <div class="table-scroll rx-mini-scroll">
+                <table class="pf-table">
+                  <thead><tr><th>Week</th><th>Trips</th><th>On time</th><th>Late</th><th>Rate</th></tr></thead>
+                  <tbody id="rxWeekBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Month block -->
+          <div id="rxBlockMonth" class="rx-period-block">
+            <div class="card">
+              <h2 style="margin:0 0 6px;"><span class="icon">🗓</span> Monthly rates</h2>
+              <div class="chart-wrap rx-chart"><canvas id="rxChartMonth"></canvas></div>
+              <div class="table-scroll rx-mini-scroll">
+                <table class="pf-table">
+                  <thead><tr><th>Month</th><th>Trips</th><th>On time</th><th>Late</th><th>Rate</th></tr></thead>
+                  <tbody id="rxMonthBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="rx-split">
+            <div class="card">
+              <h2 style="margin:0 0 8px;"><span class="icon">📋</span> <span id="rxBreakdownTitle">Breakdown</span></h2>
+              <p class="section-note" id="rxBreakdownNote"></p>
+              <div class="table-scroll pf-table-scroll">
+                <table class="pf-table">
+                  <thead id="rxBreakdownHead">
+                    <tr><th>Name</th><th>Trips</th><th>On time</th><th>Late</th><th>Rate</th></tr>
+                  </thead>
+                  <tbody id="rxBreakdownBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <h2 style="margin:0 0 8px;"><span class="icon">🚛</span> By trucker</h2>
+              <div class="table-scroll pf-table-scroll">
+                <table class="pf-table">
+                  <thead><tr><th>Trucker</th><th>Trips</th><th>On time</th><th>Late</th><th>Rate</th></tr></thead>
+                  <tbody id="rxTruckerBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 style="margin:0 0 4px;"><span class="icon">⏰</span> Late trip detail</h2>
+            <p class="section-note" id="rxLateNote">Click a row to see the delay reason (from Delay Reason sheet if available)</p>
+            <div class="table-scroll pf-table-scroll">
+              <table class="pf-table">
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Task ID</th><th>Plate</th><th>Trucker</th>
+                    <th>Route</th><th>Region</th><th>DC</th><th>Plan TT</th><th>Actual TT</th><th>Overrun</th>
+                  </tr>
+                </thead>
+                <tbody id="rxLateBody"></tbody>
+              </table>
+            </div>
+            <div id="rxLateReasonPanel" class="rx-late-reason hidden">
+              <div class="rx-late-reason-head">
+                <p>Delay reason</p>
+                <button type="button" class="wm-mini-btn" id="rxLateReasonClose">Close</button>
+              </div>
+              <div id="rxLateReasonBody"></div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /#mttRouteExPanel -->
+
+
 
     </div>
   </div>
@@ -902,6 +1206,7 @@
   <script src="mttRateMatrix.js"></script>
   <script src="mttPlanFeasibility.js"></script>
   <script src="mttPlanAbnormality.js"></script>
+  <script src="mttRouteExplorer.js"></script>
   <script src="mttAllData.js"></script>
   <script src="mttSupervisor.js"></script>
   <script src="mttTravelReport.js"></script>
