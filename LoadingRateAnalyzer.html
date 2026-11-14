@@ -568,12 +568,14 @@
   </div>
 
   <div class="container">
-    <div class="app-layout">
+    <button type="button" id="btnShowSidebar" class="sidebar-show-btn hidden" title="Show DC Code Reference">⌕ Show Reference</button>
+    <div class="app-layout" id="appLayout">
       <!-- Sidebar First (Left Side) -->
       <aside class="reference-sidebar" id="referenceSidebar">
         <div class="reference-heading">
           <div class="reference-icon">⌕</div>
-          <div><h2>DC Code Reference</h2><p>Quick lookup directory</p></div>
+          <div style="flex:1;min-width:0;"><h2>DC Code Reference</h2><p>Quick lookup directory</p></div>
+          <button type="button" id="btnToggleSidebar" class="sidebar-toggle-btn" title="Hide reference panel" aria-label="Hide DC Code Reference">✕ Hide</button>
         </div>
         <input type="search" id="dcSearch" class="reference-search" placeholder="Search code, DC, area, region..." aria-label="Search DC code reference">
         <div class="reference-tabs" role="tablist" aria-label="Reference type">
