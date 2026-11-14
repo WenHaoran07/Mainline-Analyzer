@@ -681,6 +681,7 @@ const LrRouteCompareManager = (() => {
     const weekPanel = document.getElementById('lrWeeklyPanel');
     const routePanel = document.getElementById('lrRoutePanel');
     const dragPanel = document.getElementById('lrTopDragPanel');
+    const missPanel = document.getElementById('lrMissTargetPanel');
     const btnDay = document.getElementById('tabLrDay');
     const btnWeek = document.getElementById('tabLrWeek');
     const btnRoute = document.getElementById('tabLrRoute');
@@ -688,6 +689,7 @@ const LrRouteCompareManager = (() => {
     if (dayPanel) dayPanel.classList.add('hidden');
     if (weekPanel) weekPanel.classList.add('hidden');
     if (dragPanel) dragPanel.classList.add('hidden');
+      if (typeof missPanel !== 'undefined' && missPanel) missPanel.classList.add('hidden');
     if (routePanel) routePanel.classList.remove('hidden');
     if (btnDay) btnDay.classList.remove('active');
     if (btnWeek) btnWeek.classList.remove('active');
