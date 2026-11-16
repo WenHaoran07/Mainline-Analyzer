@@ -57,6 +57,7 @@
         <button type="button" class="mtt-main-tab mtt-tab-sup" id="tabMttSup">👤 Supervisor Performance</button>
         <button type="button" class="mtt-main-tab mtt-tab-pf" id="tabMttPlan">⏱️ Plan Feasibility</button>
         <button type="button" class="mtt-main-tab mtt-tab-pa" id="tabMttPlanAbn">📉 Plan TT Abnormalities</button>
+        <button type="button" class="mtt-main-tab mtt-tab-tsd" id="tabMttTruckSize">🚛 Truck Size Dispatch</button>
         <button type="button" class="mtt-main-tab mtt-tab-rx" id="tabMttRouteEx">🔍 Explorer</button>
       </div>
 
@@ -883,6 +884,115 @@
         </div>
       </div><!-- /#mttPlanAbnPanel -->
 
+      
+      <div id="mttTruckSizePanel" class="hidden">
+        <div class="card tsd-hero-card">
+          <div class="tsd-top">
+            <div>
+              <h2><span class="icon">🚛</span> Truck Size Dispatch</h2>
+            </div>
+            <div class="tsd-top-actions">
+              <button type="button" id="btnTsdExport" class="wm-export-btn">Export Excel</button>
+            </div>
+          </div>
+
+          <div class="pe-toolbar pf-toolbar tsd-toolbar">
+            <div>
+              <label class="pe-label">From</label>
+              <select id="tsdDateFrom"></select>
+            </div>
+            <div>
+              <label class="pe-label">To</label>
+              <select id="tsdDateTo"></select>
+            </div>
+            <div>
+              <label class="pe-label">Scope</label>
+              <select id="tsdScope">
+                <option value="ALL">Overall</option>
+                <option value="LUZON">Luzon Route</option>
+                <option value="VISMIN">VisMin Route</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Region</label>
+              <select id="tsdRegion"><option value="ALL">All regions</option></select>
+            </div>
+            <div>
+              <label class="pe-label">Route</label>
+              <select id="tsdRoute"><option value="ALL">All routes</option></select>
+            </div>
+            <div>
+              <label class="pe-label">Size</label>
+              <select id="tsdSize"><option value="ALL">All sizes</option></select>
+            </div>
+            <button type="button" id="btnTsdApply" class="wm-run-btn">Apply</button>
+            <button type="button" id="btnTsdClear" class="wm-mini-btn">Clear</button>
+          </div>
+
+          <div class="date-info" id="tsdInfo">Upload a workbook to see truck size dispatch.</div>
+          <div class="tsd-metric-grid" id="tsdMetrics"></div>
+          <div class="tsd-size-chips" id="tsdSizeChips"></div>
+        </div>
+
+        <div class="tsd-charts-row">
+          <div class="card">
+            <h2 style="margin:0 0 8px;"><span class="icon">📊</span> Size mix</h2>
+            <div class="chart-wrap tsd-chart"><canvas id="tsdChartMix"></canvas></div>
+          </div>
+          <div class="card">
+            <h2 style="margin:0 0 8px;"><span class="icon">📅</span> Daily by size</h2>
+            <div class="chart-wrap tsd-chart"><canvas id="tsdChartDaily"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tsd-table-head">
+            <div>
+              <h2 style="margin:0;"><span class="icon">📋</span> Route × Size matrix</h2>
+            </div>
+          </div>
+          <div class="table-scroll tsd-matrix-scroll">
+            <table class="pf-table tsd-matrix">
+              <thead id="tsdMatrixHead"></thead>
+              <tbody id="tsdMatrixBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="margin:0 0 8px;"><span class="icon">📆</span> Daily size counts</h2>
+          <div class="table-scroll tsd-daily-scroll">
+            <table class="pf-table">
+              <thead id="tsdDailyHead"></thead>
+              <tbody id="tsdDailyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tsd-table-head">
+            <div>
+              <h2 style="margin:0;"><span class="icon">🔎</span> Dispatch detail</h2>
+              <p class="section-note" id="tsdDetailNote">All filtered trips</p>
+            </div>
+            <span id="tsdDetailCount" class="pf-count-pill">0 trip(s)</span>
+          </div>
+          <div class="table-scroll pf-table-scroll">
+            <table class="pf-table">
+              <thead>
+                <tr>
+                  <th>Date</th><th>Route</th><th>Region</th><th>Size</th>
+                  <th>Plate</th><th>Trucker</th><th>Task ID</th>
+                  <th>DC</th><th>On time</th><th>Type</th>
+                </tr>
+              </thead>
+              <tbody id="tsdDetailBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /#mttTruckSizePanel -->
+
+
       <div id="mttRouteExPanel" class="hidden">
         <div class="card rx-hero-card">
           <div class="rx-top">
@@ -1206,6 +1316,7 @@
   <script src="mttRateMatrix.js"></script>
   <script src="mttPlanFeasibility.js"></script>
   <script src="mttPlanAbnormality.js"></script>
+  <script src="mttTruckSizeDispatch.js"></script>
   <script src="mttRouteExplorer.js"></script>
   <script src="mttAllData.js"></script>
   <script src="mttSupervisor.js"></script>
