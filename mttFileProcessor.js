@@ -91,6 +91,11 @@ const MttFileProcessor = (() => {
       if (lower === 'task id' || lower === 'taskid' || lower === 'task_id' ||
           lower === 'tasklist' || lower === 'task list' || lower.includes('task list')) colMap.taskId = i;
       if (lower.includes('supervisor') || lower.includes('incharge') || lower.includes('in charge')) colMap.supervisor = i;
+      // Vehicle / truck size — Vehicle Type is the primary column on Mainline DATA
+      if (lower === 'vehicle type' || lower === 'vehicletype' || lower.includes('vehicle type')) colMap.vehicleType = i;
+      if (lower === 'actual size' || lower.includes('actual truck size') || lower === 'vehicle size') colMap.actualSize = i;
+      if (lower.includes('planning truck size') || lower === 'planned size' || lower === 'planning size') colMap.plannedSize = i;
+      if ((lower.includes('truck size') || lower.includes('vehicle size')) && colMap.actualSize == null) colMap.actualSize = i;
     });
 
     function looksLikeRouteType(val) {
@@ -108,6 +113,16 @@ const MttFileProcessor = (() => {
     }
 
     const { parseDateKey, classifyRouteType } = MttUtils;
+
+    /** Clean vehicle size labels: "9.6M", "9.6 M", "7.6m-6w" → consistent */
+    function normalizeSizeLabel(val) {
+      if (val == null || val === '') return '';
+      let s = String(val).trim().toUpperCase().replace(/\s+/g, '');
+      if (!s || s === 'NULL' || s === 'N/A' || s === '-' || s === 'NONE') return '';
+      // 9.6M / 7.6M-6W style
+      s = s.replace(/MTR|METER|METRES?$/i, 'M');
+      return s;
+    }
 
     /** Format Excel date/time cell for display (CHECK IN / CHECK OUT) */
     function formatDateTimeCell(val) {
@@ -184,7 +199,15 @@ const MttFileProcessor = (() => {
         actualArrival: formatDateTimeCell(
           colMap.arrival != null ? get(colMap.arrival) : arrivalVal
         ),
-        scheduledDeparture: formatDateTimeCell(get(colMap.scheduledDeparture))
+        scheduledDeparture: formatDateTimeCell(get(colMap.scheduledDeparture)),
+        // Size: Vehicle Type (primary) → Actual size → Planning size
+        actualSize: normalizeSizeLabel(
+          get(colMap.vehicleType) != null && String(get(colMap.vehicleType)).trim() !== ''
+            ? get(colMap.vehicleType)
+            : get(colMap.actualSize)
+        ),
+        plannedSize: normalizeSizeLabel(get(colMap.plannedSize)),
+        vehicleType: normalizeSizeLabel(get(colMap.vehicleType))
       };
     }).filter(r => r.dateKey);
 
