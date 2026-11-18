@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLU Broken Truck Analyzer | J&T</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <link rel="stylesheet" href="bt.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <img src="Rider.gif" alt="J&T Express Logo" class="logo-gif"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo logo-fallback" style="display:none;">J&T</div>
+        <div>
+          <h1>Broken Truck Analyzer</h1>
+          <p></p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;">← Back to Hub</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="upload-box" id="dropZone">
+      <img src="upload-file.gif" alt="Upload File" class="upload-gif"
+           onerror="this.outerHTML='<div class=&quot;upload-icon&quot;>📂</div>';">
+      <p><strong>Click to upload</strong> or drag &amp; drop Excel file</p>
+      <p><strong>VISMIN BROKEN TRUCK.xlsx</strong></p>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <img src="jnt-loading.gif" alt="Loading..." class="loading-gif"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="spinner" style="display:none;"></div>
+      <div>Analyzing broken truck data, please wait...</div>
+    </div>
+
+    <div id="results" class="hidden">
+      <div class="card toolbar-card">
+        <div class="toolbar-top">
+          <div>
+            <h2 style="margin-bottom:4px;"><span class="icon">🔍</span> Filters</h2>
+          </div>
+          <button type="button" class="btn-export" id="btnExport" title="Export Excel">
+            ⬇ Export Excel
+          </button>
+        </div>
+        <div class="filters-bar" id="globalFilters">
+          <div>
+            <label>Month</label>
+            <select id="filterMonth"></select>
+          </div>
+          <div>
+            <label>Trucker</label>
+            <select id="filterTrucker"></select>
+          </div>
+          <div>
+            <label>Reason group</label>
+            <select id="filterReason"></select>
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="filterStatus"></select>
+          </div>
+          <div>
+            <label>Search</label>
+            <input type="text" id="filterSearch" placeholder="Plate, task, location…">
+          </div>
+          <div>
+            <label>Backload</label>
+            <select id="filterBackload">
+              <option value="ALL">All</option>
+              <option value="FORWARD">Forward only</option>
+              <option value="BACKLOAD">Backload only</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button type="button" class="btn-reset" id="btnResetFilters">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bt-main-tabs">
+        <button type="button" class="bt-main-tab bt-tab-overview active" id="tabBtOverview">📊 Overview</button>
+        <button type="button" class="bt-main-tab bt-tab-detail" id="tabBtDetail">📋 Incident Detail</button>
+        <button type="button" class="bt-main-tab bt-tab-repeat" id="tabBtRepeat">🔁 Repeat Offenders</button>
+        <button type="button" class="bt-main-tab bt-tab-charts" id="tabBtCharts">📈 Charts</button>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div id="btOverviewPanel">
+        <div class="card">
+          <h2><span class="icon">📌</span> Broken trucks summary</h2>
+          <div class="metrics" id="metricsOverall"></div>
+        </div>
+
+        <div class="split-row">
+          <div class="card">
+            <h2><span class="icon">📅</span> By Month</h2>
+            <div class="table-scroll" style="max-height:360px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th class="num">Broken</th>
+                    <th class="num">Avg DT</th>
+                    <th class="num">Transfer</th>
+                    <th class="num">Repair</th>
+                    <th class="num">Accident</th>
+                  </tr>
+                </thead>
+                <tbody id="monthlyTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h2><span class="icon">🚛</span> Top Truckers</h2>
+            <div class="table-scroll" style="max-height:360px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Trucker</th>
+                    <th class="num">Broken</th>
+                    <th class="num">Avg DT</th>
+                    <th class="num">Transfer</th>
+                  </tr>
+                </thead>
+                <tbody id="truckerTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="chart-card-head">
+            <h2 style="margin-bottom:0;"><span class="icon">📉</span> Monthly trend</h2>
+            <div class="chart-type-toggle" data-chart="monthlyOverview">
+              <button type="button" class="chart-type-btn active" data-type="bar">Bar</button>
+              <button type="button" class="chart-type-btn" data-type="line">Line</button>
+              <button type="button" class="chart-type-btn" data-type="pie">Pie</button>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chartMonthly"></canvas></div>
+        </div>
+      </div>
+
+      <!-- REPEAT OFFENDERS -->
+      <div id="btRepeatPanel" class="hidden">
+        <div class="card">
+          <div class="chart-card-head">
+            <h2 style="margin-bottom:0;"><span class="icon">🔁</span> Repeat broken plates</h2>
+            <div>
+              <label style="font-size:0.78rem;color:var(--muted);margin-right:6px;">Min times</label>
+              <select id="filterRepeatMin">
+                <option value="2" selected>2+</option>
+                <option value="3">3+</option>
+                <option value="4">4+</option>
+                <option value="5">5+</option>
+              </select>
+            </div>
+          </div>
+          <div class="metrics" id="metricsRepeat" style="margin-bottom:14px;"></div>
+          <div class="detail-count" id="repeatCount">0 plates</div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Plate</th>
+                  <th>Trucker(s)</th>
+                  <th class="num">Times</th>
+                  <th>Months</th>
+                  <th class="num">Total DT</th>
+                  <th class="num">Avg DT</th>
+                  <th>Top reason</th>
+                  <th>Last date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="repeatTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAIL -->
+      <div id="btDetailPanel" class="hidden">
+        <div class="card">
+          <h2><span class="icon">📋</span> Broken truck incidents</h2>
+          <div class="detail-count" id="detailCount">0 records</div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Month</th>
+                  <th>Trucker</th>
+                  <th>Plate</th>
+                  <th>Destination</th>
+                  <th>Reason</th>
+                  <th class="num">Downtime</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="detailTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div id="btChartsPanel" class="hidden">
+        <div class="card">
+          <div class="chart-card-head">
+            <h2 style="margin-bottom:0;"><span class="icon">📅</span> By month</h2>
+            <div class="chart-type-toggle" data-chart="monthlyCharts">
+              <button type="button" class="chart-type-btn active" data-type="bar">Bar</button>
+              <button type="button" class="chart-type-btn" data-type="line">Line</button>
+              <button type="button" class="chart-type-btn" data-type="pie">Pie</button>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chartMonthlyCharts"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="chart-card-head">
+            <h2 style="margin-bottom:0;"><span class="icon">🚛</span> By trucker</h2>
+            <div class="chart-type-toggle" data-chart="trucker">
+              <button type="button" class="chart-type-btn active" data-type="bar">Bar</button>
+              <button type="button" class="chart-type-btn" data-type="line">Line</button>
+              <button type="button" class="chart-type-btn" data-type="pie">Pie</button>
+            </div>
+          </div>
+          <div class="chart-wrap tall"><canvas id="chartTrucker"></canvas></div>
+        </div>
+        <div class="charts-row">
+          <div class="card">
+            <div class="chart-card-head">
+              <h2 style="margin-bottom:0;"><span class="icon">🧩</span> By reason</h2>
+              <div class="chart-type-toggle" data-chart="reason">
+                <button type="button" class="chart-type-btn active" data-type="pie">Pie</button>
+                <button type="button" class="chart-type-btn" data-type="bar">Bar</button>
+                <button type="button" class="chart-type-btn" data-type="line">Line</button>
+              </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chartReason"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="chart-card-head">
+              <h2 style="margin-bottom:0;"><span class="icon">✅</span> By status</h2>
+              <div class="chart-type-toggle" data-chart="status">
+                <button type="button" class="chart-type-btn active" data-type="pie">Pie</button>
+                <button type="button" class="chart-type-btn" data-type="bar">Bar</button>
+                <button type="button" class="chart-type-btn" data-type="line">Line</button>
+              </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail modal -->
+  <div id="detailModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="detailModalTitle">Incident detail</h3>
+        <button type="button" class="modal-close" id="detailModalClose" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body" id="detailModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Export mode modal -->
+  <div id="exportModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Export Excel</h3>
+        <button type="button" class="modal-close" id="exportModalClose" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="export-options">
+          <button type="button" class="export-option" id="exportSummaryBtn">
+            <span class="export-option-title">📄 Summary</span>
+            <span class="export-option-desc">KPIs, monthly, truckers, reasons, repeat plates</span>
+          </button>
+          <button type="button" class="export-option" id="exportDetailedBtn">
+            <span class="export-option-title">📚 Detailed</span>
+            <span class="export-option-desc">Full sheets per month + charts + all rows</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-watermark">
+   © 2026 <strong>Vince Adesa</strong> - Broken Truck Analyzer
+  </footer>
+
+  <script src="btUtils.js"></script>
+  <script src="btFileProcessor.js"></script>
+  <script src="btDataAnalyzer.js"></script>
+  <script src="btChartManager.js"></script>
+  <script src="btUIManager.js"></script>
+  <script src="btExport.js"></script>
+  <script src="btApp.js"></script>
+</body>
+</html>
