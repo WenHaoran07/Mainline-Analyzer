@@ -304,10 +304,20 @@
     .card.vehicle-size.pos-front:hover .card-btn {
       background: #4A148C;
     }
-     .card.future-update .card-btn {
+    .card.broken-truck .card-btn {
+      background: #C62828;
+    }
+    .card.broken-truck.pos-front:hover .card-btn {
+      background: #8E0000;
+    }
+    .card.broken-truck .card-icon {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+    .card.future-update .card-btn {
       background: var(--muted);
     }
-       .card.future-update.pos-front:hover .card-btn {
+    .card.future-update.pos-front:hover .card-btn {
       background: #004113;
     }
 
@@ -829,17 +839,22 @@
         <div class="card-btn">Open Vehicle Size Accuracy →</div>
       </a>
 
-             <a class="card future-update" href="FutureUpdate.html" data-index="4" title="Coming Soon">
-       <div class="card-icon" style="text-align: center; margin-left: auto; margin-right: auto; display: block;">﹖</div>
-        <h3 style="text-align: center;"></h3>
+<a class="card broken-truck" href="BrokenTruckAnalyzer.html" data-index="4" title="Open Broken Truck Analyzer">
+  <img src="DeliveryTruck.gif" alt="Broken Truck"
+       style="width:100%;height:200px;border-radius:12px 12px 0 0;display:block;margin:-28px -24px 16px -24px;width:calc(100% + 48px);opacity:0.95;"
+       onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+  <div class="card-icon" style="display:none;margin-left:auto;margin-right:auto;">🚛</div>
+  <h3 style="text-align:center;">Broken Truck</h3>
         <p>
-ㅤㅤㅤㅤㅤㅤㅤㅤㅤ
-ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ
-ㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤㅤ
-       </p>
+          VisMin / Cabuyao broken truck monitoring: monthly counts, downtime,
+          reason groups, trucker breakdown, charts, and full incident detail on click.
+        </p>
         <div class="card-meta">
+          <span class="badge">Monthly trend</span>
+          <span class="badge">By reason / trucker</span>
+          <span class="badge">Export Excel</span>
         </div>
-        <div class="card-btn">Future Update</div>
+        <div class="card-btn">Open Broken Truck →</div>
       </a>
 
       </div>
@@ -852,7 +867,7 @@
         <button type="button" class="dot" data-go="1" aria-label="Travel Time"></button>
         <button type="button" class="dot" data-go="2" aria-label="Waiting for Departure"></button>
         <button type="button" class="dot" data-go="3" aria-label="Vehicle Size Accuracy"></button>
-        <button type="button" class="dot" data-go="4" aria-label="Future Update"></button>
+        <button type="button" class="dot" data-go="4" aria-label="Broken Truck"></button>
       </div>
       <button type="button" class="nav-btn" id="btnNext" aria-label="Next">›</button>
     </div>
@@ -1071,7 +1086,7 @@
 
   <script>
   (function () {
-    var BRANCH_HUB_URL = 'https://branch-hub-eta.vercel.app/';
+    var BRANCH_HUB_URL = 'https://branchhub-seven.vercel.app/';
     var GIF_SRC = 'Luffy.gif';
     var DURATION_MS = 7500;
     var OPEN_IN_SAME_TAB = true;
