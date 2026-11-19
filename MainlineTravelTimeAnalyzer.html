@@ -890,6 +890,7 @@
           <div class="tsd-top">
             <div>
               <h2><span class="icon">🚛</span> Truck Size Dispatch</h2>
+              <p class="section-note">How many trucks of each size were dispatched on each route per day. Set a date range, then click a cell for trip detail.</p>
             </div>
             <div class="tsd-top-actions">
               <button type="button" id="btnTsdExport" class="wm-export-btn">Export Excel</button>
@@ -949,6 +950,7 @@
           <div class="tsd-table-head">
             <div>
               <h2 style="margin:0;"><span class="icon">📋</span> Route × Size matrix</h2>
+              <p class="section-note">Click a size cell or route row for trip detail · counts = dispatches in range</p>
             </div>
           </div>
           <div class="table-scroll tsd-matrix-scroll">
@@ -961,6 +963,7 @@
 
         <div class="card">
           <h2 style="margin:0 0 8px;"><span class="icon">📆</span> Daily size counts</h2>
+          <p class="section-note">Click a day to filter the detail table</p>
           <div class="table-scroll tsd-daily-scroll">
             <table class="pf-table">
               <thead id="tsdDailyHead"></thead>
@@ -1060,9 +1063,17 @@
             <div>
               <label class="pe-label">Date mode</label>
               <select id="rxDateMode">
-                <option value="compare">Compare </option>
-                <option value="range">Range </option>
+                <option value="compare">Compare</option>
+                <option value="range">Range</option>
                 <option value="single">Single period</option>
+              </select>
+            </div>
+            <div>
+              <label class="pe-label">Chart type</label>
+              <select id="rxChartType">
+                <option value="pie">Pie (counts)</option>
+                <option value="bar">Bar (counts)</option>
+                <option value="line">Line (rate %)</option>
               </select>
             </div>
 
@@ -1290,6 +1301,62 @@
                 <button type="button" class="wm-mini-btn" id="rxLateReasonClose">Close</button>
               </div>
               <div id="rxLateReasonBody"></div>
+            </div>
+          </div>
+
+          <!-- Delay Reason summary (Explorer) -->
+          <div class="card rx-delay-card" id="rxDelayCard">
+            <div class="rx-delay-head">
+              <div>
+                <h2 style="margin:0;"><span class="icon">📝</span> Delay Reason</h2>
+                <p class="section-note" id="rxDelayNote">Luzon / VisMin · by problem &amp; category for the current period window</p>
+              </div>
+              <div class="pe-subtabs" id="rxDelaySideTabs">
+                <button type="button" class="pe-subtab active" data-rx-delay-side="ALL">Overall</button>
+                <button type="button" class="pe-subtab" data-rx-delay-side="LUZON">Luzon</button>
+                <button type="button" class="pe-subtab" data-rx-delay-side="VISMIN">VisMin</button>
+              </div>
+            </div>
+            <div class="rx-metric-grid" id="rxDelayMetrics"></div>
+            <div class="rx-delay-grid">
+              <div class="rx-delay-col">
+                <h3 class="rx-delay-col-title">By Problem Encountered</h3>
+                <div class="table-scroll pf-table-scroll rx-delay-scroll">
+                  <table class="pf-table">
+                    <thead><tr><th>#</th><th>Problem</th><th>Category</th><th>Count</th><th>Side</th></tr></thead>
+                    <tbody id="rxDelayProblemBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="rx-delay-col">
+                <h3 class="rx-delay-col-title">By Category</h3>
+                <div class="table-scroll pf-table-scroll rx-delay-scroll">
+                  <table class="pf-table">
+                    <thead><tr><th>#</th><th>Category</th><th>Count</th><th>Share</th></tr></thead>
+                    <tbody id="rxDelayCategoryBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="rx-delay-grid" style="margin-top:12px;">
+              <div class="rx-delay-col">
+                <h3 class="rx-delay-col-title">By Region</h3>
+                <div class="table-scroll pf-table-scroll rx-delay-scroll">
+                  <table class="pf-table">
+                    <thead><tr><th>Region</th><th>Side</th><th>Count</th></tr></thead>
+                    <tbody id="rxDelayRegionBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="rx-delay-col">
+                <h3 class="rx-delay-col-title">Detail (click problem to filter)</h3>
+                <div class="table-scroll pf-table-scroll rx-delay-scroll">
+                  <table class="pf-table">
+                    <thead><tr><th>Date</th><th>Task</th><th>Plate</th><th>Region</th><th>Problem</th><th>Category</th></tr></thead>
+                    <tbody id="rxDelayDetailBody"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
