@@ -6,7 +6,8 @@ const MttRouteExplorer = (() => {
   let periodFocus = 'day', dateMode = 'compare';
   let dateA = null, dateB = null, weekA = null, weekB = null, monthA = null, monthB = null;
   let selectedKey = null, selectedKind = 'route';
-  let charts = { hist: null, week: null, month: null }, scopeCharts = { daily: null, hist: null, week: null, month: null }, lastMatches = [];
+  let charts = { hist: null, week: null, month: null, delayPie: null }, scopeCharts = { daily: null, hist: null, week: null, month: null }, lastMatches = [];
+  let chartType = 'pie';
 
   function pct(v, d) { if (v == null || isNaN(v)) return '—'; return (v * 100).toFixed(d == null ? 2 : d) + '%'; }
   function escapeHtml(s) {
@@ -280,10 +281,13 @@ const MttRouteExplorer = (() => {
     const end = idx >= 0 ? idx : sorted.length - 1;
     return sorted.slice(Math.max(0, end - (n - 1)), end + 1);
   }
-  function fmtHms(mins) {
-    if (mins == null || isNaN(mins)) return '—';
-    const totalSec = Math.max(0, Math.round(Number(mins) * 60));
-    return Math.floor(totalSec / 3600) + ':' + String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0') + ':' + String(totalSec % 60).padStart(2, '0');
+  /** Decimal hours → H:MM:SS (same as All Data / Excel plan-actual TT) */
+  function fmtHms(hours) {
+    if (hours == null || hours === '' || isNaN(Number(hours))) return '—';
+    const totalSec = Math.max(0, Math.round(Math.abs(Number(hours)) * 3600));
+    return Math.floor(totalSec / 3600) + ':' +
+      String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0') + ':' +
+      String(totalSec % 60).padStart(2, '0');
   }
   function destroyCharts() { Object.keys(charts).forEach(k => { if (charts[k]) { try { charts[k].destroy(); } catch (e) {} charts[k] = null; } }); }
   function rateCls(rate, target) { if (rate == null) return 'rx-muted'; return rate >= target ? 'rx-ok' : 'rx-bad'; }
@@ -939,17 +943,46 @@ const MttRouteExplorer = (() => {
     function cell(title, st, rate) {
       return '<div class="rx-cmp-card"><div class="rx-cmp-title">' + title + '</div><div class="rx-cmp-rate ' + rateCls(rate, t) + '">' + pct(rate) + '</div><div class="rx-cmp-sub">' + (st.total || 0) + ' trips · ' + (st.yes || 0) + ' on time · <span class="rx-bad">' + (st.no || 0) + ' late</span></div></div>';
     }
-    let h = '<div class="rx-cmp-grid">';
-    if (periodFocus === 'day' || periodFocus === 'overall') { h += cell(pack.focus || 'Focus day', pack.stA, pack.stA.rate); if (pack.compare && dateMode === 'compare') h += cell(pack.compare, pack.stB, pack.stB.rate); }
-    if (periodFocus === 'week' || periodFocus === 'overall') { h += cell(pack.wkFocus || 'Week A', pack.wkSt, pack.wkSt.rate); if (weekB && dateMode === 'compare') h += cell(weekB, pack.wkPrevSt, pack.wkPrevSt.rate); }
-    if (periodFocus === 'month' || periodFocus === 'overall') { h += cell(pack.mkFocus || 'Month A', pack.moSt, pack.moSt.rate); if (monthB && dateMode === 'compare') h += cell(monthB, pack.moPrevSt, pack.moPrevSt.rate); }
-    h += '</div>';
-    if (pack.dailyDiff != null || pack.wkDiff != null || pack.moDiff != null) {
-      h += '<div class="rx-diff-row">';
-      if (pack.dailyDiff != null) h += '<span class="' + (pack.dailyDiff >= 0 ? 'rx-ok' : 'rx-bad') + '">Day diff ' + (pack.dailyDiff >= 0 ? '↑' : '↓') + ' ' + Math.abs(pack.dailyDiff * 100).toFixed(2) + 'pp</span>';
-      if (pack.wkDiff != null) h += '<span class="' + (pack.wkDiff >= 0 ? 'rx-ok' : 'rx-bad') + '">Week diff ' + (pack.wkDiff >= 0 ? '↑' : '↓') + ' ' + Math.abs(pack.wkDiff * 100).toFixed(2) + 'pp</span>';
-      if (pack.moDiff != null) h += '<span class="' + (pack.moDiff >= 0 ? 'rx-ok' : 'rx-bad') + '">Month diff ' + (pack.moDiff >= 0 ? '↑' : '↓') + ' ' + Math.abs(pack.moDiff * 100).toFixed(2) + 'pp</span>';
+    let h = '';
+    if (dateMode === 'range') {
+      let rangeLabel = 'Range';
+      if (periodFocus === 'day' && dateA && dateB) rangeLabel = (dateA < dateB ? dateA + ' → ' + dateB : dateB + ' → ' + dateA);
+      else if (periodFocus === 'week' && weekA && weekB) rangeLabel = weekA + ' → ' + weekB;
+      else if (periodFocus === 'month' && monthA && monthB) rangeLabel = monthA + ' → ' + monthB;
+      const rangeSt = pack.allSt || { total: 0, yes: 0, no: 0, rate: null };
+      h += '<div class="rx-cmp-grid">' + cell('Range total · ' + rangeLabel, rangeSt, rangeSt.rate) + '</div>';
+      // per-period cards for range
+      const series = periodFocus === 'week' ? (pack.weekSeries || []) : (periodFocus === 'month' ? (pack.monthSeries || []) : (pack.dailySeries || []));
+      if (series.length) {
+        h += '<div class="rx-cmp-grid" style="margin-top:10px;">';
+        series.forEach(s => {
+          const st = { total: s.total || 0, yes: s.yes || 0, no: s.no || 0, rate: s.rate };
+          h += cell(s.date || s.label || s.key || '—', st, s.rate);
+        });
+        h += '</div>';
+      }
+    } else {
+      h += '<div class="rx-cmp-grid">';
+      if (periodFocus === 'day' || periodFocus === 'overall') {
+        h += cell(pack.focus || 'Focus day', pack.stA, pack.stA.rate);
+        if (pack.compare && dateMode === 'compare') h += cell(pack.compare, pack.stB, pack.stB.rate);
+      }
+      if (periodFocus === 'week' || periodFocus === 'overall') {
+        h += cell(pack.wkFocus || 'Week A', pack.wkSt, pack.wkSt.rate);
+        if (weekB && dateMode === 'compare') h += cell(weekB, pack.wkPrevSt, pack.wkPrevSt.rate);
+      }
+      if (periodFocus === 'month' || periodFocus === 'overall') {
+        h += cell(pack.mkFocus || 'Month A', pack.moSt, pack.moSt.rate);
+        if (monthB && dateMode === 'compare') h += cell(monthB, pack.moPrevSt, pack.moPrevSt.rate);
+      }
       h += '</div>';
+      if (dateMode === 'compare' && (pack.dailyDiff != null || pack.wkDiff != null || pack.moDiff != null)) {
+        h += '<div class="rx-diff-row">';
+        if (pack.dailyDiff != null) h += '<span class="' + (pack.dailyDiff >= 0 ? 'rx-ok' : 'rx-bad') + '">Day diff ' + (pack.dailyDiff >= 0 ? '↑' : '↓') + ' ' + Math.abs(pack.dailyDiff * 100).toFixed(2) + 'pp</span>';
+        if (pack.wkDiff != null) h += '<span class="' + (pack.wkDiff >= 0 ? 'rx-ok' : 'rx-bad') + '">Week diff ' + (pack.wkDiff >= 0 ? '↑' : '↓') + ' ' + Math.abs(pack.wkDiff * 100).toFixed(2) + 'pp</span>';
+        if (pack.moDiff != null) h += '<span class="' + (pack.moDiff >= 0 ? 'rx-ok' : 'rx-bad') + '">Month diff ' + (pack.moDiff >= 0 ? '↑' : '↓') + ' ' + Math.abs(pack.moDiff * 100).toFixed(2) + 'pp</span>';
+        h += '</div>';
+      }
     }
     el.innerHTML = h;
   }
@@ -1077,28 +1110,195 @@ const MttRouteExplorer = (() => {
     });
   }
 
-  function makeLineChart(canvasId, key, labels, rates, targetPct, title, color) {
+  const PIE_COLORS = ['#E60012','#1565C0','#2E7D32','#F9A825','#6A1B9A','#00897B','#EF6C00','#AD1457','#455A64','#5D4037','#C62828','#0277BD'];
+
+  function countLabelPlugin() {
+    return {
+      id: 'rxCountLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((ds, di) => {
+          const meta = chart.getDatasetMeta(di);
+          if (meta.hidden) return;
+          meta.data.forEach((el, i) => {
+            const raw = ds.data[i];
+            if (raw == null || raw === 0) return;
+            const label = String(Math.round(Number(raw)));
+            const pos = el.tooltipPosition ? el.tooltipPosition() : { x: el.x, y: el.y };
+            ctx.save();
+            ctx.font = 'bold 11px Segoe UI, system-ui, sans-serif';
+            ctx.fillStyle = chart.config.type === 'pie' || chart.config.type === 'doughnut' ? '#fff' : '#212121';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if (chart.config.type === 'pie' || chart.config.type === 'doughnut') {
+              ctx.fillText(label, pos.x, pos.y);
+            } else if (chart.config.type === 'bar') {
+              ctx.fillStyle = '#212121';
+              ctx.fillText(label, pos.x, pos.y - 8);
+            } else {
+              ctx.fillStyle = '#212121';
+              ctx.fillText(label, pos.x, pos.y - 10);
+            }
+            ctx.restore();
+          });
+        });
+      }
+    };
+  }
+
+  function makeFlexibleChart(canvasId, key, series, targetPct, title, color) {
     const el = document.getElementById(canvasId); if (!el || typeof Chart === 'undefined') return;
     if (charts[key]) { try { charts[key].destroy(); } catch (e) {} charts[key] = null; }
+    if (!series || !series.length) return;
+    const labels = series.map(s => s.label || s.date || s.key || '');
+    const counts = series.map(s => s.total || 0);
+    const rates = series.map(s => s.rate == null ? null : +(s.rate * 100).toFixed(2));
+    const type = chartType === 'bar' ? 'bar' : (chartType === 'line' ? 'line' : 'pie');
+    const colors = labels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
+
+    if (type === 'pie') {
+      charts[key] = new Chart(el, {
+        type: 'pie',
+        data: {
+          labels: labels.map((lb, i) => lb + ' (' + counts[i] + ')'),
+          datasets: [{ data: counts, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 }, generateLabels: (chart) => {
+              const data = chart.data;
+              if (!data.labels.length) return [];
+              return data.labels.map((lb, i) => ({
+                text: lb,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                hidden: false,
+                index: i
+              }));
+            } } },
+            tooltip: { callbacks: { label: (ctx) => {
+              const v = ctx.parsed || 0;
+              const sum = counts.reduce((a, b) => a + b, 0) || 1;
+              return ' ' + v + ' trips (' + ((v / sum) * 100).toFixed(1) + '%)';
+            } } },
+            title: { display: true, text: title + ' · trip counts', font: { size: 12 } }
+          }
+        },
+        plugins: [countLabelPlugin()]
+      });
+      return;
+    }
+
+    if (type === 'bar') {
+      charts[key] = new Chart(el, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Trips',
+            data: counts,
+            backgroundColor: color || '#E60012',
+            borderRadius: 6,
+            maxBarThickness: 42
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ' ' + (ctx.parsed.y || 0) + ' trips' } },
+            title: { display: true, text: title + ' · trip counts', font: { size: 12 } }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Trips' } },
+            x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 16, font: { size: 10 } } }
+          }
+        },
+        plugins: [countLabelPlugin()]
+      });
+      return;
+    }
+
+    // line — rate % with count labels via tooltip
     charts[key] = new Chart(el, {
       type: 'line',
-      data: { labels, datasets: [
-        { label: title, data: rates.map(r => r == null ? null : +(r * 100).toFixed(2)), borderColor: color || '#E60012', backgroundColor: color || '#E60012', borderWidth: 2.5, tension: 0.25, spanGaps: true, fill: false, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: color || '#E60012', pointBorderWidth: 2 },
-        { label: 'Target ' + targetPct + '%', data: labels.map(() => targetPct), borderColor: '#9E9E9E', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, tension: 0, fill: false }
-      ]},
-      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
-          tooltip: { callbacks: { label: ctx => ctx.datasetIndex === 1 ? ('Target: ' + targetPct + '%') : ('Rate: ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '—')) } } },
-        scales: { y: { min: 40, max: 110, title: { display: true, text: 'Rate %' } }, x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 16, font: { size: 10 } } } } }
+      data: {
+        labels,
+        datasets: [
+          {
+            label: title,
+            data: rates,
+            borderColor: color || '#E60012',
+            backgroundColor: color || '#E60012',
+            borderWidth: 2.5,
+            tension: 0.25,
+            spanGaps: true,
+            fill: false,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: color || '#E60012',
+            pointBorderWidth: 2
+          },
+          {
+            label: 'Target ' + targetPct + '%',
+            data: labels.map(() => targetPct),
+            borderColor: '#9E9E9E',
+            borderDash: [6, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+          tooltip: { callbacks: {
+            label: (ctx) => {
+              if (ctx.datasetIndex === 1) return ' Target: ' + targetPct + '%';
+              const i = ctx.dataIndex;
+              const rate = ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '—';
+              return ' Rate: ' + rate + ' · ' + (counts[i] || 0) + ' trips';
+            }
+          } },
+          title: { display: true, text: title + ' · rate %', font: { size: 12 } }
+        },
+        scales: {
+          y: { min: 40, max: 110, title: { display: true, text: 'Rate %' } },
+          x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 16, font: { size: 10 } } }
+        }
+      }
     });
   }
+
   function renderCharts(pack) {
     if (!pack) { destroyCharts(); return; }
     const tPct = Math.round(pack.target * 100);
-    if (periodFocus === 'day' || periodFocus === 'overall') makeLineChart('rxChartHist', 'hist', pack.dailySeries.map(h => String(h.date).slice(5)), pack.dailySeries.map(h => h.rate), tPct, 'Daily rate', '#E60012');
-    if (periodFocus === 'week' || periodFocus === 'overall') makeLineChart('rxChartWeek', 'week', pack.weekSeries.map(w => w.label), pack.weekSeries.map(w => w.rate), tPct, 'Weekly rate', '#1565C0');
-    if (periodFocus === 'month' || periodFocus === 'overall') makeLineChart('rxChartMonth', 'month', pack.monthSeries.map(w => w.label), pack.monthSeries.map(w => w.rate), tPct, 'Monthly rate', '#6A1B9A');
+    if (periodFocus === 'day' || periodFocus === 'overall') {
+      const series = (pack.dailySeries || []).map(h => ({
+        label: String(h.date || '').length >= 10 ? String(h.date).slice(5) : (h.date || h.label),
+        date: h.date, total: h.total || 0, rate: h.rate, yes: h.yes, no: h.no
+      }));
+      makeFlexibleChart('rxChartHist', 'hist', series, tPct, 'Daily', '#E60012');
+    }
+    if (periodFocus === 'week' || periodFocus === 'overall') {
+      const series = (pack.weekSeries || []).map(w => ({
+        label: w.label || w.key, key: w.key, total: w.total || 0, rate: w.rate, yes: w.yes, no: w.no
+      }));
+      makeFlexibleChart('rxChartWeek', 'week', series, tPct, 'Weekly', '#1565C0');
+    }
+    if (periodFocus === 'month' || periodFocus === 'overall') {
+      const series = (pack.monthSeries || []).map(w => ({
+        label: w.label || w.key, key: w.key, total: w.total || 0, rate: w.rate, yes: w.yes, no: w.no
+      }));
+      makeFlexibleChart('rxChartMonth', 'month', series, tPct, 'Monthly', '#6A1B9A');
+    }
   }
+
   function renderDetail(pack) {
     const wrap = document.getElementById('rxDetailWrap'); if (!wrap) return;
     if (!pack) { wrap.classList.add('hidden'); return; }
@@ -1192,13 +1392,33 @@ const MttRouteExplorer = (() => {
       });
     });
     document.querySelectorAll('[data-rx-period]').forEach(b => b.addEventListener('click', () => { periodFocus = b.getAttribute('data-rx-period') || 'day'; syncPeriodUI(); run(); }));
+    const chartTypeSel = document.getElementById('rxChartType');
+    if (chartTypeSel) {
+      chartTypeSel.value = chartType;
+      chartTypeSel.addEventListener('change', () => { chartType = chartTypeSel.value || 'pie'; run(); });
+    }
     const clear = document.getElementById('rxClear');
     if (clear) clear.addEventListener('click', () => {
-      searchQ = ''; exactMode = false; scope = 'ALL'; groupBy = 'AUTO'; regionFilter = 'ALL'; routeFilter = 'ALL'; truckerFilter = 'ALL'; legType = 'ALL'; periodFocus = 'day'; dateMode = 'compare'; selectedKey = null; selectedKind = 'route';
+      searchQ = ''; exactMode = false; scope = 'ALL'; groupBy = 'AUTO'; regionFilter = 'ALL'; routeFilter = 'ALL'; truckerFilter = 'ALL'; legType = 'ALL'; periodFocus = 'day'; dateMode = 'compare'; chartType = 'pie'; selectedKey = null; selectedKind = 'route';
       const s = document.getElementById('rxSearch'); if (s) s.value = '';
-      ['rxScope','rxRegion','rxRoute','rxTrucker','rxLegType','rxGroupBy','rxDateMode'].forEach(id => { const el = document.getElementById(id); if (!el) return; if (id === 'rxGroupBy') el.value = 'AUTO'; else if (id === 'rxDateMode') el.value = 'compare'; else el.value = 'ALL'; });
+      ['rxScope','rxRegion','rxRoute','rxTrucker','rxLegType','rxGroupBy','rxDateMode','rxChartType'].forEach(id => {
+        const el = document.getElementById(id); if (!el) return;
+        if (id === 'rxGroupBy') el.value = 'AUTO';
+        else if (id === 'rxDateMode') el.value = 'compare';
+        else if (id === 'rxChartType') el.value = 'pie';
+        else el.value = 'ALL';
+      });
       syncPeriodUI(); run();
     });
+    const lateClose = document.getElementById('rxLateReasonClose');
+    if (lateClose) {
+      lateClose.addEventListener('click', () => {
+        const panel = document.getElementById('rxLateReasonPanel');
+        if (panel) panel.classList.add('hidden');
+        document.querySelectorAll('#rxLateBody tr').forEach(x => x.classList.remove('rx-late-selected'));
+      });
+    }
+
     syncPeriodUI();
   }
   return { init, onDataReady, run };
