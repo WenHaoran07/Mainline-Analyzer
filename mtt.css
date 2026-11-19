@@ -4674,3 +4674,35 @@ tr.tsd-total-row td {
   margin-bottom: 8px;
   align-items: flex-start;
 }
+
+
+/* ===== Explorer Delay Reason section ===== */
+.rx-delay-card {
+  border: 1px solid #FFCDD2;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(198,40,40,0.06);
+}
+.rx-delay-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.rx-delay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .rx-delay-grid { grid-template-columns: 1fr; }
+}
+.rx-delay-col-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #B71C1C;
+  margin: 0 0 8px;
+}
+.rx-delay-scroll { max-height: 280px; }
+tr.rx-delay-prob-row:hover td { background: #FFF5F5; }
