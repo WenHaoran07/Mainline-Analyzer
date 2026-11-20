@@ -551,6 +551,42 @@
         grid-template-columns: 1fr !important;
       }
     }
+
+    .sm-status-hit {
+      display: inline-block;
+      background: #E8F5E9;
+      color: #1B5E20;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid #A5D6A7;
+    }
+    .sm-status-miss {
+      display: inline-block;
+      background: #FFEBEE;
+      color: #B71C1C;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid #EF9A9A;
+    }
+    .sm-why-box {
+      margin-top: 12px;
+      background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+      border: 1px solid #E60012;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      color: #5D4037;
+    }
+    .sm-why-box strong { color: #B71C1C; }
+    .sm-why-ok {
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+      border-color: #2E7D32;
+    }
+    .sm-why-ok strong { color: #1B5E20; }
   </style>
 </head>
 <body>
@@ -612,6 +648,7 @@
           <div class="lr-main-tabs">
             <button type="button" class="lr-main-tab active" id="tabLrDay">📅 Day Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrWeek">📊 Weekly Comparison</button>
+            <button type="button" class="lr-main-tab" id="tabLrSummary">📑 Period Summary</button>
             <button type="button" class="lr-main-tab" id="tabLrRoute">🚚 Route Comparison</button>
             <button type="button" class="lr-main-tab" id="tabLrTopDrag">📉 Top Dragging Routes</button>
             <button type="button" class="lr-main-tab" id="tabLrMissTarget">🎯 Under Target Routes</button>
@@ -919,6 +956,134 @@
             </div>
           </div>
 
+
+          <!-- PERIOD SUMMARY PANEL -->
+          <div id="lrSummaryPanel" class="hidden">
+            <div class="card">
+              <h2><span class="icon">📑</span> Period Summary</h2>
+              <p class="section-note">Target Avg LT: 10,800</p>
+
+              <div class="lr-week-view-tabs" style="margin-bottom:12px;">
+                <button type="button" class="active" data-sm-period="day">Per Day</button>
+                <button type="button" data-sm-period="week">Per Week</button>
+                <button type="button" data-sm-period="month">Per Month</button>
+              </div>
+
+              <div class="date-selectors">
+                <div>
+                  <label>From</label>
+                  <select id="smPeriodFrom"></select>
+                </div>
+                <div>
+                  <label>To</label>
+                  <select id="smPeriodTo"></select>
+                </div>
+                <div>
+                  <label>Route type</label>
+                  <select id="smRouteType">
+                    <option value="ALL">Both (Luzon + VisMin)</option>
+                    <option value="LUZON">Luzon only</option>
+                    <option value="VISMIN">VisMin only</option>
+                  </select>
+                </div>
+                <button type="button" id="btnSmRun">Run Summary</button>
+              </div>
+              <div class="date-info" id="smInfo">Select a range and run summary</div>
+              <div class="metrics" id="smMetrics"></div>
+              <div id="smWhyBox"></div>
+            </div>
+
+            <div class="charts-row">
+              <div class="card">
+                <h2><span class="icon">📈</span> Avg Loading Qty over range</h2>
+                <p class="section-note" id="smLineNote">Avg Loading Qty vs target 10,800</p>
+                <div class="chart-wrap" style="height:280px;"><canvas id="smChartLine"></canvas></div>
+              </div>
+              <div class="card">
+                <h2><span class="icon">🥧</span> Hit vs Miss periods</h2>
+                <p class="section-note" id="smPieNote">Hit or miss target 10,800</p>
+                <div class="chart-wrap" style="height:280px;"><canvas id="smChartPie"></canvas></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2><span class="icon">📊</span> Trips &amp; Total Loading Qty</h2>
+              <p class="section-note">Trips (bars) and total Loading Tickets (line) for each period in range</p>
+              <div class="chart-wrap" style="height:280px;"><canvas id="smChartTrips"></canvas></div>
+            </div>
+
+            <div class="card">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;">
+                <div>
+                  <h2 style="margin:0;"><span class="icon">📋</span> Period breakdown</h2>
+                  <p class="section-note" style="margin:4px 0 0;"></p>
+                </div>
+                <span id="smTableCount" style="font-size:0.82rem;color:#757575;"></span>
+              </div>
+              <div class="table-scroll" style="max-height:520px;overflow:auto;">
+                <table class="rc-focus-table" id="smTable">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Period</th>
+                      <th>Status</th>
+                      <th>Trips</th>
+                      <th>Packages</th>
+                      <th>Avg LT</th>
+                      <th>vs Prev</th>
+                      <th>vs Target</th>
+                      <th>Total LT</th>
+                      <th>Top drag route</th>
+                      <th>Route avg change</th>
+                    </tr>
+                  </thead>
+                  <tbody id="smTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2><span class="icon">⚠</span> Top contributors across the range</h2>
+              <div class="table-scroll" style="max-height:320px;overflow:auto;">
+                <table class="rc-focus-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Route</th>
+                      <th>Type</th>
+                      <th>Times dragged</th>
+                      <th>Sum avg change</th>
+                      <th>Worst period</th>
+                      <th>Worst change</th>
+                    </tr>
+                  </thead>
+                  <tbody id="smContribBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2><span class="icon">📋</span> Top contributor by period</h2>
+              <p class="section-note">Click a row to see Task ID, plate, and trip details for that period</p>
+              <div class="table-scroll" style="max-height:420px;overflow:auto;">
+                <table class="rc-focus-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Period</th>
+                      <th>Route</th>
+                      <th>Trips</th>
+                      <th>Total Loading Qty</th>
+                      <th>Route avg</th>
+                      <th>Route avg change</th>
+                    </tr>
+                  </thead>
+                  <tbody id="smPerDateContribBody"></tbody>
+                </table>
+              </div>
+              <div id="smPerDateDetail" style="margin-top:12px;"></div>
+            </div>
+          </div>
 
           <!-- ROUTE COMPARISON PANEL -->
           <div id="lrRoutePanel" class="hidden">
@@ -1271,6 +1436,7 @@
   <script src="aiReasoningManager.js"></script>
   <script src="fileProcessor.js"></script>
   <script src="lrWeeklyManager.js"></script>
+  <script src="lrSummaryManager.js"></script>
   <script src="lrRouteCompareManager.js"></script>
   <script src="lrTopDragManager.js"></script>
   <script src="lrMissTargetManager.js"></script>
