@@ -116,6 +116,12 @@ const LrSummaryManager = (() => {
           : '—',
         plate: colMap.plateNo != null && r[colMap.plateNo] != null
           ? String(r[colMap.plateNo])
+          : '—',
+        actualSize: colMap.actualSize != null && r[colMap.actualSize] != null
+          ? String(r[colMap.actualSize])
+          : '—',
+        planningSize: colMap.planningSize != null && r[colMap.planningSize] != null
+          ? String(r[colMap.planningSize])
           : '—'
       };
     }).filter(r => r.dateKey && r.period);
@@ -554,6 +560,7 @@ const LrSummaryManager = (() => {
           '<td>' + escapeHtml(t.taskId) + '</td>' +
           '<td>' + escapeHtml(t.plate) + '</td>' +
           '<td>' + escapeHtml(t.branch) + '</td>' +
+          '<td>' + escapeHtml(t.actualSize || '—') + '</td>' +
           '<td style="text-align:right;font-weight:700">' + Math.round(t.lt).toLocaleString() + '</td>' +
           '</tr>'
         ).join('');
@@ -564,7 +571,7 @@ const LrSummaryManager = (() => {
           ' · ' + trips.length + ' trip(s)</div>' +
           '<div class="table-scroll" style="max-height:240px;overflow:auto;">' +
           '<table class="rc-focus-table"><thead><tr>' +
-          '<th>Task ID</th><th>Plate No.</th><th>Departure DC</th><th>Loading Qty</th>' +
+          '<th>Task ID</th><th>Plate No.</th><th>Departure DC</th><th>Truck Size</th><th>Loading Qty</th>' +
           '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
       });
     });
