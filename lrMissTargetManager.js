@@ -158,7 +158,7 @@ const LrMissTargetManager = (() => {
   }
 
   function switchToTab() {
-    ['lrDayPanel', 'lrWeeklyPanel', 'lrRoutePanel', 'lrTopDragPanel'].forEach(function (id) {
+    ['lrDayPanel', 'lrWeeklyPanel', 'lrRoutePanel', 'lrTopDragPanel', 'lrSummaryPanel'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
     });
@@ -167,7 +167,6 @@ const LrMissTargetManager = (() => {
     document.querySelectorAll('.lr-main-tab').forEach(function (b) { b.classList.remove('active'); });
     const btn = document.getElementById('tabLrMissTarget');
     if (btn) btn.classList.add('active');
-    // Defer render so panel is visible in layout first
     setTimeout(function () { run(); }, 0);
   }
 
