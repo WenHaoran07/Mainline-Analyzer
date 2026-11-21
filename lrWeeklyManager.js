@@ -572,19 +572,16 @@ const LrWeeklyManager = (() => {
     const routePanel = document.getElementById('lrRoutePanel');
     const dragPanel = document.getElementById('lrTopDragPanel');
     const missPanel = document.getElementById('lrMissTargetPanel');
-    const btnDay = document.getElementById('tabLrDay');
-    const btnWeek = document.getElementById('tabLrWeek');
-    const btnRoute = document.getElementById('tabLrRoute');
-    const btnDrag = document.getElementById('tabLrTopDrag');
+    const summaryPanel = document.getElementById('lrSummaryPanel');
     if (tab === 'week') {
       if (dayPanel) dayPanel.classList.add('hidden');
       if (routePanel) routePanel.classList.add('hidden');
       if (dragPanel) dragPanel.classList.add('hidden');
-      if (typeof missPanel !== 'undefined' && missPanel) missPanel.classList.add('hidden');
+      if (missPanel) missPanel.classList.add('hidden');
+      if (summaryPanel) summaryPanel.classList.add('hidden');
       if (weekPanel) weekPanel.classList.remove('hidden');
-      if (btnDay) btnDay.classList.remove('active');
-      if (btnRoute) btnRoute.classList.remove('active');
-      if (btnDrag) btnDrag.classList.remove('active');
+      document.querySelectorAll('.lr-main-tab').forEach(function (b) { b.classList.remove('active'); });
+      const btnWeek = document.getElementById('tabLrWeek');
       if (btnWeek) btnWeek.classList.add('active');
       onFileReady();
       run();
@@ -592,11 +589,11 @@ const LrWeeklyManager = (() => {
       if (weekPanel) weekPanel.classList.add('hidden');
       if (routePanel) routePanel.classList.add('hidden');
       if (dragPanel) dragPanel.classList.add('hidden');
-      if (typeof missPanel !== 'undefined' && missPanel) missPanel.classList.add('hidden');
+      if (missPanel) missPanel.classList.add('hidden');
+      if (summaryPanel) summaryPanel.classList.add('hidden');
       if (dayPanel) dayPanel.classList.remove('hidden');
-      if (btnWeek) btnWeek.classList.remove('active');
-      if (btnRoute) btnRoute.classList.remove('active');
-      if (btnDrag) btnDrag.classList.remove('active');
+      document.querySelectorAll('.lr-main-tab').forEach(function (b) { b.classList.remove('active'); });
+      const btnDay = document.getElementById('tabLrDay');
       if (btnDay) btnDay.classList.add('active');
     }
   }
