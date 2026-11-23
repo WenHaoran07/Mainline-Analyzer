@@ -188,11 +188,23 @@ const BtUtils = (() => {
       }
       return -1;
     };
+    // Plate = broken truck only — never match "rescue truck" column
+    const findPlate = () => {
+      const preferred = ['plate #', 'plate no', 'plate number', 'plate no.', 'plate'];
+      for (let i = 0; i < lower.length; i++) {
+        const h = lower[i];
+        if (!h || /rescue/.test(h)) continue;
+        for (const n of preferred) {
+          if (h === n || h.includes(n)) return i;
+        }
+      }
+      return -1;
+    };
     return {
       entryDate: find('entry date', 'entrydate', 'date'),
       month: find('month'),
       trucker: find('trucker', 'carrier', 'supplier'),
-      plate: find('plate #', 'plate', 'plate no', 'plate number'),
+      plate: findPlate(),
       taskPlan: find('task  plan', 'task plan', 'task', 'task id'),
       destination: find('destination', 'backload from'),
       depTime: find('departure time from dc', 'departure time'),
@@ -202,13 +214,20 @@ const BtUtils = (() => {
       resumeTime: find('actual time of resume', 'time of resume'),
       reason: find('reason'),
       broken: find('broken?'),
-      rescue: find('rescue truck'),
+      rescue: find('rescue truck', 'rescue'),
       status: find('status'),
       persons: find('how many person', 'person need'),
       amount: find('total amount'),
       remarks: find('remarks'),
       email: find('email')
     };
+  }
+
+  /** Normalize plate for matching (broken truck plate only) */
+  function normalizePlate(raw) {
+    const s = safeStr(raw).toUpperCase().replace(/\s+/g, '');
+    if (!s || s === '—' || s === '-' || s === 'N/A' || s === 'NA' || s === 'NONE') return '';
+    return s;
   }
 
   function avg(arr) {
@@ -228,6 +247,6 @@ const BtUtils = (() => {
   return {
     pad2, safeStr, parseDateKey, parseMonthLabel, MONTH_ORDER, monthIndex,
     parseDowntimeHours, formatHours, normalizeTrucker, normalizeReason, normalizeStatus,
-    findColMap, avg, escapeHtml
+    findColMap, normalizePlate, avg, escapeHtml
   };
 })();
