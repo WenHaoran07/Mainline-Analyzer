@@ -280,10 +280,11 @@ const BtUIManager = (() => {
         e.stopPropagation();
         const plate = node.getAttribute('data-plate');
         if (!plate) return;
+        // Broken truck plate only — do not match rescue truck column
         const search = document.getElementById('filterSearch');
-        if (search) {
-          search.value = plate;
-          search.dispatchEvent(new Event('input'));
+        if (search) search.value = '';
+        if (typeof BtApp !== 'undefined' && BtApp.setPlateFilter) {
+          BtApp.setPlateFilter(plate);
         }
         const tab = document.getElementById('tabBtDetail');
         if (tab) tab.click();
