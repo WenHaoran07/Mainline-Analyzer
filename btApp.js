@@ -2,6 +2,8 @@
    MODULE: BT MAIN APPLICATION COORDINATOR
    ========================================================================== */
 const BtApp = (() => {
+  // Exact broken-truck plate filter (never matches rescue truck)
+  let plateFilter = '';
 
   function readFilters() {
     return {
@@ -10,8 +12,14 @@ const BtApp = (() => {
       reasonGroup: document.getElementById('filterReason')?.value || 'ALL',
       status: document.getElementById('filterStatus')?.value || 'ALL',
       search: (document.getElementById('filterSearch')?.value || '').trim(),
-      backload: document.getElementById('filterBackload')?.value || 'ALL'
+      backload: document.getElementById('filterBackload')?.value || 'ALL',
+      plate: plateFilter || ''
     };
+  }
+
+  function setPlateFilter(plate) {
+    plateFilter = plate ? String(plate).trim() : '';
+    applyFiltersAndRender();
   }
 
   function applyFiltersAndRender() {
@@ -63,6 +71,7 @@ const BtApp = (() => {
     });
     const search = document.getElementById('filterSearch');
     if (search) search.value = '';
+    plateFilter = '';
     applyFiltersAndRender();
   }
 
@@ -153,6 +162,7 @@ const BtApp = (() => {
     if (search) {
       let t;
       search.addEventListener('input', () => {
+        plateFilter = ''; // user search replaces plate-only filter
         clearTimeout(t);
         t = setTimeout(applyFiltersAndRender, 220);
       });
@@ -197,5 +207,5 @@ const BtApp = (() => {
     init();
   }
 
-  return { applyFiltersAndRender, readFilters, init };
+  return { applyFiltersAndRender, readFilters, setPlateFilter, init };
 })();
