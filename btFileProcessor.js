@@ -67,10 +67,12 @@ const BtFileProcessor = (() => {
       const row = aoa[r];
       if (!row || !row.length) continue;
 
-      const plate = BtUtils.safeStr(col.plate >= 0 ? row[col.plate] : '');
+      const plateRaw = BtUtils.safeStr(col.plate >= 0 ? row[col.plate] : '');
+      const plate = BtUtils.normalizePlate(plateRaw) || plateRaw;
       const truckerRaw = BtUtils.safeStr(col.trucker >= 0 ? row[col.trucker] : '');
       const entryRaw = col.entryDate >= 0 ? row[col.entryDate] : null;
       const dateKey = BtUtils.parseDateKey(entryRaw);
+      const rescueRaw = BtUtils.safeStr(col.rescue >= 0 ? row[col.rescue] : '');
 
       // Skip empty / footer rows
       if (!plate && !truckerRaw && !dateKey) continue;
@@ -103,7 +105,7 @@ const BtFileProcessor = (() => {
         reason: reasonRaw,
         reasonGroup: BtUtils.normalizeReason(reasonRaw),
         broken: BtUtils.safeStr(col.broken >= 0 ? row[col.broken] : ''),
-        rescue: BtUtils.safeStr(col.rescue >= 0 ? row[col.rescue] : ''),
+        rescue: rescueRaw,
         status: BtUtils.normalizeStatus(statusRaw),
         statusRaw,
         persons: col.persons >= 0 ? row[col.persons] : null,
