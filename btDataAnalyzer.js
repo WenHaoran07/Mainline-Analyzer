@@ -18,19 +18,29 @@ const BtDataAnalyzer = (() => {
     if (filters.status && filters.status !== 'ALL') {
       out = out.filter(r => r.status === filters.status);
     }
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      out = out.filter(r =>
-        (r.plate || '').toLowerCase().includes(q) ||
-        (r.trucker || '').toLowerCase().includes(q) ||
-        (r.taskPlan || '').toLowerCase().includes(q) ||
-        (r.destination || '').toLowerCase().includes(q) ||
-        (r.location || '').toLowerCase().includes(q) ||
-        (r.reason || '').toLowerCase().includes(q) ||
-        (r.rescue || '').toLowerCase().includes(q)
-      );
+    // Exact broken-truck plate only (never match rescue truck plate)
+    if (filters.plate) {
+      const want = BtUtils.normalizePlate(filters.plate);
+      if (want) {
+        out = out.filter(r => BtUtils.normalizePlate(r.plate) === want);
+      }
     }
-    // Backload filter: ALL | FORWARD | BACKLOAD (also accepts legacy excludeBackload / backloadOnly)
+    if (filters.search) {
+      const q = filters.search.toLowerCase().trim();
+      const qPlate = BtUtils.normalizePlate(filters.search);
+      out = out.filter(r => {
+        // Plate search matches broken truck plate only — not rescue
+        if (qPlate && BtUtils.normalizePlate(r.plate).includes(qPlate)) return true;
+        return (
+          (r.trucker || '').toLowerCase().includes(q) ||
+          (r.taskPlan || '').toLowerCase().includes(q) ||
+          (r.destination || '').toLowerCase().includes(q) ||
+          (r.location || '').toLowerCase().includes(q) ||
+          (r.reason || '').toLowerCase().includes(q)
+        );
+      });
+    }
+    // Backload filter: ALL | FORWARD | BACKLOAD
     const bl = filters.backload || (filters.backloadOnly ? 'BACKLOAD' : (filters.excludeBackload ? 'FORWARD' : 'ALL'));
     if (bl === 'BACKLOAD') {
       out = out.filter(r => r.isBackload);
@@ -118,15 +128,16 @@ const BtDataAnalyzer = (() => {
   }
 
   /**
-   * Plates that broke at least minTimes (default 2).
-   * Returns array sorted by count desc.
+   * Repeat offenders = same broken-truck PLATE # only.
+   * Rescue truck plates are never counted (even if they match a broken plate).
    */
   function repeatOffenders(rows, minTimes) {
     const min = Math.max(2, parseInt(minTimes, 10) || 2);
     const map = new Map();
     for (const r of rows) {
-      const plate = (r.plate || '').toString().trim().toUpperCase();
-      if (!plate || plate === '—' || plate === 'N/A') continue;
+      const plate = BtUtils.normalizePlate(r.plate);
+      if (!plate) continue;
+      // Do not use r.rescue — only broken truck plate
       if (!map.has(plate)) map.set(plate, []);
       map.get(plate).push(r);
     }
