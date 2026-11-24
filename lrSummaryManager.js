@@ -10,6 +10,10 @@ const LrSummaryManager = (() => {
   let chartLine = null;
   let chartPie = null;
   let chartTrips = null;
+  let chartFocus = null;
+  let lastSummary = null;
+  let focusMode = null; // 'avg' | 'trips'
+  const planeAnim = { raf: null, running: false };
 
   function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -793,6 +797,417 @@ const LrSummaryManager = (() => {
     }
   }
 
+
+  /* ---- Expand + sleigh path animation (like Mainline Travel Time) ---- */
+  const SM_THRESH = {
+    avg: 10000,      // avg loading qty
+    qty: 1000000,    // total loading qty
+    trips: 100       // trips
+  };
+
+  function stopSmPlane() {
+    if (planeAnim.raf) cancelAnimationFrame(planeAnim.raf);
+    planeAnim.raf = null;
+    planeAnim.running = false;
+    const plane = document.getElementById('smPlane');
+    if (plane) {
+      plane.classList.remove('is-flying', 'is-crash');
+      plane.style.opacity = '0';
+    }
+    const val = document.getElementById('smPlaneValue');
+    if (val) val.classList.add('hidden');
+    const fx = document.getElementById('smCrashFx');
+    if (fx) {
+      fx.classList.add('hidden');
+      fx.classList.remove('is-fading');
+    }
+    const btn = document.getElementById('smFocusPlay');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '▶ Play';
+    }
+  }
+
+  function closeSmFocus() {
+    stopSmPlane();
+    const overlay = document.getElementById('smFocusOverlay');
+    if (overlay) {
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (chartFocus) {
+      try { chartFocus.destroy(); } catch (e) {}
+      chartFocus = null;
+    }
+    focusMode = null;
+  }
+
+  function buildFocusSeries(metric) {
+    const series = (lastSummary && lastSummary.series) || [];
+    return series.map(s => {
+      if (metric === 'trips') return { label: s.label, value: s.trips };
+      if (metric === 'qty') return { label: s.label, value: Math.round(s.totalLt) };
+      return { label: s.label, value: Math.round(s.avgLt) };
+    });
+  }
+
+  function openSmFocus(mode) {
+    if (!lastSummary || !lastSummary.series || !lastSummary.series.length) {
+      alert('Run summary first.');
+      return;
+    }
+    focusMode = mode;
+    stopSmPlane();
+    const overlay = document.getElementById('smFocusOverlay');
+    const title = document.getElementById('smFocusTitle');
+    const sub = document.getElementById('smFocusSub');
+    const metricSel = document.getElementById('smFocusMetric');
+    const metricLab = document.getElementById('smFocusMetricLabel');
+    const host = document.getElementById('smPlaneHost');
+    const scroll = document.getElementById('smFocusScroll');
+    if (!overlay) return;
+
+    if (mode === 'avg') {
+      if (title) title.textContent = 'Avg Loading Qty over range';
+      if (sub) sub.textContent = 'Sleigh follows avg path · crash if below 10,000';
+      if (metricSel) {
+        metricSel.style.display = 'none';
+        metricSel.value = 'avg';
+      }
+      if (metricLab) metricLab.style.display = 'none';
+    } else {
+      if (title) title.textContent = 'Trips & Loading Qty';
+      if (sub) sub.textContent = 'Pick path · Avg < 10,000 · Total LT < 1,000,000 · Trips < 100';
+      if (metricSel) metricSel.style.display = '';
+      if (metricLab) metricLab.style.display = '';
+    }
+
+    const n = lastSummary.series.length;
+    if (host) host.style.minWidth = Math.max(900, n * 56) + 'px';
+    if (scroll) scroll.scrollLeft = 0;
+
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    setTimeout(function () {
+      renderFocusChart();
+      const playBtn = document.getElementById('smFocusPlay');
+      if (playBtn) {
+        playBtn.disabled = false;
+        playBtn.textContent = '▶ Play';
+      }
+    }, 40);
+  }
+
+  function renderFocusChart() {
+    const el = document.getElementById('smFocusCanvas');
+    if (!el) return;
+    if (chartFocus) {
+      try { chartFocus.destroy(); } catch (e) {}
+      chartFocus = null;
+    }
+    const metricSel = document.getElementById('smFocusMetric');
+    const metric = focusMode === 'avg' ? 'avg' : (metricSel ? metricSel.value : 'avg');
+    const data = buildFocusSeries(metric);
+    const labels = data.map(d => d.label);
+    const values = data.map(d => d.value);
+    const threshold = SM_THRESH[metric] || SM_THRESH.avg;
+    const color = metric === 'trips' ? '#546E7A' : (metric === 'qty' ? '#E60012' : '#2E7D32');
+
+    const targetLine = labels.map(() => threshold);
+    chartFocus = new Chart(el, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: metric === 'trips' ? 'Trips' : (metric === 'qty' ? 'Total Loading Qty' : 'Avg Loading Qty'),
+            data: values,
+            borderColor: color,
+            backgroundColor: color + '22',
+            fill: true,
+            tension: 0.25,
+            pointRadius: 5,
+            pointBackgroundColor: values.map(v => v < threshold ? '#E60012' : color)
+          },
+          {
+            label: 'Crash line',
+            data: targetLine,
+            borderColor: '#B71C1C',
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            tension: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + ctx.dataset.label + ': ' + Number(ctx.raw).toLocaleString()
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: metric === 'trips' || metric === 'qty',
+            suggestedMax: Math.max.apply(null, values.concat([threshold])) * 1.08 + 1,
+            grid: { color: '#F0F0F0' },
+            ticks: { callback: v => Number(v).toLocaleString() }
+          },
+          x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } }
+        }
+      },
+      plugins: [valueLabelPlugin('smFocusVals')]
+    });
+  }
+
+  function playSmPlane() {
+    const overlay = document.getElementById('smFocusOverlay');
+    if (!overlay || overlay.classList.contains('hidden')) {
+      alert('Expand the chart first, then press Play.');
+      return;
+    }
+    if (!chartFocus) {
+      renderFocusChart();
+    }
+    const chart = chartFocus;
+    const plane = document.getElementById('smPlane');
+    const host = document.getElementById('smPlaneHost');
+    const scroll = document.getElementById('smFocusScroll');
+    const valuePop = document.getElementById('smPlaneValue');
+    const btn = document.getElementById('smFocusPlay');
+    const metricSel = document.getElementById('smFocusMetric');
+    const metric = focusMode === 'avg' ? 'avg' : (metricSel ? metricSel.value : 'avg');
+    const threshold = SM_THRESH[metric] || SM_THRESH.avg;
+    if (!chart || !plane || !host) return;
+
+    stopSmPlane();
+    planeAnim.running = true;
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data || !meta.data.length) {
+      stopSmPlane();
+      return;
+    }
+    const rates = chart.data.datasets[0].data || [];
+    const labels = chart.data.labels || [];
+    const points = [];
+    meta.data.forEach(function (pt, i) {
+      if (!pt || pt.skip) return;
+      const v = rates[i];
+      if (v == null || isNaN(v)) return;
+      points.push({
+        x: pt.x,
+        y: pt.y,
+        rate: Number(v),
+        i: i,
+        label: labels[i] != null ? String(labels[i]) : ''
+      });
+    });
+    if (points.length < 2) {
+      stopSmPlane();
+      return;
+    }
+
+    plane.classList.remove('is-crash');
+    plane.classList.add('is-flying');
+    plane.style.opacity = '1';
+    const planeImg = plane.querySelector('.sm-plane-img');
+    if (planeImg) {
+      const src = planeImg.getAttribute('data-src') || planeImg.getAttribute('src') || 'Sleigh.gif';
+      planeImg.setAttribute('data-src', src.split('?')[0]);
+      planeImg.setAttribute('src', src.split('?')[0] + '?t=' + Date.now());
+    }
+    if (valuePop) valuePop.classList.add('hidden');
+
+    const SPEED_DOWN = 0.18;
+    const SPEED_UP = 0.08;
+    const segs = [];
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i];
+      const b = points[i + 1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const climbing = b.y < a.y - 0.5;
+      segs.push({ a: a, b: b, dist: dist, dur: dist / (climbing ? SPEED_UP : SPEED_DOWN), climbing: climbing });
+    }
+
+    function place(x, y, rot) {
+      plane.style.transform = 'translate(' + x + 'px, ' + y + 'px) rotate(' + rot + 'deg)';
+      // keep sleigh in view when chart is wide
+      if (scroll && host) {
+        const left = scroll.scrollLeft;
+        const viewW = scroll.clientWidth;
+        const margin = 80;
+        if (x - margin < left) scroll.scrollLeft = Math.max(0, x - margin);
+        else if (x + margin > left + viewW) scroll.scrollLeft = x + margin - viewW;
+      }
+    }
+
+    function showValueAt(pt) {
+      if (!valuePop || !pt) return;
+      const unit = metric === 'trips' ? '' : '';
+      valuePop.textContent = (pt.label ? pt.label + ' · ' : '') + Number(pt.rate).toLocaleString() + unit;
+      valuePop.style.left = pt.x + 'px';
+      valuePop.style.top = pt.y + 'px';
+      valuePop.classList.remove('hidden');
+    }
+
+    function showCrash(x, y, rate) {
+      const fx = document.getElementById('smCrashFx');
+      const img = document.getElementById('smCrashImg');
+      const cap = document.getElementById('smCrashCaption');
+      if (img) {
+        const src = (img.getAttribute('src') || 'SleighCrash.gif').split('?')[0];
+        img.setAttribute('src', src + '?t=' + Date.now());
+      }
+      if (cap) {
+        const name = metric === 'trips' ? 'Trips' : (metric === 'qty' ? 'Total Loading Qty' : 'Avg Loading Qty');
+        cap.textContent = name + ' ' + Number(rate).toLocaleString() + ' · below ' + Number(threshold).toLocaleString();
+      }
+      if (fx) {
+        fx.classList.remove('hidden', 'is-fading');
+        fx.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    function hideCrash(callback) {
+      const fx = document.getElementById('smCrashFx');
+      if (!fx) {
+        if (callback) callback();
+        return;
+      }
+      fx.classList.add('is-fading');
+      setTimeout(function () {
+        fx.classList.add('hidden');
+        fx.classList.remove('is-fading');
+        fx.setAttribute('aria-hidden', 'true');
+        if (callback) callback();
+      }, 600);
+    }
+
+    function finish() {
+      plane.classList.remove('is-flying', 'is-crash');
+      place(points[points.length - 1].x - 22, points[points.length - 1].y - 22, 0);
+      plane.style.opacity = '1';
+      hideCrash();
+      showValueAt(points[points.length - 1]);
+      if (btn) { btn.disabled = false; btn.textContent = '▶ Replay'; }
+      planeAnim.running = false;
+    }
+
+    showValueAt(points[0]);
+    place(points[0].x - 22, points[0].y - 22, -12);
+
+    let segIdx = 0;
+    let segElapsed = 0;
+    let lastTs = null;
+    let lastAnnouncedIdx = points[0].i;
+    const crashedPoints = {}; // one full crash per data point below threshold
+
+    // Also crash at start if first point is already below threshold
+    if (points[0].rate < threshold) {
+      crashedPoints[points[0].i] = true;
+    }
+
+    function runCrashHold(x, y, angle, resumeSeg, resumeLocal, rate) {
+      // Pause path completely until crash GIF finishes
+      plane.classList.remove('is-flying');
+      plane.classList.add('is-crash');
+      place(x - 22, y - 22, angle + 25);
+      showCrash(x, y, rate);
+      const holdStart = performance.now();
+      // Hold long enough for full crash GIF, then fade, then continue
+      const GIF_DURATION_MS = 4100;
+      function hold(ts) {
+        if (!planeAnim.running) return;
+        const ht = ts - holdStart;
+        const wobble = Math.sin(ht / 120) * 4;
+        place(x - 22 + wobble, y - 22 + Math.min(10, ht / 250), angle + 25 + wobble);
+        if (ht < GIF_DURATION_MS) {
+          planeAnim.raf = requestAnimationFrame(hold);
+          return;
+        }
+        // GIF finished — only then hide and continue path
+        hideCrash(function () {
+          if (!planeAnim.running) return;
+          plane.classList.remove('is-crash');
+          plane.classList.add('is-flying');
+          plane.style.opacity = '1';
+          // Advance past this point so we don't re-trigger on same spot
+          if (resumeLocal >= 0.98) {
+            segIdx = resumeSeg + 1;
+            segElapsed = 0;
+          } else {
+            segIdx = resumeSeg;
+            segElapsed = resumeLocal * (segs[resumeSeg] ? segs[resumeSeg].dur : 0);
+          }
+          lastTs = null;
+          planeAnim.raf = requestAnimationFrame(frame);
+        });
+      }
+      planeAnim.raf = requestAnimationFrame(hold);
+    }
+
+    function frame(ts) {
+      if (!planeAnim.running) return;
+      if (lastTs == null) lastTs = ts;
+      const dt = Math.min(40, ts - lastTs);
+      lastTs = ts;
+      if (segIdx >= segs.length) {
+        finish();
+        return;
+      }
+      const seg = segs[segIdx];
+      segElapsed += dt;
+      const local = Math.min(1, segElapsed / seg.dur);
+      const x = seg.a.x + (seg.b.x - seg.a.x) * local;
+      const y = seg.a.y + (seg.b.y - seg.a.y) * local;
+      const rate = seg.a.rate + (seg.b.rate - seg.a.rate) * local;
+      const angle = Math.atan2(seg.b.y - seg.a.y, seg.b.x - seg.a.x) * 180 / Math.PI;
+
+      if (local >= 0.98 && seg.b.i !== lastAnnouncedIdx) {
+        lastAnnouncedIdx = seg.b.i;
+        showValueAt(seg.b);
+      }
+
+      // Crash at each point that falls below threshold (again if another low point ahead)
+      if (local >= 0.98 && seg.b.rate < threshold && !crashedPoints[seg.b.i]) {
+        crashedPoints[seg.b.i] = true;
+        runCrashHold(x, y, angle, segIdx, local, seg.b.rate);
+        return;
+      }
+
+      place(x - 22, y - 22, angle);
+
+      if (segElapsed >= seg.dur) {
+        segIdx += 1;
+        segElapsed = 0;
+      }
+      planeAnim.raf = requestAnimationFrame(frame);
+    }
+
+    // If first point is below threshold, play crash before moving
+    if (points[0].rate < threshold) {
+      runCrashHold(points[0].x, points[0].y, -12, 0, 0, points[0].rate);
+      // frame will start after crash hold finishes
+      // but we need to not double-start frame below
+    } else {
+      planeAnim.raf = requestAnimationFrame(frame);
+    }
+    return; // prevent double rAF at end
+
+  }
+
+
   function getRows() {
     const state = FileProcessor.getState();
     if (!state.storedSlu || !state.storedColMap) return [];
@@ -821,6 +1236,7 @@ const LrSummaryManager = (() => {
         '</strong> · ' + routeType;
     }
 
+    lastSummary = summary;
     renderMetrics(summary);
     renderWhy(summary);
     renderTable(summary);
@@ -845,6 +1261,7 @@ const LrSummaryManager = (() => {
   }
 
   function switchToTab() {
+    closeSmFocus();
     ['lrDayPanel', 'lrWeeklyPanel', 'lrRoutePanel', 'lrTopDragPanel', 'lrMissTargetPanel'].forEach(function (id) {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -874,6 +1291,49 @@ const LrSummaryManager = (() => {
       typeSel.addEventListener('change', () => {
         routeType = typeSel.value || 'ALL';
         run();
+      });
+    }
+
+    const expAvg = document.getElementById('smExpandAvg');
+    if (expAvg && !expAvg._smBound) {
+      expAvg._smBound = true;
+      expAvg.addEventListener('click', function () { openSmFocus('avg'); });
+    }
+    const expTrips = document.getElementById('smExpandTrips');
+    if (expTrips && !expTrips._smBound) {
+      expTrips._smBound = true;
+      expTrips.addEventListener('click', function () { openSmFocus('trips'); });
+    }
+    const playBtn = document.getElementById('smFocusPlay');
+    if (playBtn && !playBtn._smBound) {
+      playBtn._smBound = true;
+      playBtn.addEventListener('click', function () {
+        if (planeAnim.running) {
+          stopSmPlane();
+          playBtn.textContent = '▶ Play';
+          return;
+        }
+        playSmPlane();
+      });
+    }
+    const closeBtn = document.getElementById('smFocusClose');
+    if (closeBtn && !closeBtn._smBound) {
+      closeBtn._smBound = true;
+      closeBtn.addEventListener('click', closeSmFocus);
+    }
+    const overlay = document.getElementById('smFocusOverlay');
+    if (overlay && !overlay._smBound) {
+      overlay._smBound = true;
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeSmFocus();
+      });
+    }
+    const metricSel = document.getElementById('smFocusMetric');
+    if (metricSel && !metricSel._smBound) {
+      metricSel._smBound = true;
+      metricSel.addEventListener('change', function () {
+        stopSmPlane();
+        renderFocusChart();
       });
     }
   }
