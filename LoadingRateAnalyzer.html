@@ -587,6 +587,136 @@
       border-color: #2E7D32;
     }
     .sm-why-ok strong { color: #1B5E20; }
+
+    /* Period Summary — sleigh / plane path animation */
+    .sm-chart-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .sm-chart-head h2 { margin: 0; }
+    .sm-expand-btn, .sm-play-btn {
+      border: 1px solid #FFCDD2;
+      background: linear-gradient(135deg, #FFF5F5, #fff);
+      color: #C62828;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .sm-expand-btn:hover, .sm-play-btn:hover:not(:disabled) {
+      background: #E60012;
+      color: #fff;
+      border-color: transparent;
+    }
+    .sm-play-btn:disabled { opacity: 0.6; cursor: wait; }
+    .sm-focus-overlay {
+      position: fixed; inset: 0; z-index: 10050;
+      background: rgba(0,0,0,0.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 18px;
+    }
+    .sm-focus-overlay.hidden { display: none !important; }
+    .sm-focus-panel {
+      background: #fff;
+      border-radius: 14px;
+      width: min(1100px, 100%);
+      max-height: 92vh;
+      padding: 16px 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sm-focus-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .sm-focus-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sm-focus-scroll {
+      overflow: auto;
+      border: 1px solid #E0E0E0;
+      border-radius: 10px;
+      background: #FAFAFA;
+      max-height: 70vh;
+    }
+    .sm-plane-host {
+      position: relative;
+      min-height: 360px;
+      height: 420px;
+    }
+    .sm-plane {
+      position: absolute;
+      left: 0; top: 0;
+      width: 76px; height: 76px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 5;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+      will-change: transform;
+    }
+    .sm-plane.is-flying, .sm-plane.is-crash { opacity: 1; }
+    .sm-plane-img {
+      width: 86px; height: 86px;
+      object-fit: contain;
+      transform: scaleX(1);
+      pointer-events: none;
+      user-select: none;
+    }
+    .sm-plane.is-crash .sm-plane-img {
+      filter: brightness(0.9) saturate(.15);
+    }
+    .sm-plane-value {
+      position: absolute;
+      z-index: 6;
+      background: #212121;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translate(-50%, -120%);
+    }
+    .sm-plane-value.hidden { display: none !important; }
+    .sm-crash-fx {
+      position: fixed;
+      inset: 0;
+      z-index: 10060;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      background: rgba(0,0,0,0.72);
+      transition: opacity 0.6s ease;
+    }
+    .sm-crash-fx.hidden { display: none !important; }
+    .sm-crash-fx.is-fading { opacity: 0; }
+    .sm-crash-img {
+      width: 100vw;
+      max-width: none;
+      height: 90vh;
+      max-height: none;
+      object-fit: contain;
+      transform: scaleX(-1);
+    }
+    .sm-crash-caption {
+      margin-top: 10px;
+      background: #B71C1C;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.9rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
   </style>
 </head>
 <body>
@@ -598,7 +728,7 @@
           <h1>Loading Rate Analyzer</h1>
         </div>
       </div>
-<a href="index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;margin-right:12px;">← Back to Hub</a>
+<a href="Index.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.2);color:#fff;text-decoration:none;font-weight:600;font-size:0.88rem;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);white-space:nowrap;margin-right:12px;">← Back to Hub</a>
       <!-- Packing GIF inside Header -->
     </div>
   </div>
@@ -995,8 +1125,13 @@
 
             <div class="charts-row">
               <div class="card">
-                <h2><span class="icon">📈</span> Avg Loading Qty over range</h2>
-                <p class="section-note" id="smLineNote">Avg Loading Qty vs target 10,800</p>
+                <div class="sm-chart-head">
+                  <div>
+                    <h2><span class="icon">📈</span> Avg Loading Qty over range</h2>
+                    <p class="section-note" id="smLineNote">Avg Loading Qty vs target 10,800</p>
+                  </div>
+                  <button type="button" class="sm-expand-btn" id="smExpandAvg" title="Expand chart">⛶ Expand</button>
+                </div>
                 <div class="chart-wrap" style="height:280px;"><canvas id="smChartLine"></canvas></div>
               </div>
               <div class="card">
@@ -1007,9 +1142,49 @@
             </div>
 
             <div class="card">
-              <h2><span class="icon">📊</span> Trips &amp; Total Loading Qty</h2>
-              <p class="section-note">Trips (bars) and total Loading Tickets (line) for each period in range</p>
+              <div class="sm-chart-head">
+                <div>
+                  <h2><span class="icon">📊</span> Trips &amp; Total Loading Qty</h2>
+                  <p class="section-note">Trips (bars) and total Loading Tickets (line) for each period in range</p>
+                </div>
+                <button type="button" class="sm-expand-btn" id="smExpandTrips" title="Expand chart">⛶ Expand</button>
+              </div>
               <div class="chart-wrap" style="height:280px;"><canvas id="smChartTrips"></canvas></div>
+            </div>
+
+            <!-- Period Summary focus + sleigh animation -->
+            <div id="smFocusOverlay" class="sm-focus-overlay hidden" aria-hidden="true">
+              <div class="sm-focus-panel" role="dialog" aria-modal="true">
+                <div class="sm-focus-bar">
+                  <div>
+                    <h2 id="smFocusTitle">Chart focus</h2>
+                    <p class="section-note" id="smFocusSub"></p>
+                  </div>
+                  <div class="sm-focus-actions">
+                    <label for="smFocusMetric" id="smFocusMetricLabel" style="font-size:0.8rem;font-weight:700;color:#555;display:none;">Path</label>
+                    <select id="smFocusMetric" style="display:none;padding:5px 10px;border:1px solid #ccc;border-radius:8px;font-size:0.8rem;font-weight:600;">
+                      <option value="avg">Avg Loading Qty</option>
+                      <option value="qty">Total Loading Qty</option>
+                      <option value="trips">Trips</option>
+                    </select>
+                    <button type="button" class="sm-play-btn" id="smFocusPlay">▶ Play</button>
+                    <button type="button" class="graph-focus-close" id="smFocusClose">✕ Close</button>
+                  </div>
+                </div>
+                <div class="sm-focus-scroll" id="smFocusScroll">
+                  <div class="sm-plane-host" id="smPlaneHost" style="min-width:900px;">
+                    <canvas id="smFocusCanvas"></canvas>
+                    <div class="sm-plane" id="smPlane" aria-hidden="true">
+                      <img class="sm-plane-img" src="Sleigh.gif" data-src="Sleigh.gif" alt="" draggable="false" onerror="this.onerror=null;this.src='Plane.gif';this.setAttribute('data-src','Plane.gif');">
+                    </div>
+                    <div class="sm-plane-value hidden" id="smPlaneValue"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="smCrashFx" class="sm-crash-fx hidden" aria-hidden="true">
+              <img class="sm-crash-img" id="smCrashImg" src="SleighCrash.gif" alt="" onerror="this.onerror=null;this.src='Explosion4.gif';">
+              <div class="sm-crash-caption" id="smCrashCaption">Crash</div>
             </div>
 
             <div class="card">
