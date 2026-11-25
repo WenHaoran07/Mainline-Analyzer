@@ -608,7 +608,125 @@
     }
 
 
-    /* ===== Floating Branch Hub Button in Lower Left ===== */
+    
+    /* ---- Hub side panel (3-line hamburger) ---- */
+    .hub-menu-btn {
+      position: fixed;
+      top: 18px;
+      left: 16px;
+      z-index: 1200;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .hub-menu-btn:hover { transform: scale(1.06); background: #fff; }
+    .hub-menu-btn span {
+      display: block;
+      width: 20px;
+      height: 2.5px;
+      background: var(--jt-red, #E60012);
+      border-radius: 2px;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .hub-menu-btn.open span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+    .hub-menu-btn.open span:nth-child(2) { opacity: 0; }
+    .hub-menu-btn.open span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+
+    .hub-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 1140;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .hub-backdrop.show { opacity: 1; pointer-events: auto; }
+
+    .hub-side-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: min(300px, 86vw);
+      background: #fff;
+      z-index: 1150;
+      box-shadow: 8px 0 32px rgba(0,0,0,0.18);
+      transform: translateX(-105%);
+      transition: transform 0.28s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .hub-side-panel.open { transform: translateX(0); }
+    .hub-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 16px 12px;
+      border-bottom: 1px solid var(--border, #eee);
+      color: var(--jt-red-dark, #B8000E);
+      font-size: 1.05rem;
+    }
+    .hub-panel-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: #f3f3f3;
+      font-size: 1.25rem;
+      cursor: pointer;
+      line-height: 1;
+      color: #666;
+    }
+    .hub-panel-close:hover { background: var(--jt-red-light, #ffe5e5); color: var(--jt-red); }
+    .hub-panel-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .hub-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      border: 1px solid var(--border, #e8e8e8);
+      border-radius: 14px;
+      background: #fafafa;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    .hub-nav-btn:hover {
+      background: var(--jt-red-light, #fff0f0);
+      border-color: var(--jt-red-soft, #ffb3b3);
+      transform: translateY(-1px);
+    }
+    .hub-nav-icon { font-size: 1.6rem; line-height: 1; }
+    .hub-nav-text { display: flex; flex-direction: column; gap: 2px; }
+    .hub-nav-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--jt-red-dark, #B8000E);
+    }
+    .hub-nav-sub {
+      font-size: 0.78rem;
+      color: var(--muted, #888);
+    }
+
+/* ===== Floating Branch Hub Button in Lower Left ===== */
     .btn-branch-hub {
       position: fixed;
       bottom: 20px;
@@ -757,11 +875,40 @@
     </div>
   </header>
 
+  
+  <!-- Hub side panel (hamburger) -->
+  <button type="button" class="hub-menu-btn" id="btnHubMenu" title="Open hubs" aria-label="Open hubs">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="hub-backdrop" id="hubBackdrop"></div>
+  <aside class="hub-side-panel" id="hubSidePanel" aria-hidden="true">
+    <div class="hub-panel-header">
+      <strong>Hubs</strong>
+      <button type="button" class="hub-panel-close" id="btnHubClose" title="Close">×</button>
+    </div>
+    <div class="hub-panel-body">
+      <button type="button" class="hub-nav-btn" data-hub-url="https://branch-hub-eta.vercel.app/" data-hub-name="BranchHub">
+        <span class="hub-nav-icon">🌿</span>
+        <span class="hub-nav-text">
+          <span class="hub-nav-title">BranchHub</span>
+          <span class="hub-nav-sub">Branchline analyzers</span>
+        </span>
+      </button>
+      <button type="button" class="hub-nav-btn" data-hub-url="https://jeyentipenalty.vercel.app/" data-hub-name="PenaltyAnalyzer">
+        <span class="hub-nav-icon">💰</span>
+        <span class="hub-nav-text">
+          <span class="hub-nav-title">Penalty Analyzer</span>
+          <span class="hub-nav-sub">SLU penalties & rates</span>
+        </span>
+      </button>
+    </div>
+  </aside>
+
   <!-- Floating Branch Hub Button in Lower Left -->
-  <button type="button" class="btn-branch-hub" id="btnBranchHub" title="Open Branch Hub">
+ <!--<button type="button" class="btn-branch-hub" id="btnBranchHub" title="Open Branch Hub">
     <span class="bh-ico">🔗</span>
     <span>Branch Hub</span>
-  </button>
+  </button>--> 
 
   <div id="qrLightbox" role="dialog" aria-label="Enlarged QR code">
     <div class="qr-box" onclick="event.stopPropagation()">
@@ -1075,11 +1222,11 @@
   <div id="hubTransition" aria-hidden="true">
     <div class="hub-tx-track">
       <div class="hub-tx-mover" id="hubTxMover">
-        <img id="hubTxGif" src="Luffy.gif" alt="Transition">
+        <img id="hubTxGif" src="Transition.gif" alt="Transition">
       </div>
     </div>
     <div class="hub-tx-ui">
-      <div class="hub-tx-label" id="hubTxLabel">Luffy is heading to Branch Hub…</div>
+      <!--<div class="hub-tx-label" id="hubTxLabel">Luffy is heading to Branch Hub…</div>-->
       <button type="button" class="hub-tx-skip" id="hubTxSkip">Skip</button>
     </div>
   </div>
@@ -1087,7 +1234,7 @@
   <script>
   (function () {
     var BRANCH_HUB_URL = 'https://branch-hub-eta.vercel.app/';
-    var GIF_SRC = 'Luffy.gif';
+    var GIF_SRC = 'Transition.gif';
     var DURATION_MS = 7500;
     var OPEN_IN_SAME_TAB = true;
 
@@ -1151,6 +1298,57 @@
         e.preventDefault();
         goNow();
       }
+    });
+  })();
+  </script>
+
+
+  <script>
+  (function () {
+    var btn = document.getElementById('btnHubMenu');
+    var panel = document.getElementById('hubSidePanel');
+    var backdrop = document.getElementById('hubBackdrop');
+    var closeBtn = document.getElementById('btnHubClose');
+    if (!btn || !panel) return;
+
+    function openPanel() {
+      panel.classList.add('open');
+      if (backdrop) backdrop.classList.add('show');
+      btn.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+    }
+    function closePanel() {
+      panel.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('show');
+      btn.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+    function togglePanel() {
+      if (panel.classList.contains('open')) closePanel();
+      else openPanel();
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (document.body.classList.contains('locked')) return;
+      togglePanel();
+    });
+    if (closeBtn) closeBtn.addEventListener('click', closePanel);
+    if (backdrop) backdrop.addEventListener('click', closePanel);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && panel.classList.contains('open')) closePanel();
+    });
+
+    panel.querySelectorAll('.hub-nav-btn').forEach(function (nav) {
+      nav.addEventListener('click', function () {
+        if (document.body.classList.contains('locked')) return;
+        var url = nav.getAttribute('data-hub-url');
+        if (!url) return;
+        closePanel();
+        var sep = url.indexOf('?') >= 0 ? '&' : '?';
+        window.location.href = url + sep + 'from=mainhub&tx=1';
+      });
     });
   })();
   </script>
