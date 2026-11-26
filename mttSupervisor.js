@@ -361,9 +361,19 @@ const MttSupervisor = (() => {
     return h;
   }
 
+  function expandBtn(title) {
+    return '<button type="button" class="mr-expand-btn sup-expand-btn" title="Expand table" data-mtt-sup-expand="' +
+      String(title).replace(/"/g, '&quot;') + '">⛶</button>';
+  }
+
   function tableBySupervisor(list, target) {
     if (!list || !list.length) return '<p class="section-note">No supervisor rows.</p>';
-    let h = '<div class="sup-table-wrap"><table class="sup-grid"><thead><tr>';
+    let h = '<div class="sup-table-block">';
+    h += '<div class="sup-table-head">';
+    h += '<h4 class="sup-section-title">By Supervisor In-charge</h4>';
+    h += expandBtn('By Supervisor In-charge');
+    h += '</div>';
+    h += '<div class="sup-table-wrap"><table class="sup-grid"><thead><tr>';
     h += '<th>Supervisor In-charge</th><th>Total arrival</th><th>Followed</th><th>Not followed</th><th>Target</th><th>Rate</th>';
     h += '</tr></thead><tbody>';
     list.forEach(function (r) {
@@ -377,13 +387,18 @@ const MttSupervisor = (() => {
       h += '<td class="rate-cell ' + rc + '">' + pct(r.rate) + '</td>';
       h += '</tr>';
     });
-    h += '</tbody></table></div>';
+    h += '</tbody></table></div></div>';
     return h;
   }
 
   function tableByDc(list, target) {
     if (!list || !list.length) return '<p class="section-note">No DC rows.</p>';
-    let h = '<div class="sup-table-wrap"><table class="sup-grid"><thead><tr>';
+    let h = '<div class="sup-table-block">';
+    h += '<div class="sup-table-head">';
+    h += '<h4 class="sup-section-title">By DC Intended</h4>';
+    h += expandBtn('By DC Intended');
+    h += '</div>';
+    h += '<div class="sup-table-wrap"><table class="sup-grid"><thead><tr>';
     h += '<th>DC Name</th><th>Supervisor In-charge</th><th>Total arrival</th><th>Followed</th><th>Not followed</th><th>Target</th><th>Rate</th>';
     h += '</tr></thead><tbody>';
     list.forEach(function (r) {
@@ -400,7 +415,7 @@ const MttSupervisor = (() => {
       h += '<td class="rate-cell ' + rc + '">' + pct(r.rate) + '</td>';
       h += '</tr>';
     });
-    h += '</tbody></table></div>';
+    h += '</tbody></table></div></div>';
     return h;
   }
 
@@ -458,17 +473,262 @@ const MttSupervisor = (() => {
 
     // Match screenshot order: for scope tabs DC first; for Supervisor hub, supervisor first
     if (s.kind === 'supervisorHub') {
-      h += '<div class="sup-section-bar"><h4 class="sup-section-title">By Supervisor In-charge</h4></div>';
       h += tableBySupervisor(s.bySupervisor, s.target);
-      h += '<div class="sup-section-bar" style="margin-top:20px;"><h4 class="sup-section-title">By DC Intended</h4></div>';
+      h += '<div style="margin-top:18px;"></div>';
       h += tableByDc(s.byDc, s.target);
     } else {
-      h += '<div class="sup-section-bar"><h4 class="sup-section-title">By DC Intended</h4></div>';
       h += tableByDc(s.byDc, s.target);
-      h += '<div class="sup-section-bar" style="margin-top:20px;"><h4 class="sup-section-title">By Supervisor In-charge</h4></div>';
+      h += '<div style="margin-top:18px;"></div>';
       h += tableBySupervisor(s.bySupervisor, s.target);
     }
     return h;
+  }
+
+  function openExpand(btn) {
+    const block = btn.closest('.sup-table-block');
+    if (!block) return;
+    const table = block.querySelector('table');
+    if (!table) return;
+    const title = btn.getAttribute('data-mtt-sup-expand') || 'Expanded table';
+    const overlay = document.getElementById('mrTableExpandOverlay');
+    const body = document.getElementById('mrTableExpandBody');
+    const titleEl = document.getElementById('mrTableExpandTitle');
+    if (!overlay || !body) return;
+    if (titleEl) titleEl.textContent = title + ' · ' + periodLabel();
+    body.innerHTML = '';
+    const clone = table.cloneNode(true);
+    clone.classList.add('sup-grid');
+    body.appendChild(clone);
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('mr-expand-open');
+  }
+
+  function closeExpand() {
+    const overlay = document.getElementById('mrTableExpandOverlay');
+    const body = document.getElementById('mrTableExpandBody');
+    if (overlay) {
+      overlay.classList.add('hidden');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (body) body.innerHTML = '';
+    document.body.classList.remove('mr-expand-open');
+  }
+
+  function bindExpand() {
+    const host = document.getElementById('mttSupView');
+    if (!host) return;
+    host.querySelectorAll('[data-mtt-sup-expand]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openExpand(btn);
+      });
+    });
+  }
+
+  /* ---------- Excel export ---------- */
+  function loadExcelJS() {
+    return new Promise(function (resolve, reject) {
+      if (window.ExcelJS) { resolve(window.ExcelJS); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = function () { resolve(window.ExcelJS); };
+      s.onerror = function () { reject(new Error('Failed to load ExcelJS')); };
+      document.head.appendChild(s);
+    });
+  }
+  function thinBorder() {
+    const e = { style: 'thin', color: { argb: 'FFBDBDBD' } };
+    return { top: e, left: e, bottom: e, right: e };
+  }
+  function fill(argb) {
+    return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+  }
+  function font(opts) {
+    return Object.assign({ name: 'Calibri', size: 10 }, opts || {});
+  }
+  function rateFillArgb(rate, target) {
+    if (rate == null) return 'FFFFFFFF';
+    if (target != null && rate >= target) return 'FFC6EFCE';
+    if (rate >= 0.95) return 'FFC6EFCE';
+    if (rate >= 0.90) return 'FFFFE699';
+    return 'FFFFC7CE';
+  }
+  function rateFontArgb(rate, target) {
+    if (rate == null) return 'FF9E9E9E';
+    if (target != null && rate >= target) return 'FF006100';
+    if (rate >= 0.95) return 'FF006100';
+    if (rate >= 0.90) return 'FFE65100';
+    return 'FF9C0006';
+  }
+  function styleHeaderRow(ws, rowIdx, colCount) {
+    for (let c = 1; c <= colCount; c++) {
+      const cell = ws.getCell(rowIdx, c);
+      cell.font = font({ bold: true, size: 9, color: { argb: 'FFFFFFFF' } });
+      cell.fill = fill('FFB71C1C');
+      cell.border = thinBorder();
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    }
+    ws.getRow(rowIdx).height = 20;
+  }
+  function writeTitle(ws, titleText, subText, colCount) {
+    ws.mergeCells(1, 1, 1, colCount);
+    const title = ws.getCell(1, 1);
+    title.value = titleText;
+    title.font = font({ bold: true, size: 14, color: { argb: 'FFFFFFFF' } });
+    title.fill = fill('FFC00000');
+    title.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 26;
+    ws.mergeCells(2, 1, 2, colCount);
+    const sub = ws.getCell(2, 1);
+    sub.value = subText;
+    sub.font = font({ bold: true, size: 10, color: { argb: 'FF5D4037' } });
+    sub.fill = fill('FFFFF8E1');
+    sub.alignment = { horizontal: 'center' };
+  }
+  function writeSupervisorSheet(ws, list, sheetLabel, target) {
+    const headers = ['#', 'Supervisor In-charge', 'Total', 'Followed', 'Not followed', 'Target', 'Rate'];
+    writeTitle(ws, 'SLU Mainline · Supervisor Performance', sheetLabel + ' · ' + periodLabel(), headers.length);
+    styleHeaderRow(ws, 3, headers.length);
+    headers.forEach(function (h, i) { ws.getCell(3, i + 1).value = h; });
+    list.forEach(function (r, idx) {
+      const rowIdx = 4 + idx;
+      const vals = [idx + 1, r.supervisor || '—', r.total || 0, r.followed || 0, r.notFollowed || 0, target, r.rate];
+      vals.forEach(function (v, i) {
+        const cell = ws.getCell(rowIdx, i + 1);
+        cell.border = thinBorder();
+        cell.alignment = { horizontal: i === 1 ? 'left' : 'center', vertical: 'middle' };
+        if (i === 5 || i === 6) {
+          cell.value = v;
+          cell.numFmt = '0.00%';
+          if (i === 6) {
+            cell.fill = fill(rateFillArgb(v, target));
+            cell.font = font({ bold: true, color: { argb: rateFontArgb(v, target) } });
+          } else cell.font = font({ bold: true });
+        } else {
+          cell.value = v;
+          if (i === 3) cell.font = font({ bold: true, color: { argb: 'FF006100' } });
+          if (i === 4 && v) cell.font = font({ bold: true, color: { argb: 'FF9C0006' } });
+        }
+        if (idx % 2 === 1 && i !== 6) cell.fill = fill('FFFFF5F5');
+      });
+    });
+    [6, 32, 12, 12, 14, 10, 12].forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+  }
+  function writeDcSheet(ws, list, sheetLabel, target) {
+    const headers = ['#', 'DC Name', 'Code', 'Supervisor In-charge', 'Total', 'Followed', 'Not followed', 'Target', 'Rate'];
+    writeTitle(ws, 'SLU Mainline · Supervisor Performance · By DC', sheetLabel + ' · ' + periodLabel(), headers.length);
+    styleHeaderRow(ws, 3, headers.length);
+    headers.forEach(function (h, i) { ws.getCell(3, i + 1).value = h; });
+    list.forEach(function (r, idx) {
+      const rowIdx = 4 + idx;
+      const vals = [idx + 1, r.dc || '—', r.code || '', r.supervisor || '—', r.total || 0, r.followed || 0, r.notFollowed || 0, target, r.rate];
+      vals.forEach(function (v, i) {
+        const cell = ws.getCell(rowIdx, i + 1);
+        cell.border = thinBorder();
+        cell.alignment = { horizontal: (i === 1 || i === 3) ? 'left' : 'center', vertical: 'middle' };
+        if (i === 7 || i === 8) {
+          cell.value = v;
+          cell.numFmt = '0.00%';
+          if (i === 8) {
+            cell.fill = fill(rateFillArgb(v, target));
+            cell.font = font({ bold: true, color: { argb: rateFontArgb(v, target) } });
+          } else cell.font = font({ bold: true });
+        } else {
+          cell.value = v;
+          if (i === 5) cell.font = font({ bold: true, color: { argb: 'FF006100' } });
+          if (i === 6 && v) cell.font = font({ bold: true, color: { argb: 'FF9C0006' } });
+        }
+        if (idx % 2 === 1 && i !== 8) cell.fill = fill('FFFFF5F5');
+      });
+    });
+    [6, 24, 10, 32, 12, 12, 14, 10, 12].forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+  }
+  function writeOverviewSheet(ws) {
+    const headers = ['Sheet', 'Total', 'Followed', 'Not followed', 'Target', 'Rate', 'vs Target (pp)', 'Status'];
+    writeTitle(ws, 'SLU Mainline · Supervisor Performance · Overview', periodLabel(), headers.length);
+    styleHeaderRow(ws, 3, headers.length);
+    headers.forEach(function (h, i) { ws.getCell(3, i + 1).value = h; });
+    SHEET_DEFS.forEach(function (def, idx) {
+      const s = sheetView(def.id);
+      const o = (s && s.overall) || {};
+      const rate = o.rate;
+      const target = def.target;
+      const gap = rate != null && target != null ? (rate - target) * 100 : null;
+      const hit = rate != null && target != null && rate >= target;
+      const rowIdx = 4 + idx;
+      const vals = [def.label, o.total || 0, o.followed || 0, o.notFollowed || 0, target, rate, gap, hit ? 'On target' : 'Below'];
+      vals.forEach(function (v, i) {
+        const cell = ws.getCell(rowIdx, i + 1);
+        cell.border = thinBorder();
+        cell.alignment = { horizontal: i === 0 ? 'left' : 'center', vertical: 'middle' };
+        if (i === 4 || i === 5) {
+          cell.value = v;
+          cell.numFmt = '0.00%';
+          if (i === 5) {
+            cell.fill = fill(rateFillArgb(v, target));
+            cell.font = font({ bold: true, color: { argb: rateFontArgb(v, target) } });
+          }
+        } else if (i === 6) {
+          if (v == null) cell.value = '—';
+          else {
+            cell.value = v;
+            cell.numFmt = '0.00';
+            cell.fill = fill(v >= 0 ? 'FFC6EFCE' : 'FFFFC7CE');
+            cell.font = font({ bold: true, color: { argb: v >= 0 ? 'FF006100' : 'FF9C0006' } });
+          }
+        } else if (i === 7) {
+          cell.value = v;
+          cell.fill = fill(hit ? 'FFC6EFCE' : 'FFFFC7CE');
+          cell.font = font({ bold: true, color: { argb: hit ? 'FF006100' : 'FF9C0006' } });
+        } else {
+          cell.value = v;
+          if (i === 2) cell.font = font({ bold: true, color: { argb: 'FF006100' } });
+          if (i === 3 && v) cell.font = font({ bold: true, color: { argb: 'FF9C0006' } });
+        }
+      });
+    });
+    [16, 12, 12, 14, 10, 12, 14, 12].forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+  }
+
+  async function exportExcel() {
+    if (!pack) ensurePack();
+    if (!pack) {
+      alert('No supervisor data to export. Upload a workbook first.');
+      return;
+    }
+    const btn = document.getElementById('mttSupExport');
+    if (btn) { btn.disabled = true; btn.textContent = 'Exporting…'; }
+    try {
+      const ExcelJS = await loadExcelJS();
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'Mainline Travel Time Analyzer';
+      wb.created = new Date();
+      const overviewWs = wb.addWorksheet('Overview', { views: [{ state: 'frozen', ySplit: 3 }] });
+      writeOverviewSheet(overviewWs);
+      SHEET_DEFS.forEach(function (def) {
+        const s = sheetView(def.id);
+        if (!s) return;
+        const bySup = wb.addWorksheet(def.label + ' · Sup', { views: [{ state: 'frozen', ySplit: 3 }] });
+        writeSupervisorSheet(bySup, s.bySupervisor || [], def.label, def.target);
+        const byDc = wb.addWorksheet(def.label + ' · DC', { views: [{ state: 'frozen', ySplit: 3 }] });
+        writeDcSheet(byDc, s.byDc || [], def.label, def.target);
+      });
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = URL.createObjectURL(blob);
+      a.download = 'MTT_Supervisor_Performance_' + stamp + '.xlsx';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+    } catch (err) {
+      console.error(err);
+      alert('Export failed: ' + (err && err.message ? err.message : err));
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Export Excel'; }
+    }
   }
 
   function ensurePack() {
@@ -488,6 +748,7 @@ const MttSupervisor = (() => {
     host.querySelectorAll('[data-sup-goto]').forEach(function (btn) {
       btn.addEventListener('click', function () { setActive(btn.getAttribute('data-sup-goto')); });
     });
+    bindExpand();
   }
 
   function setActive(id) {
@@ -531,7 +792,17 @@ const MttSupervisor = (() => {
     if (modeSel) modeSel.addEventListener('change', applyPeriodFromUI);
     if (weekSel) weekSel.addEventListener('change', applyPeriodFromUI);
     if (monthSel) monthSel.addEventListener('change', applyPeriodFromUI);
+    const exp = document.getElementById('mttSupExport');
+    if (exp) exp.addEventListener('click', exportExcel);
+    const closeBtn = document.getElementById('mrTableExpandClose');
+    if (closeBtn && !closeBtn._mttSupBound) {
+      closeBtn.addEventListener('click', closeExpand);
+      closeBtn._mttSupBound = true;
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeExpand();
+    });
   }
 
-  return { init, render, onDataReady, ingestWorkbook, setActive };
+  return { init, render, onDataReady, ingestWorkbook, setActive, exportExcel };
 })();
