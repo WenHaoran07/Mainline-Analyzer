@@ -40,6 +40,39 @@ const WfdDataAnalyzer = (() => {
     return out;
   }
 
+
+  /**
+   * Maps for Supervisor Performance tables:
+   *  - supervisor → unique DCs they handle
+   *  - DC → unique supervisors handling it
+   * Dual supervisors (Cañon/Bongosia) expanded same as matrix.
+   */
+  function supervisorDcMaps(rows) {
+    const supToDc = new Map();
+    const dcToSup = new Map();
+    for (const r of rows || []) {
+      const dc = r.dcName || 'Unknown';
+      const names = (r.supervisors && r.supervisors.length)
+        ? r.supervisors
+        : [r.supervisor || 'Unassigned'];
+      for (const name of names) {
+        if (!supToDc.has(name)) supToDc.set(name, new Set());
+        supToDc.get(name).add(dc);
+        if (!dcToSup.has(dc)) dcToSup.set(dc, new Set());
+        dcToSup.get(dc).add(name);
+      }
+    }
+    const supDcs = {};
+    for (const [k, set] of supToDc.entries()) {
+      supDcs[k] = Array.from(set).sort();
+    }
+    const dcSups = {};
+    for (const [k, set] of dcToSup.entries()) {
+      dcSups[k] = Array.from(set).sort();
+    }
+    return { supDcs, dcSups };
+  }
+
   function byDc(rows) {
     return groupBy(rows, r => r.dcName);
   }
@@ -215,6 +248,7 @@ const WfdDataAnalyzer = (() => {
     summarize,
     groupBy,
     byDc,
+    supervisorDcMaps,
     bySupervisor,
     byRoute,
     byCarrier,
