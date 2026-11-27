@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SLU Waiting for Departure Analyzer | J&T</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <link rel="stylesheet" href="wfd.css">
 </head>
@@ -46,7 +47,7 @@
     <div id="results" class="hidden">
       <div class="wfd-main-tabs">
         <button type="button" class="wfd-main-tab active" id="tabWfdDay"> Date Comparison</button>
-        <button type="button" class="wfd-main-tab" id="tabWfdSup"> On Time Performance per Supervisor</button>
+        <button type="button" class="wfd-main-tab" id="tabWfdSup">👤 Supervisor Performance</button>
       </div>
 
       <div id="wfdDayPanel">
@@ -170,24 +171,61 @@
       </div>
 
       <div id="wfdSupPanel" class="hidden">
-        <div class="card sup-report-card">
-          <div class="card-head-row">
-            <div class="chart-type-toggle" role="group" aria-label="Chart type">
-              <button type="button" class="chart-type-btn active" data-type="bar">📊 Bar</button>
-              <button type="button" class="chart-type-btn" data-type="line">📈 Line</button>
+        <div class="card sup-card">
+          <div class="sup-card-head">
+            <h2><span class="icon">👤</span> Supervisor Performance</h2>
+          </div>
+
+          <div class="sup-period-bar">
+            <label class="sup-period-label">
+              <span class="sup-period-k">Period</span>
+              <select id="supPeriodMode" class="sup-period-select">
+                <option value="all">All dates</option>
+                <option value="week">Weekly</option>
+                <option value="month">Monthly</option>
+              </select>
+            </label>
+            <label class="sup-period-label hidden" id="supPeriodWeekWrap">
+              <span class="sup-period-k">Week</span>
+              <select id="supPeriodWeek" class="sup-period-select"></select>
+            </label>
+            <label class="sup-period-label hidden" id="supPeriodMonthWrap">
+              <span class="sup-period-k">Month</span>
+              <select id="supPeriodMonth" class="sup-period-select"></select>
+            </label>
+            <span class="sup-period-badge" id="supPeriodBadge">All dates</span>
+            <button type="button" class="wfd-sup-export-btn" id="btnWfdSupExport" title="Export supervisor performance">⬇ Export Excel</button>
+          </div>
+
+          <div class="wfd-sup-subtabs">
+            <button type="button" class="wfd-sup-subtab active" data-wfd-sup="overview">Overview</button>
+            <button type="button" class="wfd-sup-subtab" data-wfd-sup="matrix">Daily Matrix</button>
+          </div>
+
+          <div id="wfdSupOverview">
+            <div id="wfdSupView"></div>
+            <div class="card" style="margin-top:14px;padding-top:12px;">
+              <div class="card-head-row">
+                <h2 style="margin:0;font-size:1rem;"><span class="icon">📊</span> Accumulated on-time by supervisor</h2>
+                <div class="chart-type-toggle" role="group" aria-label="Chart type">
+                  <button type="button" class="chart-type-btn active" data-type="bar">📊 Bar</button>
+                  <button type="button" class="chart-type-btn" data-type="line">📈 Line</button>
+                </div>
+              </div>
+              <div class="chart-wrap" style="height:280px;margin-top:10px;"><canvas id="chartSupAccum"></canvas></div>
             </div>
           </div>
-          <div class="chart-wrap" style="height:280px;margin-bottom:16px;"><canvas id="chartSupAccum"></canvas></div>
 
-          <div class="sup-matrix-banner" id="supMatrixTitle">WAITING FOR DEPARTURE ON TIME PERFORMANCE PER SUPERVISOR</div>
-          <div class="table-scroll matrix-scroll">
-            <table class="sup-matrix-table">
-              <thead id="supMatrixHead"></thead>
-              <tbody id="supMatrixBody"></tbody>
-            </table>
+          <div id="wfdSupMatrixPanel" class="hidden">
+            <div class="sup-matrix-banner" id="supMatrixTitle">WAITING FOR DEPARTURE ON TIME PERFORMANCE PER SUPERVISOR</div>
+            <div class="table-scroll matrix-scroll">
+              <table class="sup-matrix-table">
+                <thead id="supMatrixHead"></thead>
+                <tbody id="supMatrixBody"></tbody>
+              </table>
+            </div>
+            <p class="section-note" style="margin-top:10px;">Yellow cells = below supervisor target · Hover a rate for total / on-time / late</p>
           </div>
-          <p class="section-note" style="margin-top:10px;">
-          </p>
         </div>
       </div>
     </div>
