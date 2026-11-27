@@ -84,7 +84,7 @@ const WfdUIManager = (() => {
     const body = document.getElementById('supBody');
     if (!body) return;
     body.innerHTML = supCompare.map(d => `<tr>
-      <td>${d.key}</td>
+      <td>${WfdUtils.displaySupervisorName(d.key)}</td>
       <td>${d.total}</td>
       <td>${d.onTime}</td>
       <td>${d.late}</td>
@@ -135,7 +135,7 @@ const WfdUIManager = (() => {
         <td>${r.taskId || '—'}</td>
         <td>${r.routeName || '—'}</td>
         <td>${r.dcName}</td>
-        <td>${r.supervisor}</td>
+        <td>${WfdUtils.displaySupervisorName(r.supervisor)}</td>
         <td>${r.plate || '—'}</td>
         <td>${r.carrier || '—'}</td>
         <td class="rate-bad">${WfdUtils.num(r.interval)}</td>
@@ -215,6 +215,445 @@ const WfdUIManager = (() => {
     supBtn.addEventListener('click', () => show('sup'));
   }
 
+
+  function rateClassSup(rate, target) {
+    if (rate == null) return '';
+    if (target != null && rate >= target) return 'ok';
+    if (rate >= 0.95) return 'ok';
+    if (rate >= 0.90) return 'mid';
+    return 'bad';
+  }
+
+  /** MTT-style overview: hero + KPIs + by supervisor + by DC (WFD on-time logic) */
+  function renderSupervisorOverview(matrix, periodLabel, byDc, maps) {
+    const host = document.getElementById('wfdSupView');
+    if (!host) return;
+
+    if (!matrix || !(matrix.rows || []).length) {
+      host.innerHTML = '<div class="sup-empty-state"><div class="sup-empty-ico">👤</div>' +
+        '<div class="sup-empty-title">No supervisor data</div>' +
+        '<p>Upload a Waiting for Departure file to see performance.</p></div>';
+      return;
+    }
+
+    const slu = (matrix.rows || []).find(r => r.name === 'SLU') || {};
+    const target = WfdUtils.TARGET; // overall 97%
+    const rate = slu.accumulated;
+    const hit = rate != null && rate >= target;
+    const gap = (rate != null) ? (rate - target) * 100 : null;
+    const total = slu.total || 0;
+    const onTime = slu.onTime || 0;
+    const late = slu.late || 0;
+
+    let h = '';
+    h += '<div class="sup-showing">Showing: <strong>' + (periodLabel || 'All dates') +
+      '</strong> · ' + total.toLocaleString() + ' departures</div>';
+
+    h += '<div class="sup-top-row">';
+    h += '<div class="sup-hero ' + (hit ? 'is-ok' : 'is-bad') + '">';
+    h += '<div class="sup-hero-kicker">SLU Waiting for Departure</div>';
+    h += '<div class="sup-hero-rate">' + WfdUtils.pct(rate) + '</div>';
+    h += '<div class="sup-hero-tgt">Target ' + WfdUtils.pct(target, 0);
+    if (gap != null) {
+      h += ' · <span class="' + (gap >= 0 ? 'up' : 'down') + '">' +
+        (gap >= 0 ? '+' : '') + gap.toFixed(2) + ' pp vs target</span>';
+    }
+    h += '</div></div>';
+
+    h += '<div class="sup-kpi-row">';
+    h += '<div class="sup-kpi"><div class="sup-kpi-ico muted">📦</div><div class="sup-kpi-body">';
+    h += '<div class="sup-kpi-k">Total departures</div><div class="sup-kpi-v">' + total.toLocaleString() + '</div></div></div>';
+    h += '<div class="sup-kpi ok"><div class="sup-kpi-ico ok">✓</div><div class="sup-kpi-body">';
+    h += '<div class="sup-kpi-k">On time (≤30 min)</div><div class="sup-kpi-v pos">' + onTime.toLocaleString() + '</div></div></div>';
+    h += '<div class="sup-kpi bad"><div class="sup-kpi-ico bad">✕</div><div class="sup-kpi-body">';
+    h += '<div class="sup-kpi-k">Late (&gt;30 min)</div><div class="sup-kpi-v neg">' + late.toLocaleString() + '</div></div></div>';
+    h += '</div></div>'; // kpi-row + top-row
+
+    // By Supervisor
+    const supRows = (matrix.rows || []).filter(r => r.name !== 'SLU');
+    const supDcs = (maps && maps.supDcs) || {};
+    const dcSups = (maps && maps.dcSups) || {};
+    h += '<div class="sup-section-bar"><h4 class="sup-section-title">By Supervisor In-charge</h4></div>';
+    if (!supRows.length) {
+      h += '<p class="section-note">No supervisor rows.</p>';
+    } else {
+      h += '<div class="sup-table-wrap"><table class="sup-grid"><thead><tr>';
+      h += '<th>Supervisor In-charge</th><th>DC Handling</th><th>Total departures</th><th>On time</th><th>Late</th><th>Target</th><th>Rate</th>';
+      h += '</tr></thead><tbody>';
+      supRows.forEach(r => {
+        const tgt = r.target != null ? r.target : WfdUtils.supervisorTarget(r.name);
+        const rc = rateClassSup(r.accumulated, tgt);
+        const dcs = supDcs[r.name] || [];
+        const dcHtml = dcs.length
+          ? dcs.map(d => '<span class="sup-dc-chip">' + d + '</span>').join(' ')
+          : '<span class="muted-cell">—</span>';
+        h += '<tr>';
+        h += '<td class="left"><strong>' + WfdUtils.displaySupervisorName(r.name || '—') + '</strong></td>';
+        h += '<td class="left dc-list-cell">' + dcHtml + '</td>';
+        h += '<td>' + (r.total || 0).toLocaleString() + '</td>';
+        h += '<td class="pos">' + (r.onTime || 0).toLocaleString() + '</td>';
+        h += '<td class="' + (r.late ? 'neg' : '') + '">' + (r.late || 0).toLocaleString() + '</td>';
+        h += '<td>' + WfdUtils.pct(tgt, 0) + '</td>';
+        h += '<td class="rate-cell ' + rc + '">' + WfdUtils.pct(r.accumulated) + '</td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+
+    // By DC
+    h += '<div class="sup-section-bar" style="margin-top:20px;"><h4 class="sup-section-title">By Departure DC</h4></div>';
+    if (!byDc || !byDc.length) {
+      h += '<p class="section-note">No DC rows.</p>';
+    } else {
+      h += '<div class="sup-table-wrap"><table class="sup-grid"><thead><tr>';
+      h += '<th>DC Name</th><th>Supervisor Handling</th><th>Total departures</th><th>On time</th><th>Late</th><th>Target</th><th>Rate</th><th>Avg wait (min)</th>';
+      h += '</tr></thead><tbody>';
+      byDc.forEach(d => {
+        const tgt = WfdUtils.TARGET;
+        const rc = rateClassSup(d.rate, tgt);
+        const sups = dcSups[d.key] || [];
+        const supHtml = sups.length
+          ? sups.map(s => '<span class="sup-person-chip">' + WfdUtils.displaySupervisorName(s) + '</span>').join(' ')
+          : '<span class="muted-cell">—</span>';
+        h += '<tr>';
+        h += '<td class="left"><strong>' + (d.key || '—') + '</strong></td>';
+        h += '<td class="left dc-list-cell">' + supHtml + '</td>';
+        h += '<td>' + (d.total || 0).toLocaleString() + '</td>';
+        h += '<td class="pos">' + (d.onTime || 0).toLocaleString() + '</td>';
+        h += '<td class="' + (d.late ? 'neg' : '') + '">' + (d.late || 0).toLocaleString() + '</td>';
+        h += '<td>' + WfdUtils.pct(tgt, 0) + '</td>';
+        h += '<td class="rate-cell ' + rc + '">' + WfdUtils.pct(d.rate) + '</td>';
+        h += '<td>' + WfdUtils.num(d.avgWait) + '</td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+
+    host.innerHTML = h;
+  }
+
+
+  function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+      if (document.querySelector('script[src="' + src + '"]') && typeof ExcelJS !== 'undefined') {
+        resolve();
+        return;
+      }
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensureExcelJS() {
+    if (typeof ExcelJS !== 'undefined') return;
+    await loadScriptOnce('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+  }
+
+  const WfdXLS = {
+    thin: function (argb) {
+      const s = { style: 'thin', color: { argb: argb || 'FFE0E0E0' } };
+      return { top: s, left: s, bottom: s, right: s };
+    },
+    fill: function (argb) {
+      return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } };
+    },
+    font: function (opts) {
+      return Object.assign({ name: 'Calibri', size: 10 }, opts || {});
+    }
+  };
+
+  function styleTitleRow(ws, row, text, colCount) {
+    ws.mergeCells(row, 1, row, colCount);
+    const cell = ws.getCell(row, 1);
+    cell.value = text;
+    cell.font = WfdXLS.font({ bold: true, size: 16, color: { argb: 'FFE60012' } });
+    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getRow(row).height = 26;
+  }
+
+  function styleSubRow(ws, row, text, colCount) {
+    ws.mergeCells(row, 1, row, colCount);
+    const cell = ws.getCell(row, 1);
+    cell.value = text;
+    cell.font = WfdXLS.font({ size: 10, color: { argb: 'FF757575' } });
+    cell.alignment = { vertical: 'middle', horizontal: 'left' };
+    ws.getRow(row).height = 18;
+  }
+
+  function styleHeaderRow(ws, rowNum, colCount) {
+    const row = ws.getRow(rowNum);
+    for (let c = 1; c <= colCount; c++) {
+      const cell = row.getCell(c);
+      cell.fill = WfdXLS.fill('FFE60012');
+      cell.font = WfdXLS.font({ bold: true, color: { argb: 'FFFFFFFF' }, size: 11 });
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = WfdXLS.thin('FFE0E0E0');
+    }
+    row.height = 22;
+  }
+
+  function rateFill(rate, target) {
+    if (rate == null || isNaN(rate)) return WfdXLS.fill('FFFFFFFF');
+    if (target != null && rate >= target) return WfdXLS.fill('FFC6EFCE');
+    if (target != null && rate < target) return WfdXLS.fill('FFFFC7CE');
+    return WfdXLS.fill('FFFFFFFF');
+  }
+
+  function rateFont(rate, target) {
+    if (rate == null || isNaN(rate)) return WfdXLS.font({ size: 10 });
+    if (target != null && rate >= target) return WfdXLS.font({ bold: true, size: 10, color: { argb: 'FF006100' } });
+    if (target != null && rate < target) return WfdXLS.font({ bold: true, size: 10, color: { argb: 'FF9C0006' } });
+    return WfdXLS.font({ size: 10 });
+  }
+
+  function writeDataCell(cell, value, opts) {
+    opts = opts || {};
+    cell.value = value;
+    cell.border = WfdXLS.thin('FFE0E0E0');
+    cell.font = opts.font || WfdXLS.font({ size: 10 });
+    cell.alignment = opts.alignment || { vertical: 'middle', horizontal: opts.left ? 'left' : 'center' };
+    if (opts.fill) cell.fill = opts.fill;
+    if (opts.numFmt) cell.numFmt = opts.numFmt;
+  }
+
+  async function exportSupervisorPerformance(matrix, byDc, periodLabel, maps) {
+    if (!matrix || !(matrix.rows || []).length) {
+      alert('No supervisor data to export.');
+      return;
+    }
+
+    try {
+      await ensureExcelJS();
+    } catch (e) {
+      alert('Could not load Excel library. Check your internet connection.');
+      return;
+    }
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'WFD Analyzer';
+    wb.created = new Date();
+    const period = periodLabel || 'All dates';
+    const stamp = new Date().toISOString().slice(0, 10);
+
+    // ===== Sheet 1: By Supervisor =====
+    {
+      const ws = wb.addWorksheet('By Supervisor', {
+        views: [{ state: 'frozen', ySplit: 4 }]
+      });
+      const headers = ['Supervisor', 'DC Handling', 'Total Departures', 'On Time', 'Late', 'Target %', 'Rate %'];
+      const colCount = headers.length;
+      const supDcsMap = (maps && maps.supDcs) || {};
+      const dcSupsMap = (maps && maps.dcSups) || {};
+      ws.columns = [
+        { width: 28 }, { width: 36 }, { width: 16 }, { width: 12 }, { width: 10 }, { width: 12 }, { width: 12 }
+      ];
+
+      styleTitleRow(ws, 1, 'Waiting for Departure — Supervisor Performance', colCount);
+      styleSubRow(ws, 2, 'Period: ' + period + '  ·  Generated: ' + stamp, colCount);
+      ws.getRow(3).height = 8;
+
+      headers.forEach((h, i) => { ws.getCell(4, i + 1).value = h; });
+      styleHeaderRow(ws, 4, colCount);
+
+      (matrix.rows || []).forEach((r, idx) => {
+        const rowNum = 5 + idx;
+        const tgt = r.target != null ? r.target : WfdUtils.supervisorTarget(r.name);
+        const rate = r.accumulated;
+        const isSlu = r.name === 'SLU';
+        const name = isSlu ? 'SLU' : WfdUtils.displaySupervisorName(r.name);
+        const alt = idx % 2 === 1 ? WfdXLS.fill('FFF9F9F9') : WfdXLS.fill('FFFFFFFF');
+        const sluFill = isSlu ? WfdXLS.fill('FFFFEBEE') : alt;
+
+        const dcList = isSlu ? 'All DCs' : ((supDcsMap[r.name] || []).join(', ') || '—');
+        writeDataCell(ws.getCell(rowNum, 1), name, {
+          left: true,
+          fill: sluFill,
+          font: WfdXLS.font({ bold: isSlu, size: 10 })
+        });
+        writeDataCell(ws.getCell(rowNum, 2), dcList, {
+          left: true,
+          fill: sluFill,
+          font: WfdXLS.font({ size: 9, color: { argb: 'FF616161' } })
+        });
+        writeDataCell(ws.getCell(rowNum, 3), r.total || 0, { fill: sluFill });
+        writeDataCell(ws.getCell(rowNum, 4), r.onTime || 0, {
+          fill: sluFill,
+          font: WfdXLS.font({ size: 10, color: { argb: 'FF2E7D32' }, bold: true })
+        });
+        writeDataCell(ws.getCell(rowNum, 5), r.late || 0, {
+          fill: sluFill,
+          font: WfdXLS.font({ size: 10, color: { argb: r.late ? 'FFC62828' : 'FF616161' }, bold: !!r.late })
+        });
+        writeDataCell(ws.getCell(rowNum, 6), tgt != null ? +(tgt * 100).toFixed(1) : '', {
+          fill: sluFill,
+          numFmt: '0.0'
+        });
+        writeDataCell(ws.getCell(rowNum, 7), rate != null ? +(rate * 100).toFixed(2) : '', {
+          fill: rateFill(rate, tgt),
+          font: rateFont(rate, tgt),
+          numFmt: '0.00'
+        });
+        ws.getRow(rowNum).height = 18;
+      });
+    }
+
+    // ===== Sheet 2: By DC =====
+    if (byDc && byDc.length) {
+      const ws = wb.addWorksheet('By DC', {
+        views: [{ state: 'frozen', ySplit: 4 }]
+      });
+      const headers = ['DC Name', 'Supervisor Handling', 'Total Departures', 'On Time', 'Late', 'Target %', 'Rate %', 'Avg Wait (min)'];
+      const colCount = headers.length;
+      const dcSupsMap = (maps && maps.dcSups) || {};
+      ws.columns = [
+        { width: 22 }, { width: 32 }, { width: 16 }, { width: 12 }, { width: 10 },
+        { width: 12 }, { width: 12 }, { width: 14 }
+      ];
+
+      styleTitleRow(ws, 1, 'Waiting for Departure — By Departure DC', colCount);
+      styleSubRow(ws, 2, 'Period: ' + period + '  ·  Generated: ' + stamp, colCount);
+      ws.getRow(3).height = 8;
+
+      headers.forEach((h, i) => { ws.getCell(4, i + 1).value = h; });
+      styleHeaderRow(ws, 4, colCount);
+
+      const tgt = WfdUtils.TARGET;
+      byDc.forEach((d, idx) => {
+        const rowNum = 5 + idx;
+        const rate = d.rate;
+        const alt = idx % 2 === 1 ? WfdXLS.fill('FFF9F9F9') : WfdXLS.fill('FFFFFFFF');
+
+        const supList = (dcSupsMap[d.key] || []).map(s => WfdUtils.displaySupervisorName(s)).join(', ') || '—';
+        writeDataCell(ws.getCell(rowNum, 1), d.key || '', { left: true, fill: alt, font: WfdXLS.font({ bold: true, size: 10 }) });
+        writeDataCell(ws.getCell(rowNum, 2), supList, {
+          left: true,
+          fill: alt,
+          font: WfdXLS.font({ size: 9, color: { argb: 'FF616161' } })
+        });
+        writeDataCell(ws.getCell(rowNum, 3), d.total || 0, { fill: alt });
+        writeDataCell(ws.getCell(rowNum, 4), d.onTime || 0, {
+          fill: alt,
+          font: WfdXLS.font({ size: 10, color: { argb: 'FF2E7D32' }, bold: true })
+        });
+        writeDataCell(ws.getCell(rowNum, 5), d.late || 0, {
+          fill: alt,
+          font: WfdXLS.font({ size: 10, color: { argb: d.late ? 'FFC62828' : 'FF616161' }, bold: !!d.late })
+        });
+        writeDataCell(ws.getCell(rowNum, 6), +(tgt * 100).toFixed(1), { fill: alt, numFmt: '0.0' });
+        writeDataCell(ws.getCell(rowNum, 7), rate != null ? +(rate * 100).toFixed(2) : '', {
+          fill: rateFill(rate, tgt),
+          font: rateFont(rate, tgt),
+          numFmt: '0.00'
+        });
+        writeDataCell(ws.getCell(rowNum, 8), d.avgWait != null ? +Number(d.avgWait).toFixed(1) : '', {
+          fill: alt,
+          numFmt: '0.0'
+        });
+        ws.getRow(rowNum).height = 18;
+      });
+    }
+
+    // ===== Sheet 3: Daily Matrix =====
+    {
+      const ws = wb.addWorksheet('Daily Matrix', {
+        views: [{ state: 'frozen', xSplit: 1, ySplit: 4 }]
+      });
+      const dates = matrix.dates || [];
+      const dayLabels = dates.map(d => {
+        const parts = String(d).split('-');
+        if (parts.length === 3) {
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const mi = parseInt(parts[1], 10) - 1;
+          return parseInt(parts[2], 10) + '/' + (months[mi] || parts[1]);
+        }
+        return WfdUtils.formatDateLabel(d);
+      });
+      const headers = ['Supervisor', 'Accumulated %', 'Target %', 'Variance pp', ...dayLabels];
+      const colCount = headers.length;
+
+      ws.getColumn(1).width = 28;
+      ws.getColumn(2).width = 14;
+      ws.getColumn(3).width = 12;
+      ws.getColumn(4).width = 12;
+      for (let i = 5; i <= colCount; i++) ws.getColumn(i).width = 10;
+
+      styleTitleRow(ws, 1, 'Waiting for Departure — Daily Supervisor Matrix', colCount);
+      styleSubRow(ws, 2, 'Period: ' + period + '  ·  Generated: ' + stamp + '  ·  Yellow / red = below target', colCount);
+      ws.getRow(3).height = 8;
+
+      headers.forEach((h, i) => { ws.getCell(4, i + 1).value = h; });
+      styleHeaderRow(ws, 4, colCount);
+
+      (matrix.rows || []).forEach((row, idx) => {
+        const rowNum = 5 + idx;
+        const isSlu = row.name === 'SLU';
+        const name = isSlu ? 'SLU' : WfdUtils.displaySupervisorName(row.name);
+        const tgt = row.target != null ? row.target : WfdUtils.supervisorTarget(row.name);
+        const alt = isSlu ? WfdXLS.fill('FFFFEBEE') : (idx % 2 === 1 ? WfdXLS.fill('FFF9F9F9') : WfdXLS.fill('FFFFFFFF'));
+
+        writeDataCell(ws.getCell(rowNum, 1), name, {
+          left: true,
+          fill: isSlu ? WfdXLS.fill('FFE60012') : alt,
+          font: WfdXLS.font({ bold: true, size: 10, color: { argb: isSlu ? 'FFFFFFFF' : 'FF212121' } })
+        });
+        writeDataCell(ws.getCell(rowNum, 2), row.accumulated != null ? +(row.accumulated * 100).toFixed(2) : '', {
+          fill: rateFill(row.accumulated, tgt),
+          font: rateFont(row.accumulated, tgt),
+          numFmt: '0.00'
+        });
+        writeDataCell(ws.getCell(rowNum, 3), tgt != null ? +(tgt * 100).toFixed(1) : '', {
+          fill: alt,
+          numFmt: '0.0'
+        });
+        const variance = row.variance != null ? +(row.variance * 100).toFixed(2) : null;
+        writeDataCell(ws.getCell(rowNum, 4), variance != null ? variance : '', {
+          fill: variance == null ? alt : rateFill(variance >= 0 ? 1 : 0, 0.5),
+          font: variance == null ? WfdXLS.font({ size: 10 }) : rateFont(variance >= 0 ? 1 : 0, 0.5),
+          numFmt: '0.00'
+        });
+
+        dates.forEach((d, di) => {
+          const r = row.daily && row.daily[d];
+          const cell = ws.getCell(rowNum, 5 + di);
+          if (r == null) {
+            writeDataCell(cell, '—', {
+              fill: alt,
+              font: WfdXLS.font({ size: 10, color: { argb: 'FFBDBDBD' } })
+            });
+          } else {
+            writeDataCell(cell, +(r * 100).toFixed(2), {
+              fill: rateFill(r, tgt),
+              font: rateFont(r, tgt),
+              numFmt: '0.00'
+            });
+          }
+        });
+        ws.getRow(rowNum).height = 18;
+      });
+    }
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'WFD_Supervisor_Performance_' + stamp + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 1500);
+  }
+
+  function renderSupervisorMetrics(matrix) {
+    // kept for compatibility — overview is preferred
+    renderSupervisorOverview(matrix, 'All dates', null);
+  }
+
+
   /** Excel Sheet2-style matrix: red header, yellow below-target, hover totals */
   function renderSupervisorMatrix(matrix) {
     const head = document.getElementById('supMatrixHead');
@@ -262,7 +701,7 @@ const WfdUIManager = (() => {
       }).join('');
       const nameCls = row.name === 'SLU' ? 'sup-slu-row' : '';
       return `<tr class="${nameCls}">
-        <td class="sticky-col"><strong>${row.name}</strong></td>
+        <td class="sticky-col"><strong>${WfdUtils.displaySupervisorName(row.name)}</strong></td>
         <td class="${accCls} pct-cell" title="${accTip}">${WfdUtils.pct(row.accumulated, 2)}</td>
         <td>${WfdUtils.pct(row.target, 2)}</td>
         <td class="${varCls}">${varText}</td>
@@ -281,6 +720,9 @@ const WfdUIManager = (() => {
     renderLateDetail,
     renderHistory,
     renderSupervisorMatrix,
+    renderSupervisorMetrics,
+    renderSupervisorOverview,
+    exportSupervisorPerformance,
     populateDateSelects,
     setDateBadges,
     showResults,
