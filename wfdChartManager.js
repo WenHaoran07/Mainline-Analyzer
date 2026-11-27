@@ -110,7 +110,11 @@ const WfdChartManager = (() => {
   }
 
   function renderSupChart(supCompare) {
-    const labels = supCompare.map(d => d.key.length > 22 ? d.key.slice(0, 20) + '…' : d.key);
+    const labels = supCompare.map(d => {
+      const dn = (typeof WfdUtils !== 'undefined' && WfdUtils.displaySupervisorName)
+        ? WfdUtils.displaySupervisorName(d.key) : d.key;
+      return dn.length > 22 ? dn.slice(0, 20) + '…' : dn;
+    });
     const rates = supCompare.map(d => d.rate);
     barChart('chartSup', labels, rates, 'On-time rate', { isPercent: true, colorByRate: true });
   }
@@ -158,7 +162,11 @@ const WfdChartManager = (() => {
     if (!m || !m.rows) return;
 
     const rows = m.rows.filter(r => r.name !== 'SLU' && r.accumulated != null);
-    const labels = rows.map(r => r.name.length > 20 ? r.name.slice(0, 18) + '…' : r.name);
+    const labels = rows.map(r => {
+      const dn = (typeof WfdUtils !== 'undefined' && WfdUtils.displaySupervisorName)
+        ? WfdUtils.displaySupervisorName(r.name) : r.name;
+      return dn.length > 20 ? dn.slice(0, 18) + '…' : dn;
+    });
     const rates = rows.map(r => r.accumulated);
     const totals = rows.map(r => r.total || 0);
     const lates = rows.map(r => r.late || 0);
