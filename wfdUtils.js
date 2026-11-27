@@ -39,6 +39,21 @@ const WfdUtils = (() => {
   }
 
   /** Canonical single name (no merge of Cañon/Bongosia) */
+
+  /**
+   * Display as Firstname Lastname.
+   * Canonical storage is Surname Firstname (e.g. "Caranguian Julius", "Cañon Christopher John").
+   */
+  function displaySupervisorName(name) {
+    const s = safeStr(name);
+    if (!s || s === 'SLU' || s === 'Unassigned') return s || '—';
+    const parts = s.split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return s;
+    const surname = parts[0];
+    const given = parts.slice(1).join(' ');
+    return given + ' ' + surname;
+  }
+
   function normalizeSupervisorName(raw) {
     const s = safeStr(raw);
     if (!s) return 'Unassigned';
@@ -205,6 +220,42 @@ const WfdUtils = (() => {
     return nums.reduce((a, b) => a + b, 0) / nums.length;
   }
 
+
+  /** ISO-ish week key (Monday start) YYYY-MM-DD of week start */
+  function weekKey(dateKey) {
+    if (!dateKey) return null;
+    const parts = String(dateKey).split('-').map(Number);
+    if (parts.length < 3) return null;
+    const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (isNaN(dt.getTime())) return null;
+    const day = (dt.getDay() + 6) % 7; // Mon=0
+    dt.setDate(dt.getDate() - day);
+    return dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
+  }
+
+  function weekLabel(dateKey) {
+    const wk = weekKey(dateKey);
+    if (!wk) return null;
+    // Excel-ish week number
+    const parts = wk.split('-').map(Number);
+    const jan1 = new Date(parts[0], 0, 1);
+    const monday = new Date(parts[0], parts[1] - 1, parts[2]);
+    const weekNum = Math.floor((monday - jan1) / 86400000 / 7) + 1;
+    return 'WK ' + weekNum + ' (' + formatDateLabel(wk) + ')';
+  }
+
+  function monthKey(dateKey) {
+    return dateKey ? String(dateKey).slice(0, 7) : null;
+  }
+
+  function monthLabel(mk) {
+    if (!mk || mk.length < 7) return mk || '—';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const parts = mk.split('-');
+    const mi = parseInt(parts[1], 10) - 1;
+    return (months[mi] || parts[1]) + ' ' + parts[0];
+  }
+
   return {
     TARGET,
     THRESHOLD_MIN,
@@ -214,6 +265,7 @@ const WfdUtils = (() => {
     SUPERVISOR_ORDER,
     supervisorTarget,
     normalizeSupervisorName,
+    displaySupervisorName,
     resolveSupervisor,
     parseDateKey,
     formatDateLabel,
@@ -226,6 +278,10 @@ const WfdUtils = (() => {
     expandSupervisors,
     safeStr,
     avg,
-    pad2
+    pad2,
+    weekKey,
+    weekLabel,
+    monthKey,
+    monthLabel
   };
 })();
